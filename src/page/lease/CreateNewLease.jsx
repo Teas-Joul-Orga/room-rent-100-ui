@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -7,57 +7,42 @@ export default function CreateNewLease() {
   const { id } = useParams();
   const isEdit = Boolean(id);
 
-  const [tenant, setTenant] = useState("");
-  const [room, setRoom] = useState("");
-  const [rent, setRent] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [status, setStatus] = useState("Inactive");
-
-  const [rooms, setRooms] = useState([]);
-
-  // ===== LOAD ROOMS =====
-  useEffect(() => {
-    const savedRooms = JSON.parse(localStorage.getItem("rooms")) || [];
-    setRooms(savedRooms);
-  }, []);
-
-  // ===== LOAD LEASE WHEN EDIT =====
-  useEffect(() => {
+  const [tenant, setTenant] = useState(() => {
+    if (!isEdit) return "";
     const leases = JSON.parse(localStorage.getItem("leases")) || [];
+    const found = leases.find((l) => l.id === Number(id));
+    return found ? found.tenant : "";
+  });
+  const [room, setRoom] = useState(() => {
+    if (!isEdit) return "";
+    const leases = JSON.parse(localStorage.getItem("leases")) || [];
+    const found = leases.find((l) => l.id === Number(id));
+    return found ? found.room : "";
+  });
+  const [rent, setRent] = useState(() => {
+    if (!isEdit) return "";
+    const leases = JSON.parse(localStorage.getItem("leases")) || [];
+    const found = leases.find((l) => l.id === Number(id));
+    return found ? found.rent : "";
+  });
+  const [startDate, setStartDate] = useState(() => {
+    if (!isEdit) return "";
+    const leases = JSON.parse(localStorage.getItem("leases")) || [];
+    const found = leases.find((l) => l.id === Number(id));
+    return found ? found.startDate : "";
+  });
+  const [endDate, setEndDate] = useState(() => {
+    if (!isEdit) return "";
+    const leases = JSON.parse(localStorage.getItem("leases")) || [];
+    const found = leases.find((l) => l.id === Number(id));
+    return found ? found.endDate : "";
+  });
+  const today = new Date().toISOString().split("T")[0];
+  const status = (startDate && endDate && today >= startDate && today <= endDate) ? "Active" : "Inactive";
 
-    if (isEdit) {
-      const found = leases.find((l) => l.id === Number(id));
-      if (found) {
-        setTenant(found.tenant);
-        setRoom(found.room);
-        setRent(found.rent);
-        setStartDate(found.startDate);
-        setEndDate(found.endDate);
-        setStatus(found.status || "Inactive");
-      }
-    } else {
-      // RESET WHEN ADD
-      setTenant("");
-      setRoom("");
-      setRent("");
-      setStartDate("");
-      setEndDate("");
-      setStatus("Inactive");
-    }
-  }, [id, isEdit]);
-
-  // ===== AUTO STATUS BY DATE =====
-  useEffect(() => {
-    if (!startDate || !endDate) return;
-
-    const today = new Date().toISOString().split("T")[0];
-    if (today >= startDate && today <= endDate) {
-      setStatus("Active");
-    } else {
-      setStatus("Inactive");
-    }
-  }, [startDate, endDate]);
+  const [rooms] = useState(() => {
+    return JSON.parse(localStorage.getItem("rooms")) || [];
+  });
 
   // ===== SAVE =====
   const handleSubmit = (e) => {

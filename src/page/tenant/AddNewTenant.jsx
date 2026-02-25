@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 const AddNewTenant = () => {
@@ -6,24 +6,13 @@ const AddNewTenant = () => {
   const { id } = useParams();
   const isEdit = Boolean(id);
 
-  const [tenant, setTenant] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    occupation: "",
-    dob: "",
-    tenantPhoto: null,
-    idCardFront: null,
-    idCardBack: null,
-  });
-
-  useEffect(() => {
+  const [tenant, setTenant] = useState(() => {
     if (isEdit) {
       const list = JSON.parse(localStorage.getItem("tenants")) || [];
       const found = list.find((t) => t.id === Number(id));
 
       if (found) {
-        setTenant({
+        return {
           name: found.name || "",
           email: found.email || "",
           phone: found.phone || "",
@@ -32,10 +21,20 @@ const AddNewTenant = () => {
           tenantPhoto: null,
           idCardFront: null,
           idCardBack: null,
-        });
+        };
       }
     }
-  }, [id, isEdit]);
+    return {
+      name: "",
+      email: "",
+      phone: "",
+      occupation: "",
+      dob: "",
+      tenantPhoto: null,
+      idCardFront: null,
+      idCardBack: null,
+    };
+  });
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;

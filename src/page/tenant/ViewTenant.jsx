@@ -1,355 +1,434 @@
-import React, { useEffect, useState } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { 
+  Box, Flex, Grid, Text, Heading, Badge, Button, Image, 
+  Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, 
+  ModalBody, ModalCloseButton, useDisclosure, useColorModeValue, 
+  useColorMode, VStack, HStack, Input, FormControl, FormLabel,
+  Icon, Spinner, Table, Thead, Tbody, Tr, Th, Td, IconButton,
+  useToast
+} from "@chakra-ui/react";
 import { CiEdit } from "react-icons/ci";
-import { motion, AnimatePresence } from "framer-motion";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { LuArrowLeft, LuFileText } from "react-icons/lu";
 
 export default function ViewTenant() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [tenant, setTenant] = useState(null);
-  const [showIdModal, setShowIdModal] = useState(false);
-  const location = useLocation();
-  const tenantEmail = location.state?.email || "";
-  const tenantId = location.state?.id || ""; // make sure ViewTenant passes the id
+  const toast = useToast();
+  const token = localStorage.getItem("token");
 
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  // Chakra UI colors
+  const { colorMode } = useColorMode();
+  const bgMain = useColorModeValue("sky.50", "gray.900");
+  const cardBg = useColorModeValue("white", "gray.800");
+  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const hoverBg = useColorModeValue("gray.50", "gray.700");
+  const textColor = useColorModeValue("gray.900", "white");
+  const mutedTextColor = useColorModeValue("gray.500", "gray.400");
+  const tableHeaderBg = useColorModeValue("sky.50", "gray.700");
+
+  const [tenant, setTenant] = useState(null);
+  const [loadingTenant, setLoadingTenant] = useState(true);
+
+  // Modals
+  const { isOpen: isIdOpen, onOpen: onIdOpen, onClose: onIdClose } = useDisclosure();
+  const { isOpen: isPwdOpen, onOpen: onPwdOpen, onClose: onPwdClose } = useDisclosure();
+
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loadingPwd, setLoadingPwd] = useState(false);
+
+  useEffect(() => {
+    fetchTenantDetails();
+  }, [id]);
+
+  const fetchTenantDetails = async () => {
+    try {
+      setLoadingTenant(true);
+      const res = await fetch(`http://localhost:8000/api/v1/admin/tenants/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTenant(data);
+      } else {
+        toast({ title: "Error", description: "Failed to fetch tenant details.", status: "error", duration: 3000 });
+      }
+    } catch (err) {
+      toast({ title: "Network Error", description: "Could not connect to the server.", status: "error", duration: 3000 });
+    } finally {
+      setLoadingTenant(false);
+    }
+  };
 
   const isMismatch = confirmPassword && newPassword !== confirmPassword;
 
-  useEffect(() => {
-    const list = JSON.parse(localStorage.getItem("tenants")) || [];
-    const normalizedList = list.map((t) => ({
-      id: t.id || 0,
-      name: t.name || "Unknown",
-      email: t.email || "Not provided",
-      phone: t.phone || "Not provided",
-      occupation: t.occupation || t.job || "Not specified",
-      dob: t.dob || "Not specified",
-      photo: t.photo || "https://via.placeholder.com/150",
-      status: t.status || "Pending",
-      idFront: t.idFront || "https://via.placeholder.com/300x200",
-      idBack: t.idBack || "https://via.placeholder.com/300x200",
-    }));
-
-    const found = normalizedList.find((t) => t.id === Number(id));
-    setTenant(found);
-  }, [id]);
-
-  const handleUpdatePassword = (e) => {
+  const handleUpdatePassword = async (e) => {
     e.preventDefault();
     if (isMismatch) return;
 
-    setLoading(true);
+    setLoadingPwd(true);
 
-    setTimeout(() => {
-      const tenants = JSON.parse(localStorage.getItem("tenants")) || [];
-      const updated = tenants.map((t) =>
-        t.email === tenant.email
-          ? { ...t, account: { password: newPassword }, status: "Linked" }
-          : t,
-      );
-      localStorage.setItem("tenants", JSON.stringify(updated));
-      setLoading(false);
-      setShowPasswordModal(false);
-    }, 700);
+    try {
+      const res = await fetch(`http://localhost:8000/api/v1/admin/tenants/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          change_password: true,
+          password: newPassword,
+          password_confirmation: confirmPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setNewPassword("");
+        setConfirmPassword("");
+        onPwdClose();
+        toast({ title: "Success", description: "Password updated successfully", status: "success", duration: 3000 });
+      } else {
+        toast({ title: "Error", description: data.error || data.message || "Failed to update password", status: "error", duration: 4000 });
+      }
+    } catch (err) {
+      toast({ title: "Network Error", description: "Network error occurred.", status: "error", duration: 3000 });
+    } finally {
+      setLoadingPwd(false);
+    }
   };
 
-  if (!tenant) return <p className="p-6 text-gray-500">Tenant not found.</p>;
+  if (loadingTenant) {
+    return (
+      <Flex justify="center" align="center" minH="100vh" bg={bgMain}>
+        <Spinner size="xl" color="blue.500" />
+      </Flex>
+    );
+  }
+
+  if (!tenant) {
+    return (
+      <Flex justify="center" align="center" minH="100vh" bg={bgMain}>
+        <Text color="red.500" fontSize="xl">Tenant not found.</Text>
+      </Flex>
+    );
+  }
 
   return (
-    <div className="p-6 bg-sky-50 min-h-screen space-y-6">
-      {/* ===== HEADER ===== */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-sky-900">Tenant Detail</h2>
-        <button
-          onClick={() => navigate(-1)}
-          className="px-4 py-2 rounded-lg border bg-white hover:bg-sky-100 transition"
-        >
-          ← Back
-        </button>
-      </div>
-
-      {/* ===== PROFILE CARD ===== */}
-      <div className="bg-white rounded-2xl shadow p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* LEFT */}
-        <div className="flex flex-col items-center text-center gap-3">
-          <div className="relative">
-            <img
-              src={tenant.photo}
-              alt="Tenant"
-              className="w-32 h-32 rounded-full object-cover border-4 border-sky-200"
-            />
-            <span
-              className={`absolute bottom-2 right-2 w-4 h-4 rounded-full border-2 border-white
-              ${tenant.status === "Linked" ? "bg-green-500" : "bg-yellow-400"}`}
-            ></span>
-          </div>
-
-          <h3 className="text-xl font-bold">{tenant.name}</h3>
-
-          <span
-            className={`px-4 py-1 rounded-full text-sm font-semibold
-            ${
-              tenant.status === "Linked"
-                ? "bg-green-100 text-green-700"
-                : "bg-yellow-100 text-yellow-700"
-            }`}
+    <Box p={6} bg={bgMain} minH="100vh">
+      <VStack spacing={6} align="stretch" w="full">
+        
+        {/* ===== HEADER ===== */}
+        <Flex justify="space-between" align="center">
+          <Heading size="lg" color={textColor}>Tenant Profile</Heading>
+          <Button 
+            leftIcon={<LuArrowLeft />} 
+            onClick={() => navigate(-1)} 
+            variant="outline" 
+            bg={cardBg} 
+            borderColor={borderColor}
+            _hover={{ bg: hoverBg }}
           >
-            {tenant.status === "Linked" ? "Account Linked" : "Pending"}
-          </span>
-        </div>
+            Back
+          </Button>
+        </Flex>
 
-        {/* RIGHT */}
-        <div className="md:col-span-2 space-y-4">
-          {/* ACTION BAR */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <h4 className="text-lg font-semibold text-gray-800">
-              Tenant Information
-            </h4>
-            <button
-              onClick={() => setShowPasswordModal(true)}
-              className="flex items-center gap-1 px-4 py-2 rounded-lg bg-sky-600 text-white hover:bg-sky-700"
+        {/* ===== PROFILE & INFO CARD ===== */}
+        <Grid templateColumns={{ base: "1fr", lg: "1fr 2fr" }} gap={6}>
+          
+          {/* LEFT: AVATAR CARD */}
+          <Box bg={cardBg} p={8} borderRadius="2xl" boxShadow="sm" borderWidth="1px" borderColor={borderColor} textAlign="center">
+            <Flex direction="column" align="center" justify="center" h="full" gap={4}>
+              <Box position="relative">
+                <Image
+                  src={tenant.photo_path ? `http://localhost:8000/storage/${tenant.photo_path}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(tenant.name)}&background=random&size=150`}
+                  alt="Tenant"
+                  boxSize="160px"
+                  objectFit="cover"
+                  borderRadius="full"
+                  borderWidth="4px"
+                  borderColor={colorMode === 'light' ? "sky.100" : "blue.900"}
+                  boxShadow="lg"
+                />
+                <CircleBadge isActive={!!tenant.user_id} />
+              </Box>
+
+              <Heading size="md" color={textColor} mt={2}>{tenant.name}</Heading>
+              
+              <Badge 
+                colorScheme={tenant.user_id ? "green" : "orange"} 
+                px={3} py={1} borderRadius="full" textTransform="uppercase" letterSpacing="wider" fontSize="xs"
+              >
+                {tenant.user_id ? "Account Linked" : "Pending Registration"}
+              </Badge>
+            </Flex>
+          </Box>
+
+          {/* RIGHT: DETAILS CARD */}
+          <Box bg={cardBg} p={8} borderRadius="2xl" boxShadow="sm" borderWidth="1px" borderColor={borderColor}>
+            <Flex justify="space-between" align="center" mb={6} flexWrap="wrap" gap={4}>
+              <Heading size="md" color={textColor}>Personal Details</Heading>
+              {tenant.user_id && (
+                <Button 
+                  leftIcon={<CiEdit />} 
+                  colorScheme="blue" 
+                  size="sm" 
+                  onClick={onPwdOpen}
+                  borderRadius="lg"
+                >
+                  Change Password
+                </Button>
+              )}
+            </Flex>
+
+            <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={6}>
+              <InfoItem label="Email Address" value={tenant.email || "N/A"} bg={bgMain} border={borderColor} />
+              <InfoItem label="Phone Number" value={tenant.phone || "N/A"} bg={bgMain} border={borderColor} />
+              <InfoItem label="Occupation" value={tenant.occupation || tenant.job || "N/A"} bg={bgMain} border={borderColor} />
+              <InfoItem label="Date of Birth" value={tenant.dob || "N/A"} bg={bgMain} border={borderColor} />
+              
+              {/* ID Card Button within the grid */}
+              <Box 
+                as="button" 
+                onClick={onIdOpen}
+                p={4} 
+                borderRadius="xl" 
+                bg={colorMode === 'light' ? 'sky.50' : 'blue.900'} 
+                borderWidth="1px" 
+                borderColor={colorMode === 'light' ? 'sky.200' : 'blue.700'}
+                _hover={{ bg: colorMode === 'light' ? 'sky.100' : 'blue.800', transform: "translateY(-2px)" }}
+                transition="all 0.2s"
+                textAlign="left"
+              >
+                <Flex align="center" justify="space-between">
+                  <Box>
+                    <Text fontSize="xs" color={colorMode === 'light' ? 'sky.600' : 'blue.300'} fontWeight="bold" textTransform="uppercase" letterSpacing="wider">
+                      Identity Verification
+                    </Text>
+                    <Text fontSize="md" fontWeight="bold" color={textColor} mt={1}>
+                      View ID Scans
+                    </Text>
+                  </Box>
+                  <Icon as={LuFileText} boxSize={6} color={colorMode === 'light' ? 'sky.500' : 'blue.400'} />
+                </Flex>
+              </Box>
+            </Grid>
+          </Box>
+        </Grid>
+
+        {/* ===== LEASE HISTORY ===== */}
+        <Box bg={cardBg} borderRadius="2xl" boxShadow="sm" borderWidth="1px" borderColor={borderColor} overflow="hidden">
+           <Flex p={6} borderBottom="1px" borderColor={borderColor} align="center" justify="space-between">
+            <Heading size="md" color={textColor}>Lease History</Heading>
+            <Button
+              size="sm"
+              colorScheme="green"
+              onClick={() => navigate(`/dashboard/tenants/createlease`, { state: { id: tenant.id, email: tenant.email } })}
             >
-              <CiEdit />
-              Change Password
-            </button>
-          </div>
-
-          {/* INFO GRID — 3 CARDS FIRST ROW */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Info label="Email" value={tenant.email} />
-            <Info label="Phone" value={tenant.phone} />
-            <Info label="Job / Occupation" value={tenant.occupation} />
-
-            <Info label="Date of Birth" value={tenant.dob} />
-
-            {/* ID CARD */}
-            <div
-              onClick={() => setShowIdModal(true)}
-              className="cursor-pointer p-4 rounded-xl border bg-sky-50 hover:bg-sky-100 transition"
-            >
-              <p className="text-sm text-gray-500">ID Card</p>
-              <p className="font-semibold text-sky-700">View ID Images →</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ===== LEASE HISTORY ===== */}
-      <div className="bg-white rounded-2xl shadow p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h4 className="text-lg font-semibold">Lease History</h4>
-          <button
-            onClick={() =>
-              navigate(`/dashboard/tenants/createlease`, {
-                state: { id: tenant.id, email: tenant.email },
-              })
-            }
-            className="px-4 py-2 rounded-lg bg-green-600 text-white"
-          >
-            + Create New Lease
-          </button>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-sky-100">
-              <tr>
-                <th className="px-4 py-3 text-left">Room</th>
-                <th className="px-4 py-3 text-left">Dates</th>
-                <th className="px-4 py-3 text-left">Rent</th>
-                <th className="px-4 py-3 text-left">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td colSpan="4" className="text-center py-10 text-gray-400">
-                  No lease history for this tenant.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+              + Create Lease
+            </Button>
+           </Flex>
+           
+           <Box overflowX="auto">
+             <Table variant="simple">
+               <Thead bg={tableHeaderBg} boxShadow="sm" position="relative" zIndex={1}>
+                 <Tr>
+                   <Th>Room</Th>
+                   <Th>Dates</Th>
+                   <Th isNumeric>Rent Amount</Th>
+                   <Th>Status</Th>
+                 </Tr>
+               </Thead>
+               <Tbody>
+                 {tenant.leases && tenant.leases.length > 0 ? (
+                   tenant.leases.map((lease) => (
+                     <Tr key={lease.id} _hover={{ bg: hoverBg }}>
+                       <Td fontWeight="bold" color={textColor}>{lease.room?.name || `Room ${lease.room_id}`}</Td>
+                       <Td color={mutedTextColor}>
+                         {lease.start_date} <Text as="span" mx={1} opacity={0.5}>to</Text> {lease.end_date}
+                       </Td>
+                       <Td isNumeric fontWeight="medium" color={textColor}>${parseFloat(lease.rent_amount).toFixed(2)}</Td>
+                       <Td>
+                         <Badge 
+                           colorScheme={lease.status === 'active' ? 'green' : 'gray'} 
+                           variant="subtle" 
+                           px={2} py={1} borderRadius="md"
+                         >
+                           {lease.status}
+                         </Badge>
+                       </Td>
+                     </Tr>
+                   ))
+                 ) : (
+                   <Tr>
+                     <Td colSpan={4} textAlign="center" py={8} color={mutedTextColor} fontStyle="italic">
+                       No lease history found for this tenant.
+                     </Td>
+                   </Tr>
+                 )}
+               </Tbody>
+             </Table>
+           </Box>
+        </Box>
+      </VStack>
 
       {/* ===== ID MODAL ===== */}
-      <AnimatePresence>
-        {showIdModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 px-4"
-            onClick={() => setShowIdModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.85, y: 30, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.85, y: 30, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-6"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 className="text-lg font-bold mb-4 text-center">ID Card</h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <img
-                  src={tenant.idFront}
+      <Modal isOpen={isIdOpen} onClose={onIdClose} size="4xl" isCentered>
+        <ModalOverlay backdropFilter="blur(5px)" bg="blackAlpha.600" />
+        <ModalContent bg={cardBg} borderRadius="2xl">
+          <ModalHeader color={textColor}>Tenant ID Scans</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={6}>
+              <Box>
+                <Text fontWeight="bold" color={mutedTextColor} mb={2} fontSize="sm" textTransform="uppercase">Front</Text>
+                <Image
+                  src={tenant.id_photo_path ? `http://localhost:8000/storage/${tenant.id_photo_path}` : "https://via.placeholder.com/600x400?text=No+Front+ID"}
                   alt="ID Front"
-                  className="rounded-lg border"
+                  w="full"
+                  h="250px"
+                  objectFit="cover"
+                  borderRadius="xl"
+                  borderWidth="1px"
+                  borderColor={borderColor}
+                  boxShadow="sm"
                 />
-                <img
-                  src={tenant.idBack}
+              </Box>
+              <Box>
+                <Text fontWeight="bold" color={mutedTextColor} mb={2} fontSize="sm" textTransform="uppercase">Back</Text>
+                <Image
+                  src={tenant.id_card_back_path ? `http://localhost:8000/storage/${tenant.id_card_back_path}` : "https://via.placeholder.com/600x400?text=No+Back+ID"}
                   alt="ID Back"
-                  className="rounded-lg border"
+                  w="full"
+                  h="250px"
+                  objectFit="cover"
+                  borderRadius="xl"
+                  borderWidth="1px"
+                  borderColor={borderColor}
+                  boxShadow="sm"
                 />
-              </div>
+              </Box>
+            </Grid>
+          </ModalBody>
+          <ModalFooter borderTopWidth="1px" borderColor={borderColor}>
+            <Button onClick={onIdClose} variant="ghost" mr={3}>Close</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
 
-              <div className="text-center mt-6">
-                <button
-                  onClick={() => setShowIdModal(false)}
-                  className="px-5 py-2 rounded-lg border hover:bg-gray-100"
-                >
-                  Close
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* ===== PASSWORD MODAL ===== */}
+      <Modal isOpen={isPwdOpen} onClose={onPwdClose} isCentered>
+        <ModalOverlay backdropFilter="blur(5px)" bg="blackAlpha.600" />
+        <ModalContent bg={cardBg} borderRadius="2xl">
+          <ModalHeader color={textColor}>Admin Password Override</ModalHeader>
+          <ModalBody pb={6}>
+            <form id="pwd-form" onSubmit={handleUpdatePassword}>
+              <VStack spacing={4}>
+                <FormControl>
+                  <FormLabel fontSize="sm" color={mutedTextColor}>Tenant Email</FormLabel>
+                  <Input value={tenant.email} isDisabled bg={hoverBg} borderColor={borderColor} />
+                </FormControl>
 
-      <AnimatePresence>
-        {showPasswordModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 px-4"
-            onClick={() => setShowPasswordModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.85, y: 30, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.85, y: 30, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-6"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h2 className="text-2xl font-bold text-sky-900 text-center mb-6">
-                Change Tenant Password
-              </h2>
-
-              <form
-                className="grid grid-cols-1 md:grid-cols-2 gap-6"
-                onSubmit={(e) => handleUpdatePassword(e)}
-              >
-                {/* EMAIL */}
-                <div className="flex flex-col">
-                  <label className="text-sm font-medium text-slate-600 mb-1">
-                    Tenant Email
-                  </label>
-                  <input
-                    type="email"
-                    value={tenant.email}
-                    disabled
-                    className="w-full px-4 py-2.5 rounded-lg border border-slate-300 bg-slate-100 cursor-not-allowed"
-                  />
-                </div>
-
-                {/* PASSWORDS */}
-                <div className="flex flex-col gap-4">
-                  {/* New Password */}
-                  <div className="relative">
-                    <label className="block text-sm font-medium text-slate-600 mb-1">
-                      New Password
-                    </label>
-                    <input
+                <FormControl isRequired>
+                  <FormLabel fontSize="sm" color={mutedTextColor}>New Password</FormLabel>
+                  <Box position="relative">
+                    <Input
                       type={showNew ? "text" : "password"}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      required
-                      className="w-full px-4 py-2.5 pr-11 rounded-lg border border-slate-300 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 outline-none"
+                      borderColor={borderColor}
+                      _focus={{ borderColor: "blue.400", boxShadow: "outline" }}
                     />
-                    <button
-                      type="button"
+                    <IconButton
+                      icon={showNew ? <FaEyeSlash /> : <FaEye />}
+                      size="sm"
+                      variant="ghost"
+                      position="absolute"
+                      right="2"
+                      top="1"
+                      zIndex={2}
                       onClick={() => setShowNew(!showNew)}
-                      className="absolute right-3 top-9 text-slate-500 hover:text-sky-600"
-                    >
-                      {showNew ? <FaEyeSlash /> : <FaEye />}
-                    </button>
-                  </div>
+                      aria-label="Toggle new password"
+                    />
+                  </Box>
+                </FormControl>
 
-                  {/* Confirm Password */}
-                  <div className="relative">
-                    <label
-                      className={`block text-sm font-medium mb-1 ${
-                        isMismatch ? "text-red-500" : "text-slate-600"
-                      }`}
-                    >
-                      {isMismatch
-                        ? "Passwords do not match"
-                        : "Confirm Password"}
-                    </label>
-                    <input
+                <FormControl isRequired isInvalid={isMismatch}>
+                  <FormLabel fontSize="sm" color={isMismatch ? "red.500" : mutedTextColor}>
+                    {isMismatch ? "Passwords do not match" : "Confirm Password"}
+                  </FormLabel>
+                  <Box position="relative">
+                    <Input
                       type={showConfirm ? "text" : "password"}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                      className={`w-full px-4 py-2.5 pr-11 rounded-lg border focus:ring-2 outline-none
-                  ${
-                    isMismatch
-                      ? "border-red-400 focus:ring-red-300"
-                      : "border-slate-300 focus:ring-sky-400 focus:border-sky-400"
-                  }`}
+                      borderColor={isMismatch ? "red.400" : borderColor}
+                      _focus={{ borderColor: isMismatch ? "red.400" : "blue.400", boxShadow: "outline" }}
                     />
-                    <button
-                      type="button"
+                    <IconButton
+                      icon={showConfirm ? <FaEyeSlash /> : <FaEye />}
+                      size="sm"
+                      variant="ghost"
+                      position="absolute"
+                      right="2"
+                      top="1"
+                      zIndex={2}
                       onClick={() => setShowConfirm(!showConfirm)}
-                      className="absolute right-3 top-9 text-slate-500 hover:text-sky-600"
-                    >
-                      {showConfirm ? <FaEyeSlash /> : <FaEye />}
-                    </button>
-                  </div>
+                      aria-label="Toggle confirm password"
+                    />
+                  </Box>
+                </FormControl>
+              </VStack>
+            </form>
+          </ModalBody>
 
-                  {/* BUTTONS */}
-                  <div className="flex gap-4 mt-2">
-                    <button
-                      type="button"
-                      disabled={loading}
-                      onClick={() => setShowPasswordModal(false)}
-                      className="flex-1 py-2.5 rounded-lg border border-slate-300 hover:bg-slate-100 transition font-medium disabled:opacity-60"
-                    >
-                      Cancel
-                    </button>
+          <ModalFooter borderTopWidth="1px" borderColor={borderColor}>
+            <Button variant="ghost" mr={3} onClick={onPwdClose} isDisabled={loadingPwd}>
+              Cancel
+            </Button>
+            <Button type="submit" form="pwd-form" colorScheme="blue" isLoading={loadingPwd} isDisabled={isMismatch || !newPassword}>
+              Update Password
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
 
-                    <button
-                      type="submit"
-                      disabled={loading || isMismatch}
-                      className="flex-1 py-2.5 rounded-lg bg-sky-600 text-white hover:bg-sky-700 transition font-medium disabled:opacity-60"
-                    >
-                      {loading ? "Updating..." : "Update Password"}
-                    </button>
-                  </div>
-                </div>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+    </Box>
   );
 }
 
-/* Small reusable info box */
-function Info({ label, value }) {
+// Subcomponents
+function InfoItem({ label, value, bg, border }) {
   return (
-    <div className="p-4 rounded-xl border bg-white">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="font-semibold text-gray-800">{value}</p>
-    </div>
+    <Box p={4} borderRadius="xl" bg={bg} borderWidth="1px" borderColor={border}>
+      <Text fontSize="xs" fontWeight="bold" color="gray.500" textTransform="uppercase" letterSpacing="wider" mb={1}>{label}</Text>
+      <Text fontSize="md" fontWeight="bold" color={useColorModeValue("gray.800", "white")}>{value}</Text>
+    </Box>
+  );
+}
+
+function CircleBadge({ isActive }) {
+  return (
+    <Box
+      position="absolute"
+      bottom="2"
+      right="2"
+      w="5"
+      h="5"
+      borderRadius="full"
+      borderWidth="3px"
+      borderColor={useColorModeValue("white", "gray.800")}
+      bg={isActive ? "green.400" : "orange.400"}
+      boxShadow="sm"
+    />
   );
 }

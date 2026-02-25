@@ -1,11 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 export default function AddBill() {
   const navigate = useNavigate();
 
-  const [leases, setLeases] = useState([]);
+  const [leases] = useState(() => {
+    const saved = JSON.parse(localStorage.getItem("leases")) || [];
+    return saved.filter((l) => l.status === "Active");
+  });
 
   const [form, setForm] = useState({
     leaseId: "",
@@ -15,12 +18,6 @@ export default function AddBill() {
     dueDate: "",
     status: "Unpaid",
   });
-
-  useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("leases")) || [];
-    const activeOnly = saved.filter((l) => l.status === "Active");
-    setLeases(activeOnly);
-  }, []);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });

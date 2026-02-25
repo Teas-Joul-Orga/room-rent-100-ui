@@ -1,51 +1,116 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
+import {
+  Box,
+  Flex,
+  Heading,
+  Button,
+  Input,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  TableContainer,
+  Badge,
+  Image,
+  Checkbox,
+  Select,
+  Text,
+  useColorModeValue,
+  IconButton,
+  Tooltip,
+  SimpleGrid,
+  Icon,
+  Spinner,
+} from "@chakra-ui/react";
+import toast from "react-hot-toast";
+import { FiEdit2, FiTrash2, FiEye, FiPlus, FiUsers, FiClock, FiCheckCircle, FiLink, FiAlertTriangle, FiUserPlus } from "react-icons/fi";
 
 export default function AllTenants() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [tenants, setTenants] = useState([]);
-  const [showModal, setShowModal] = useState(false);
-  const [selectedTenant, setSelectedTenant] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
-  // create account modal
-  // const [showAccountModal, setShowAccountModal] = useState(false);
-  const [accountTenant, setAccountTenant] = useState(null);
-
-  // bulk delete
-  const [selectedIds, setSelectedIds] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const token = localStorage.getItem("token");
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("tenants")) || [];
-    const sorted = [...saved].sort(
-      (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
-    );
-    setTenants(sorted);
+    fetchTenants();
   }, []);
 
+  const fetchTenants = async () => {
+    try {
+      setIsLoading(true);
+      const res = await fetch("http://localhost:8000/api/v1/admin/tenants?limit=all", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const sorted = data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        setTenants(sorted);
+      } else {
+        toast.error("Failed to fetch tenants");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("An error occurred while fetching tenants");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [selectedTenant, setSelectedTenant] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+
   const filteredTenants = tenants.filter((t) =>
-    t.name.toLowerCase().includes(search.trim().toLowerCase()),
+    (t.name || "").toLowerCase().includes(search.trim().toLowerCase()),
   );
   const lastIndex = currentPage * rowsPerPage;
   const firstIndex = lastIndex - rowsPerPage;
   const paginatedTenants = filteredTenants.slice(firstIndex, lastIndex);
   const totalPages = Math.ceil(filteredTenants.length / rowsPerPage);
 
-  const confirmDelete = () => {
-    const updated = tenants.filter((t) => t.id !== selectedTenant.id);
-    setTenants(updated);
-    localStorage.setItem("tenants", JSON.stringify(updated));
-    setSelectedIds((prev) => prev.filter((id) => id !== selectedTenant.id));
-    setShowModal(false);
-    setSelectedTenant(null);
+  const confirmDelete = async () => {
+    if (!selectedTenant) return;
+    try {
+      const res = await fetch(`http://localhost:8000/api/v1/admin/tenants/${selectedTenant.uid}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+
+      if (res.ok) {
+        toast.success("Tenant deleted successfully");
+        fetchTenants(); // Refresh data
+        setSelectedIds((prev) => prev.filter((id) => id !== selectedTenant.uid));
+        setShowModal(false);
+        setSelectedTenant(null);
+      } else {
+        const errorData = await res.json();
+        toast.error(errorData.error || "Failed to delete tenant");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("An error occurred while deleting");
+    }
   };
 
   const [showFormModal, setShowFormModal] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
 
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [accountPassword, setAccountPassword] = useState("");
+  const [accountConfirmPassword, setAccountConfirmPassword] = useState("");
 
   const [form, setForm] = useState({
     name: "",
@@ -58,91 +123,143 @@ export default function AllTenants() {
     idBack: "",
   });
 
-  const deleteSelected = () => {
+  const deleteSelected = async () => {
     if (selectedIds.length === 0) return;
+    // Note: Laravel backend doesn't have a bulk delete route by default in this controller,
+    // so we'll delete them one by one for now, or you can implement a bulk delete route later.
+    const promises = selectedIds.map(uid =>
+      fetch(`http://localhost:8000/api/v1/admin/tenants/${uid}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+      })
+    );
 
-    const updated = tenants.filter((t) => !selectedIds.includes(t.id));
-    setTenants(updated);
-    localStorage.setItem("tenants", JSON.stringify(updated));
-    setSelectedIds([]);
+    try {
+      await Promise.all(promises);
+      toast.success("Selected tenants deleted");
+      fetchTenants();
+      setSelectedIds([]);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete some tenants");
+    }
   };
 
-  const handleSaveTenant = () => {
-    let updated;
-
-    if (isEdit && selectedTenant) {
-      updated = tenants.map((t) =>
-        t.id === selectedTenant.id
-          ? {
-              ...t,
-              name: form.name,
-              email: form.email,
-              phone: form.phone,
-              dob: form.dob,
-              job: form.job,
-              occupation: form.job,
-              photo: form.photo || t.photo,
-              idFront: form.idFront || t.idFront,
-              idBack: form.idBack || t.idBack,
-            }
-          : t,
-      );
-    } else {
-      const newTenant = {
-        id: Date.now(),
-        name: form.name,
-        email: form.email,
-        phone: form.phone,
-        dob: form.dob,
-        job: form.job,
-        occupation: form.job,
-        photo: form.photo || "/avatar.png",
-        idFront: form.idFront || "",
-        idBack: form.idBack || "",
-
-        status: "Pending",
-        createdAt: new Date().toISOString(),
-      };
-
-      updated = [newTenant, ...tenants];
+  const handleSaveTenant = async () => {
+    const formData = new FormData();
+    formData.append("name", form.name);
+    formData.append("email", form.email);
+    formData.append("phone", form.phone);
+    formData.append("dob", form.dob);
+    formData.append("job", form.job);
+    
+    // Status is only required for updating, but API expects it for update
+    if (isEdit) {
+      formData.append("status", selectedTenant?.status || "active");
+      formData.append("_method", "PUT");
     }
 
-    setTenants(updated);
-    localStorage.setItem("tenants", JSON.stringify(updated));
-    setShowFormModal(false);
+    if (form.photo && form.photo.file) formData.append("photo", form.photo.file);
+    if (form.idFront && form.idFront.file) formData.append("id_photo", form.idFront.file);
+    if (form.idBack && form.idBack.file) formData.append("id_card_back", form.idBack.file);
+
+    const url = isEdit 
+      ? `http://localhost:8000/api/v1/admin/tenants/${selectedTenant.uid}` 
+      : `http://localhost:8000/api/v1/admin/tenants`;
+
+    try {
+      const res = await fetch(url, {
+        method: "POST", // using POST for both, Laravel handles PUT via _method
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success(data.message || "Tenant saved successfully");
+        fetchTenants();
+        setShowFormModal(false);
+      } else {
+        // Handle validation errors
+        if (data.errors) {
+          Object.values(data.errors).forEach(errArray => {
+            errArray.forEach(err => toast.error(err));
+          });
+        } else {
+          toast.error(data.error || "Failed to save tenant");
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("An error occurred while saving");
+    }
   };
 
-  const handleFileChange = (e) => {
-    const { name, files } = e.target;
-    if (!files || !files[0]) return;
+  const handleLinkAccount = async () => {
+    if (!selectedTenant) return;
+    if (accountPassword !== accountConfirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
 
-    setForm((prev) => ({
-      ...prev,
-      [name]: files[0],
-    }));
+    try {
+      const res = await fetch(`http://localhost:8000/api/v1/admin/tenants/${selectedTenant.uid}/create-account`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          password: accountPassword,
+          password_confirmation: accountConfirmPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success("Account linked successfully!");
+        fetchTenants();
+        setShowAccountModal(false);
+      } else {
+        if (data.errors) {
+          Object.values(data.errors).forEach(errArray => {
+            errArray.forEach(err => toast.error(err));
+          });
+        } else {
+          toast.error(data.error || "Failed to link account");
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("An error occurred while linking account");
+    }
   };
-
-  const handleSubmitTenant = () => {
-    const newTenant = {
-      id: Date.now(),
-      ...form,
-      status: "Pending",
-      createdAt: new Date(),
-    };
-
-    const updated = [newTenant, ...tenants];
-    setTenants(updated);
-    localStorage.setItem("tenants", JSON.stringify(updated));
-    setShowFormModal(false);
-  };
+  // Colors
+  const bg = useColorModeValue("sky.50", "gray.900");
+  const cardBg = useColorModeValue("white", "gray.800");
+  const textColor = useColorModeValue("gray.800", "white");
+  const mutedText = useColorModeValue("gray.500", "gray.400");
+  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const tableHeaderBg = useColorModeValue("sky.100", "gray.700");
+  const hoverBg = useColorModeValue("sky.50", "gray.700");
 
   return (
-    <div className="p-6 space-y-6 bg-sky-50 min-h-screen">
+    <Box p={6} bg={bg} minH="100vh">
       {/* ===== HEADER ===== */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h2 className="text-2xl font-bold text-sky-900">Tenants Management</h2>
+      <Flex direction={{ base: "column", sm: "row" }} align={{ sm: "center" }} justify="space-between" gap={4} mb={6}>
+        <Heading size="lg" color={useColorModeValue("sky.900", "white")}>
+          Tenants Management
+        </Heading>
 
-        <button
+        <Button
+          leftIcon={<FiPlus />}
+          colorScheme="blue"
           onClick={() => {
             setIsEdit(false);
             setSelectedTenant(null);
@@ -158,567 +275,536 @@ export default function AllTenants() {
             });
             setShowFormModal(true);
           }}
-          className="bg-sky-600 hover:bg-sky-700 text-white px-5 py-2 rounded-lg shadow transition"
+          shadow="sm"
         >
-          + Add New Tenant
-        </button>
-      </div>
+          Add New Tenant
+        </Button>
+      </Flex>
+
       {/* ===== SUMMARY CARDS ===== */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl shadow p-5 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-400">Total Tenants</p>
-            <h3 className="text-2xl font-bold text-sky-700">
+      {isLoading ? (
+        <Flex justify="center" p={10}>
+          <Spinner size="xl" color="blue.500" />
+        </Flex>
+      ) : (
+      <>
+        <SimpleGrid columns={{ base: 1, sm: 3 }} spacing={4} mb={6}>
+        <Flex bg={cardBg} borderRadius="xl" shadow="sm" p={5} align="center" justify="space-between">
+          <Box>
+            <Text fontSize="sm" color={mutedText}>Total Tenants</Text>
+            <Heading size="lg" color={useColorModeValue("sky.700", "blue.300")}>
               {tenants.length}
-            </h3>
-          </div>
-          <span className="text-3xl">👥</span>
-        </div>
+            </Heading>
+          </Box>
+          <Icon as={FiUsers} boxSize={8} color="blue.500" />
+        </Flex>
 
-        <div className="bg-white rounded-xl shadow p-5 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-400">Pending Accounts</p>
-            <h3 className="text-2xl font-bold text-yellow-600">
-              {tenants.filter((t) => t.status === "Pending").length}
-            </h3>
-          </div>
-          <span className="text-3xl">⏳</span>
-        </div>
+        <Flex bg={cardBg} borderRadius="xl" shadow="sm" p={5} align="center" justify="space-between">
+          <Box>
+            <Text fontSize="sm" color={mutedText}>Pending Accounts</Text>
+            <Heading size="lg" color={useColorModeValue("yellow.600", "yellow.400")}>
+              {tenants.filter((t) => !t.user_id).length}
+            </Heading>
+          </Box>
+          <Icon as={FiClock} boxSize={8} color="yellow.500" />
+        </Flex>
 
-        <div className="bg-white rounded-xl shadow p-5 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-400">Linked Accounts</p>
-            <h3 className="text-2xl font-bold text-green-600">
-              {tenants.filter((t) => t.status !== "Pending").length}
-            </h3>
-          </div>
-          <span className="text-3xl">✅</span>
-        </div>
-      </div>
+        <Flex bg={cardBg} borderRadius="xl" shadow="sm" p={5} align="center" justify="space-between">
+          <Box>
+            <Text fontSize="sm" color={mutedText}>Linked Accounts</Text>
+            <Heading size="lg" color={useColorModeValue("green.600", "green.400")}>
+              {tenants.filter((t) => t.user_id).length}
+            </Heading>
+          </Box>
+          <Icon as={FiCheckCircle} boxSize={8} color="green.500" />
+        </Flex>
+      </SimpleGrid>
 
       {/* ===== SEARCH ===== */}
-      <div className="bg-white p-4 rounded-xl shadow">
-        <input
-          type="text"
+      <Box bg={cardBg} p={4} borderRadius="xl" shadow="sm" mb={6}>
+        <Input
           placeholder="Search tenant name..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full border border-sky-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-400"
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setCurrentPage(1);
+          }}
+          borderColor={borderColor}
+          _hover={{ borderColor: "blue.400" }}
+          _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
         />
-      </div>
+      </Box>
 
       {/* ===== TABLE ===== */}
-      <div className="bg-white rounded-xl shadow overflow-x-auto">
-        {selectedIds.length > 0 && (
-          <div className="flex justify-end">
-            <button
-              onClick={deleteSelected}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg shadow"
-            >
-              Delete Selected ({selectedIds.length})
-            </button>
-          </div>
-        )}
-
-        <table className="w-full text-sm text-left">
-          <thead className="bg-sky-100 text-sky-900">
-            <tr>
-              <th className="px-4 py-2 text-center">
-                <input
-                  type="checkbox"
-                  checked={
+      <TableContainer bg={cardBg} borderRadius="xl" shadow="sm" mb={4}>
+        <Table variant="simple">
+          <Thead bg={tableHeaderBg}>
+            <Tr>
+              <Th w="50px">
+                <Checkbox
+                  isChecked={
                     paginatedTenants.length > 0 &&
-                    paginatedTenants.every((t) => selectedIds.includes(t.id))
+                    paginatedTenants.every((t) => selectedIds.includes(t.uid))
                   }
                   onChange={(e) => {
                     if (e.target.checked) {
-                      setSelectedIds(paginatedTenants.map((t) => t.id));
+                      setSelectedIds(paginatedTenants.map((t) => t.uid));
                     } else {
                       setSelectedIds([]);
                     }
                   }}
+                  colorScheme="blue"
                 />
-              </th>
+              </Th>
 
-              <th className="px-4 py-3">Photo</th>
-              <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3">Email</th>
-              <th className="px-4 py-3">Phone</th>
-              <th className="px-4 py-3">Job</th>
-              <th className="px-4 py-3">Date of Birth</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3 text-center">Action</th>
-            </tr>
-          </thead>
+              <Th>Photo</Th>
+              <Th>Name</Th>
+              <Th>Email</Th>
+              <Th>Phone</Th>
+              <Th>Job</Th>
+              <Th>Date of Birth</Th>
+              <Th>Status</Th>
+              <Th textAlign="center">Action</Th>
+            </Tr>
+          </Thead>
 
-          <tbody className="divide-y">
-            {paginatedTenants.map((t, index) => (
-              <tr key={t.id} className="hover:bg-sky-50 transition">
-                <td className="px-4 py-2 text-center">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.includes(t.id)}
+          <Tbody>
+            {paginatedTenants.map((t) => (
+              <Tr key={t.uid} _hover={{ bg: hoverBg }} transition="all 0.2s">
+                <Td>
+                  <Checkbox
+                    isChecked={selectedIds.includes(t.uid)}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        setSelectedIds((prev) => [...prev, t.id]);
+                        setSelectedIds((prev) => [...prev, t.uid]);
                       } else {
                         setSelectedIds((prev) =>
-                          prev.filter((id) => id !== t.id),
+                          prev.filter((id) => id !== t.uid),
                         );
                       }
                     }}
+                    colorScheme="blue"
                   />
-                </td>
+                </Td>
 
-                <td className="px-4 py-3">
-                  <img
-                    src={t.photo}
+                <Td>
+                  <Image
+                    src={t.photo_path ? `http://localhost:8000/storage/${t.photo_path}` : "/avatar.png"}
                     alt="avatar"
-                    className="w-10 h-10 rounded-full object-cover border"
+                    boxSize="40px"
+                    borderRadius="full"
+                    objectFit="cover"
+                    border="1px solid"
+                    borderColor={borderColor}
                   />
-                </td>
+                </Td>
 
-                <td className="px-4 py-3 font-medium">{t.name}</td>
-                <td className="px-4 py-3">{t.email}</td>
-                <td className="px-4 py-3">{t.phone}</td>
-                <td className="px-4 py-3">{t.occupation || t.job}</td>
-                <td className="px-4 py-3">{t.dob || "N/A"}</td>
+                <Td fontWeight="medium" color={textColor}>{t.name}</Td>
+                <Td color={mutedText}>{t.email}</Td>
+                <Td color={mutedText}>{t.phone}</Td>
+                <Td color={mutedText}>{t.occupation || t.job}</Td>
+                <Td color={mutedText}>{t.dob || "N/A"}</Td>
 
-                <td className="px-4 py-3">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-semibold
-                      ${
-                        t.status === "Pending"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-green-100 text-green-700"
-                      }`}
+                <Td>
+                  <Badge
+                    colorScheme={!t.user_id ? "yellow" : "green"}
+                    px={2}
+                    py={1}
+                    borderRadius="full"
+                    textTransform="capitalize"
                   >
-                    {t.status}
-                  </span>
-                </td>
+                    {!t.user_id ? "Pending" : "Linked"}
+                  </Badge>
+                </Td>
 
-                <td className="px-4 py-3">
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {t.status === "Pending" ? (
-                      <button
+                <Td>
+                  <Flex justify="center" gap={2}>
+                    <Tooltip label="View Tenant" hasArrow>
+                      <IconButton
+                        icon={<FiEye />}
+                        size="sm"
+                        colorScheme="blue"
+                        variant="ghost"
+                        onClick={() =>
+                          navigate(`/dashboard/tenants/view/${t.uid}`)
+                        }
+                        aria-label="View Tenant"
+                      />
+                    </Tooltip>
+
+                    <Tooltip label="Edit Tenant" hasArrow>
+                      <IconButton
+                        icon={<FiEdit2 />}
+                        size="sm"
+                        colorScheme="blue"
+                        variant="ghost"
+                        onClick={() => {
+                          setIsEdit(true);
+                          setSelectedTenant(t);
+                          setForm({
+                            name: t.name || "",
+                            email: t.email || "",
+                            phone: t.phone || "",
+                            dob: t.dob || "",
+                            job: t.occupation || t.job || "",
+                            photo: t.photo || "",
+                            idFront: { preview: t.id_photo_path ? `http://localhost:8000/storage/${t.id_photo_path}` : null, file: null },
+                            idBack: { preview: t.id_card_back_path ? `http://localhost:8000/storage/${t.id_card_back_path}` : null, file: null },
+                          });
+                          setShowFormModal(true);
+                        }}
+                        aria-label="Edit Tenant"
+                      />
+                    </Tooltip>
+
+                    <Tooltip label={!t.user_id ? "Link Account" : "Account Linked"} hasArrow>
+                      <IconButton
+                        icon={<FiUserPlus />}
+                        size="sm"
+                        colorScheme="green"
+                        variant="ghost"
+                        isDisabled={!!t.user_id}
+                        onClick={() => {
+                          if (!t.user_id) {
+                            setSelectedTenant(t);
+                            setAccountPassword("");
+                            setAccountConfirmPassword("");
+                            setShowAccountModal(true);
+                          }
+                        }}
+                        aria-label="Link Account"
+                      />
+                    </Tooltip>
+
+                    <Tooltip label="Delete Tenant" hasArrow>
+                      <IconButton
+                        icon={<FiTrash2 />}
+                        size="sm"
+                        colorScheme="gray"
+                        variant="ghost"
                         onClick={() => {
                           setSelectedTenant(t);
-                          setShowAccountModal(true);
+                          setShowModal(true);
                         }}
-                        className="px-3 py-1 text-xs rounded-full border border-green-600 bg-green-600 text-white transition cursor-pointer"
-                      >
-                        Link Account
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() =>
-                          navigate(`/dashboard/tenants/view/${t.id}`)
-                        }
-                        className="px-3 py-1 rounded-full text-green-600 transition cursor-pointer"
-                      >
-                        View
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => {
-                        setIsEdit(true);
-                        setSelectedTenant(t);
-                        setForm({
-                          name: t.name || "",
-                          email: t.email || "",
-                          phone: t.phone || "",
-                          dob: t.dob || "",
-                          job: t.occupation || t.job || "",
-                          photo: t.photo || "",
-                          idFront: t.idFront || "",
-                          idBack: t.idBack || "",
-                        });
-                        setShowFormModal(true);
-                      }}
-                      className="px-3 py-1 text-xs rounded-full text-indigo-600"
-                    >
-                      Edit
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setSelectedTenant(t);
-                        setShowModal(true);
-                      }}
-                      className="px-3 py-1 text-xs rounded-full text-red-700 transition cursor-pointer"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
+                        aria-label="Delete Tenant"
+                      />
+                    </Tooltip>
+                  </Flex>
+                </Td>
+              </Tr>
             ))}
 
             {filteredTenants.length === 0 && (
-              <tr>
-                <td colSpan="7" className="text-center py-10 text-gray-400">
+              <Tr>
+                <Td colSpan={9} textAlign="center" py={10} color={mutedText}>
                   No tenants found
-                </td>
-              </tr>
+                </Td>
+              </Tr>
             )}
-          </tbody>
-        </table>
-      </div>
+          </Tbody>
+        </Table>
+
+        {/* Bulk Delete */}
+        {selectedIds.length > 0 && (
+          <Box p={4} borderTop="1px solid" borderColor={borderColor}>
+            <Button
+              colorScheme="red"
+              onClick={deleteSelected}
+              leftIcon={<FiTrash2 />}
+            >
+              Delete Selected ({selectedIds.length})
+            </Button>
+          </Box>
+        )}
+      </TableContainer>
       {/* ===== PAGINATION ===== */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-4">
-        <div className="flex items-center gap-2 text-sm">
-          Show
-          <select
+      <Flex direction={{ base: "column", sm: "row" }} justify="space-between" align="center" gap={4}>
+        <Flex align="center" gap={2} fontSize="sm" color={textColor}>
+          <Text>Show</Text>
+          <Select
+            size="sm"
+            w="auto"
             value={rowsPerPage}
             onChange={(e) => {
               setRowsPerPage(Number(e.target.value));
               setCurrentPage(1);
             }}
-            className="border rounded px-2 py-1"
           >
             <option value={5}>5</option>
             <option value={10}>10</option>
-          </select>
-          entries
-        </div>
+          </Select>
+          <Text>entries</Text>
+        </Flex>
 
-        <div className="flex items-center gap-2">
-          <button
-            disabled={currentPage === 1}
+        <Flex align="center" gap={2}>
+          <Button
+            size="sm"
+            variant="outline"
+            isDisabled={currentPage === 1}
             onClick={() => setCurrentPage((p) => p - 1)}
-            className="px-3 py-1 rounded border disabled:opacity-40"
           >
             Prev
-          </button>
+          </Button>
 
           {[...Array(totalPages)].map((_, i) => (
-            <button
+            <Button
               key={i}
+              size="sm"
+              variant={currentPage === i + 1 ? "solid" : "outline"}
+              colorScheme={currentPage === i + 1 ? "blue" : "gray"}
               onClick={() => setCurrentPage(i + 1)}
-              className={`px-3 py-1 rounded border
-          ${currentPage === i + 1 ? "bg-sky-600 text-white" : ""}`}
             >
               {i + 1}
-            </button>
+            </Button>
           ))}
 
-          <button
-            disabled={currentPage === totalPages}
+          <Button
+            size="sm"
+            variant="outline"
+            isDisabled={currentPage === totalPages || totalPages === 0}
             onClick={() => setCurrentPage((p) => p + 1)}
-            className="px-3 py-1 rounded border disabled:opacity-40"
           >
             Next
-          </button>
-        </div>
-      </div>
+          </Button>
+        </Flex>
+      </Flex>
 
-      {/* ===== DELETE MODAL (CENTERED DESIGN) ===== */}
-      <AnimatePresence>
-        {showModal && selectedTenant && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 px-4"
-          >
-            <motion.div
-              initial={{ scale: 0.85, y: 30, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.85, y: 30, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 22 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 text-center"
-            >
-              {/* ICON */}
-              <div className="w-14 h-14 mx-auto mb-3 flex items-center justify-center rounded-full bg-red-100 text-red-600 text-2xl">
-                ⚠
-              </div>
+      {/* ===== DELETE MODAL ===== */}
+      {showModal && selectedTenant && (
+        <Box position="fixed" inset={0} bg="blackAlpha.600" backdropFilter="blur(4px)" display="flex" alignItems="center" justifyContent="center" zIndex={50} px={4}>
+          <Box bg={cardBg} borderRadius="2xl" shadow="xl" w="full" maxW="md" p={8} textAlign="center">
+            <Flex w="14" h="14" mx="auto" mb={3} align="center" justify="center" borderRadius="full" bg="red.100" color="red.600">
+              <Icon as={FiAlertTriangle} boxSize={6} />
+            </Flex>
 
-              {/* TITLE */}
-              <h3 className="text-xl font-bold text-gray-800 mb-2">
-                Delete Tenant
-              </h3>
+            <Heading size="md" color={textColor} mb={2}>
+              Delete Tenant
+            </Heading>
 
-              {/* BODY */}
-              <img
-                src={selectedTenant.photo}
-                alt="avatar"
-                className="w-20 h-20 mx-auto rounded-full object-cover border mb-3"
-                onError={(e) => (e.target.src = "/avatar.png")}
-              />
+            <Image
+              src={selectedTenant.photo}
+              fallbackSrc="/avatar.png"
+              alt="avatar"
+              boxSize="80px"
+              mx="auto"
+              borderRadius="full"
+              objectFit="cover"
+              border="1px solid"
+              borderColor={borderColor}
+              mb={3}
+            />
 
-              <p className="text-gray-700">Are you sure you want to delete</p>
-              <p className="font-semibold text-gray-900 mb-2">
-                {selectedTenant.name}
-              </p>
+            <Text color={mutedText}>Are you sure you want to delete</Text>
+            <Text fontWeight="bold" color={textColor} mb={2}>
+              {selectedTenant.name}
+            </Text>
 
-              <p className="text-sm text-red-500 mb-6">
-                This action cannot be undone.
-              </p>
+            <Text fontSize="sm" color="red.500" mb={6}>
+              This action cannot be undone.
+            </Text>
+
+            <Flex justify="center" gap={4}>
+              <Button variant="outline" onClick={() => setShowModal(false)}>
+                Cancel
+              </Button>
+              <Button colorScheme="red" onClick={confirmDelete}>
+                Yes, Delete
+              </Button>
+            </Flex>
+          </Box>
+        </Box>
+      )}
+
+      {/* ===== FORM MODAL ===== */}
+      {showFormModal && (
+        <Box position="fixed" inset={0} bg="blackAlpha.600" backdropFilter="blur(4px)" display="flex" alignItems="center" justifyContent="center" zIndex={50} px={4}>
+          <Box bg={cardBg} borderRadius="2xl" shadow="xl" w="full" maxW="3xl" p={6} overflowY="auto" maxH="90vh">
+            <Heading size="lg" color={useColorModeValue("sky.900", "white")} textAlign="center" mb={6}>
+              {isEdit ? "Edit Tenant" : "Add New Tenant"}
+            </Heading>
+
+            <Box>
+              {/* BASIC INFO */}
+              <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4} mb={6}>
+                <ModalInput
+                  label="Full Name"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                />
+                <ModalInput
+                  label="Email Address"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                />
+                <ModalInput
+                  label="Phone Number"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                />
+                <ModalInput
+                  label="Occupation"
+                  value={form.job}
+                  onChange={(e) => setForm({ ...form, job: e.target.value })}
+                />
+                <ModalInput
+                  label="Date of Birth"
+                  type="date"
+                  value={form.dob}
+                  onChange={(e) => setForm({ ...form, dob: e.target.value })}
+                />
+              </SimpleGrid>
+
+              {/* IMAGE UPLOAD */}
+              <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} mb={6}>
+                <ImageInput
+                  label="Tenant Photo"
+                  value={form.photo}
+                  onChange={(imgData) => setForm({ ...form, photo: imgData })}
+                />
+                <ImageInput
+                  label="ID Card (Front)"
+                  value={form.idFront}
+                  onChange={(imgData) => setForm({ ...form, idFront: imgData })}
+                />
+                <ImageInput
+                  label="ID Card (Back)"
+                  value={form.idBack}
+                  onChange={(imgData) => setForm({ ...form, idBack: imgData })}
+                />
+              </SimpleGrid>
 
               {/* BUTTONS */}
-              <div className="flex justify-center gap-4">
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="px-5 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 transition"
-                >
+              <Flex pt={4} justify="flex-end" gap={3}>
+                <Button variant="outline" onClick={() => setShowFormModal(false)}>
                   Cancel
-                </button>
+                </Button>
+                <Button colorScheme="blue" onClick={handleSaveTenant}>
+                  {isEdit ? "Update Tenant" : "Save Tenant"}
+                </Button>
+              </Flex>
+            </Box>
+          </Box>
+        </Box>
+      )}
 
-                <button
-                  onClick={confirmDelete}
-                  className="px-5 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition"
-                >
-                  Yes, Delete
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* ===== LINK ACCOUNT MODAL ===== */}
+      {showAccountModal && selectedTenant && (
+        <Box position="fixed" inset={0} bg="blackAlpha.600" backdropFilter="blur(4px)" display="flex" alignItems="center" justifyContent="center" zIndex={50} px={4}>
+          <Box bg={cardBg} borderRadius="2xl" shadow="xl" w="full" maxW="md" p={8} textAlign="center">
+            <Flex w="14" h="14" mx="auto" mb={3} align="center" justify="center" borderRadius="full" bg="green.100" color="green.600">
+              <Icon as={FiLink} boxSize={6} />
+            </Flex>
 
-      <AnimatePresence>
-        {showFormModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 px-4"
-          >
-            <motion.div
-              initial={{ scale: 0.85, y: 30, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.85, y: 30, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 22 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-3xl p-6 overflow-y-auto max-h-[90vh]"
-            >
-              <h2 className="text-2xl font-bold text-sky-900 text-center mb-6">
-                {isEdit ? "Edit Tenant" : "Add New Tenant"}
-              </h2>
+            <Heading size="md" color={textColor} mb={2}>
+              Link Account
+            </Heading>
 
-              {/* ===== FORM ===== */}
-              <div className="space-y-6">
-                {/* BASIC INFO */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <ModalInput
-                    label="Full Name"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  />
+            <Text color={mutedText} mb={4}>
+              Create login account for <Text as="b" color={textColor}>{selectedTenant.name}</Text>
+            </Text>
 
-                  <ModalInput
-                    label="Email Address"
-                    type="email"
-                    value={form.email}
-                    onChange={(e) =>
-                      setForm({ ...form, email: e.target.value })
-                    }
-                  />
-
-                  <ModalInput
-                    label="Phone Number"
-                    value={form.phone}
-                    onChange={(e) =>
-                      setForm({ ...form, phone: e.target.value })
-                    }
-                  />
-
-                  <ModalInput
-                    label="Occupation"
-                    value={form.job}
-                    onChange={(e) => setForm({ ...form, job: e.target.value })}
-                  />
-
-                  <ModalInput
-                    label="Date of Birth"
-                    type="date"
-                    value={form.dob}
-                    onChange={(e) => setForm({ ...form, dob: e.target.value })}
-                  />
-                </div>
-
-                {/* IMAGE UPLOAD (DESIGN ONLY) */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <ImageInput
-                    label="Tenant Photo"
-                    value={form.photo}
-                    onChange={(img) => setForm({ ...form, photo: img })}
-                  />
-
-                  <ImageInput
-                    label="ID Card (Front)"
-                    value={form.idFront}
-                    onChange={(img) => setForm({ ...form, idFront: img })}
-                  />
-
-                  <ImageInput
-                    label="ID Card (Back)"
-                    value={form.idBack}
-                    onChange={(img) => setForm({ ...form, idBack: img })}
-                  />
-                </div>
-
-                {/* BUTTONS */}
-                <div className="pt-4 flex justify-end gap-3">
-                  <button
-                    onClick={() => setShowFormModal(false)}
-                    className="px-6 py-2 rounded-lg border hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
-
-                  <button
-                    onClick={handleSubmitTenant}
-                    className="bg-sky-600 hover:bg-sky-700 text-white px-8 py-2 rounded-xl font-semibold shadow"
-                  >
-                    {isEdit ? "Update Tenant" : "Save Tenant"}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showAccountModal && selectedTenant && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 px-4"
-          >
-            <motion.div
-              initial={{ scale: 0.85, y: 30, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.85, y: 30, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 22 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 text-center"
-            >
-              <div className="w-14 h-14 mx-auto mb-3 flex items-center justify-center rounded-full bg-green-100 text-green-600 text-2xl">
-                🔗
-              </div>
-
-              <h3 className="text-xl font-bold mb-2">Link Account</h3>
-
-              <p className="text-gray-600 mb-4">
-                Create login account for <b>{selectedTenant.name}</b>
-              </p>
-
-              <input
-                placeholder="Email"
-                className="w-full border rounded-lg px-3 py-2 mb-3"
-              />
-              <input
-                type="password"
-                placeholder="Password"
-                className="w-full border rounded-lg px-3 py-2 mb-4"
-              />
-
-              <div className="flex justify-center gap-4">
-                <button
-                  onClick={() => setShowAccountModal(false)}
-                  className="px-5 py-2 rounded-lg border"
-                >
-                  Cancel
-                </button>
-
-                <button
-                  onClick={() => {
-                    const updated = tenants.map((t) =>
-                      t.id === selectedTenant.id
-                        ? { ...t, status: "Active" }
-                        : t,
-                    );
-
-                    setTenants(updated);
-                    localStorage.setItem("tenants", JSON.stringify(updated));
-                    setShowAccountModal(false);
-                  }}
-                  className="px-6 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
-                >
-                  Link Account
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+            <Input
+              placeholder="Email"
+              mb={4}
+              value={selectedTenant.email}
+              isReadOnly
+              borderColor={borderColor}
+            />
+            <Input
+              placeholder="Password"
+              type="password"
+              mb={4}
+              value={accountPassword}
+              onChange={(e) => setAccountPassword(e.target.value)}
+              borderColor={borderColor}
+              _hover={{ borderColor: "green.400" }}
+              _focus={{ borderColor: "green.500", boxShadow: "0 0 0 1px #38a169" }}
+            />
+            <Input
+              placeholder="Confirm Password"
+              type="password"
+              mb={4}
+              value={accountConfirmPassword}
+              onChange={(e) => setAccountConfirmPassword(e.target.value)}
+              borderColor={borderColor}
+              _hover={{ borderColor: "green.400" }}
+              _focus={{ borderColor: "green.500", boxShadow: "0 0 0 1px #38a169" }}
+            />
+            
+            <Flex justify="center" gap={4}>
+              <Button variant="outline" onClick={() => setShowAccountModal(false)}>
+                Cancel
+              </Button>
+              <Button colorScheme="green" onClick={handleLinkAccount}>
+                Link Account
+              </Button>
+            </Flex>
+          </Box>
+        </Box>
+      )}
+      </>)}
+    </Box>
   );
 }
 
 function ModalInput({ label, type = "text", ...props }) {
+  const textColor = useColorModeValue("gray.500", "gray.400");
+  const borderColor = useColorModeValue("gray.200", "gray.700");
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-sm text-gray-500">{label}</label>
-      <input
+    <Flex direction="column" gap={1}>
+      <Text fontSize="sm" color={textColor}>{label}</Text>
+      <Input
         type={type}
         {...props}
-        className="border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-400"
+        borderColor={borderColor}
+        _hover={{ borderColor: "blue.400" }}
+        _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
       />
-    </div>
-  );
-}
-
-function ModalImage({ label, name, value, onChange }) {
-  return (
-    <div className="border rounded-xl p-3 text-center space-y-2 hover:shadow transition">
-      <p className="text-sm text-gray-500">{label}</p>
-
-      <input
-        type="file"
-        name={name}
-        accept="image/*"
-        onChange={onChange}
-        className="text-sm"
-      />
-
-      {value ? (
-        <img
-          src={typeof value === "string" ? value : URL.createObjectURL(value)}
-          alt="preview"
-          className="w-full h-28 object-cover rounded-lg border"
-        />
-      ) : (
-        <div className="w-full h-28 flex items-center justify-center text-gray-400 border rounded-lg text-sm">
-          No image
-        </div>
-      )}
-    </div>
+    </Flex>
   );
 }
 
 function ImageInput({ label, value, onChange }) {
+  const textColor = useColorModeValue("gray.500", "gray.400");
+  const borderColor = useColorModeValue("gray.200", "gray.700");
+
   const handleFile = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      onChange(reader.result); // base64 for localStorage
+      onChange({ file, preview: reader.result });
     };
     reader.readAsDataURL(file);
   };
 
-  return (
-    <div className="border rounded-xl p-3 text-center space-y-2 hover:shadow transition">
-      <p className="text-sm text-gray-500">{label}</p>
+  const previewSrc = value?.preview || (typeof value === 'string' ? value : null);
 
-      <label className="cursor-pointer block">
+  return (
+    <Box border="1px solid" borderColor={borderColor} borderRadius="xl" p={3} textAlign="center" _hover={{ shadow: "md" }} transition="all 0.2s">
+      <Text fontSize="sm" color={textColor} mb={2}>{label}</Text>
+
+      <Box as="label" cursor="pointer" display="block">
         <input type="file" accept="image/*" onChange={handleFile} hidden />
 
-        {value ? (
-          <img
-            src={value}
-            className="w-full h-28 object-cover rounded-lg border"
+        {previewSrc ? (
+          <Image
+            src={previewSrc}
+            w="full"
+            h="28"
+            objectFit="cover"
+            borderRadius="lg"
+            border="1px solid"
+            borderColor={borderColor}
           />
         ) : (
-          <div className="w-full h-28 flex items-center justify-center text-gray-400 border rounded-lg text-sm">
+          <Flex w="full" h="28" align="center" justify="center" color="gray.400" border="1px solid" borderColor={borderColor} borderRadius="lg" fontSize="sm">
             Click to upload
-          </div>
+          </Flex>
         )}
-      </label>
-    </div>
+      </Box>
+    </Box>
   );
 }

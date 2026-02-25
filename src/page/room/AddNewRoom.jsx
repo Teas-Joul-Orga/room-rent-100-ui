@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -11,25 +11,12 @@ export default function AddNewRoom() {
   const [rent, setRent] = useState("");
   const [status, setStatus] = useState("Free");
 
-  const [allFurniture, setAllFurniture] = useState([]);
+  const [allFurniture] = useState(() => {
+    return JSON.parse(localStorage.getItem("furniture")) || [];
+  });
   const [selectedFurniture, setSelectedFurniture] = useState([]);
 
-  useEffect(() => {
-    const furniture = JSON.parse(localStorage.getItem("furniture")) || [];
-    setAllFurniture(furniture);
-  }, []);
 
-  const handlePhotoChange = (e) => {
-    const files = Array.from(e.target.files);
-
-    files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotos((prev) => [...prev, reader.result]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
 
   const handleSave = (e) => {
     e.preventDefault();
@@ -43,7 +30,7 @@ export default function AddNewRoom() {
 
     rooms.push({
       id: Date.now(),
-      photo: photo || "https://via.placeholder.com/300",
+      photo: photos.length > 0 ? photos[0] : "https://via.placeholder.com/300",
       name,
       description,
       rent,

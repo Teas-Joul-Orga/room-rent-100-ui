@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 // import "./createAccount.css";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
@@ -7,23 +7,20 @@ function CreateAccount() {
   const { id } = useParams(); // tenant id from URL
   const navigate = useNavigate();
 
-  const [tenant, setTenant] = useState(null);
+  const [tenant] = useState(() => {
+    const tenants = JSON.parse(localStorage.getItem("tenants")) || [];
+    return tenants.find((t) => t.id.toString() === id); // convert to string
+  });
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(() => {
+    const tenants = JSON.parse(localStorage.getItem("tenants")) || [];
+    const found = tenants.find((t) => t.id.toString() === id);
+    return found ? "" : "Tenant not found";
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const isPasswordMismatch = confirmPassword && password !== confirmPassword;
-
-  useEffect(() => {
-    const tenants = JSON.parse(localStorage.getItem("tenants")) || [];
-    const found = tenants.find((t) => t.id.toString() === id); // convert to string
-    if (found) {
-      setTenant(found);
-    } else {
-      setError("Tenant not found");
-    }
-  }, [id]);
 
   const handleSubmit = (e) => {
     e.preventDefault();

@@ -1,86 +1,91 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 
 export default function AddNewFurniture() {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id } = useParams(); // 'id' here is actually the uid from the route
   const isEdit = Boolean(id);
 
-  const [photo, setPhoto] = useState("");
   const [name, setName] = useState("");
-  const [type, setType] = useState("");
-  const [condition, setCondition] = useState("Good"); // ✅ use condition
+  const [condition, setCondition] = useState("Good");
+  const [isLoading, setIsLoading] = useState(isEdit);
 
-  // ===== LOAD DATA IF EDIT =====
   useEffect(() => {
-    const data = JSON.parse(localStorage.getItem("furniture")) || [];
-
-    // normalize old data: status -> condition
-    const normalized = data.map((f) => ({
-      ...f,
-      condition: f.condition || f.status || "Good",
-    }));
-    localStorage.setItem("furniture", JSON.stringify(normalized));
-
     if (isEdit) {
-      const found = normalized.find((f) => f.id === Number(id));
-      if (found) {
-        setPhoto(found.photo || "");
-        setName(found.name || "");
-        setType(found.type || "");
-        setCondition(found.condition || "Good");
-      }
-    } else {
-      // RESET WHEN ADD MODE
-      setPhoto("");
-      setName("");
-      setType("");
-      setCondition("Good");
+      const fetchItem = async () => {
+        try {
+          const token = localStorage.getItem("token");
+          const res = await fetch(`http://localhost:8000/api/v1/admin/furniture/${id}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json"
+            }
+          });
+          const data = await res.json();
+          if (res.ok) {
+            setName(data.name || "");
+            setCondition(data.condition || "Good");
+          } else {
+            toast.error("Failed to load furniture data");
+          }
+        } catch (e) {
+          toast.error("Network error");
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchItem();
     }
   }, [id, isEdit]);
 
-  // ===== IMAGE UPLOAD =====
-  const handlePhotoChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => setPhoto(reader.result);
-    reader.readAsDataURL(file);
-  };
-
   // ===== SAVE =====
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
 
-    if (!name || !type) {
+    if (!name) {
       toast.error("Please fill all required fields");
       return;
     }
 
-    const data = JSON.parse(localStorage.getItem("furniture")) || [];
+    const payload = {
+      name,
+      condition,
+    };
 
-    if (isEdit) {
-      const updated = data.map((f) =>
-        f.id === Number(id) ? { ...f, photo, name, type, condition } : f
-      );
-      localStorage.setItem("furniture", JSON.stringify(updated));
-      toast.success("Furniture updated successfully");
-    } else {
-      const newItem = {
-        id: Date.now(),
-        photo,
-        name,
-        type,
-        condition,
-        createdAt: new Date(),
-      };
-      localStorage.setItem("furniture", JSON.stringify([...data, newItem]));
-      toast.success("Furniture added successfully");
+    try {
+      const token = localStorage.getItem("token");
+      const url = isEdit
+        ? `http://localhost:8000/api/v1/admin/furniture/${id}`
+        : `http://localhost:8000/api/v1/admin/furniture`;
+      
+      const res = await fetch(url, {
+        method: isEdit ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success(isEdit ? "Furniture updated successfully" : "Furniture added successfully");
+        setTimeout(() => navigate("/dashboard/furniture"), 1000);
+      } else {
+        toast.error(data.message || "Failed to save furniture");
+        if (data.errors) {
+            console.error(data.errors);
+        }
+      }
+    } catch(e) {
+      toast.error("Network error saving furniture");
     }
-
-    setTimeout(() => navigate("/dashboard/furniture"), 500);
   };
+
+  if (isLoading) return <div className="p-6">Loading...</div>;
 
   return (
     <div className="p-6 min-h-screen bg-sky-50">
@@ -95,37 +100,6 @@ export default function AddNewFurniture() {
         </p>
 
         <form onSubmit={handleSave} className="grid grid-cols-1 gap-6">
-          {/* IMAGE */}
-          <div>
-            <label className="block text-sm font-medium text-slate-600 mb-2">
-              Furniture Photo
-            </label>
-
-            <label className="relative block w-full max-w-md cursor-pointer group">
-              <img
-                src={
-                  photo ||
-                  "https://mocra.org/wp-content/uploads/2016/07/default.jpg"
-                }
-                alt="furniture"
-                className="w-full h-48 object-cover rounded-2xl border border-slate-200 shadow-sm"
-              />
-
-              <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                <span className="text-white text-sm font-medium">
-                  Change Photo
-                </span>
-              </div>
-
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoChange}
-                className="hidden"
-              />
-            </label>
-          </div>
-
           {/* NAME */}
           <div>
             <label className="block text-sm font-medium text-slate-600 mb-1">
@@ -139,26 +113,6 @@ export default function AddNewFurniture() {
               focus:ring-2 focus:ring-sky-400 focus:border-sky-400 outline-none"
               required
             />
-          </div>
-
-          {/* TYPE */}
-          <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1">
-              Furniture Type *
-            </label>
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-lg border border-slate-300
-              focus:ring-2 focus:ring-sky-400 focus:border-sky-400 outline-none"
-              required
-            >
-              <option value="">Select type</option>
-              <option value="Wood">Wood</option>
-              <option value="Metal">Metal</option>
-              <option value="Plastic">Plastic</option>
-              <option value="Mixed">Mixed</option>
-            </select>
           </div>
 
           {/* CONDITION */}

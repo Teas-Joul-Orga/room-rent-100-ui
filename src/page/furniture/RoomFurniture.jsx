@@ -1,15 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 export default function RoomFurniture() {
   const { room } = useParams();
   const navigate = useNavigate();
-  const [items, setItems] = useState([]);
-
-  useEffect(() => {
+  const [items] = useState(() => {
     const list = JSON.parse(localStorage.getItem("furniture")) || [];
-    setItems(list.filter((f) => f.room === room));
-  }, [room]);
+    return list.filter((f) => f.room === room);
+  });
 
   return (
     <div className="p-6 bg-sky-50 min-h-screen">

@@ -1,11 +1,32 @@
 import React, { useState } from "react";
+import {
+  Box,
+  Flex,
+  Heading,
+  Text,
+  FormControl,
+  FormLabel,
+  Input,
+  Button,
+  VStack,
+  HStack,
+  Checkbox,
+  Link as ChakraLink,
+  Image,
+  InputGroup,
+  InputRightElement,
+  IconButton,
+  useToast,
+  FormErrorMessage,
+} from "@chakra-ui/react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import login from "./assets/login.jpg";
+import loginPic from "./assets/login.jpg";
 import { useNavigate } from "react-router-dom";
 
 export default function LoginForm1() {
   const [show, setShow] = useState(false);
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [form, setForm] = useState({
     email: "",
@@ -13,16 +34,14 @@ export default function LoginForm1() {
   });
 
   const [errors, setErrors] = useState({});
-  const [loginError, setLoginError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   // ================= VALIDATION =================
   const validate = () => {
     const newErrors = {};
 
     if (!form.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/^\S+@\S+\.\S+$/.test(form.email)) {
-      newErrors.email = "Enter a valid email address";
+      newErrors.email = "Username or Email is required";
     }
 
     if (!form.password) {
@@ -34,112 +53,229 @@ export default function LoginForm1() {
   };
 
   // ================= SUBMIT =================
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoginError("");
+    setErrors({});
 
     if (!validate()) return;
+    
+    setIsLoading(true);
 
-    // ✅ HARD-CODED ADMIN LOGIN
-    if (form.email === "admin@gmail.com" && form.password === "admin") {
-      localStorage.setItem("isLoggedIn", "true"); // ✅ save login
-      navigate("/dashboard");
-    } else {
-      setLoginError("Invalid email or password");
+    try {
+      const response = await fetch("http://localhost:8000/api/v1/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: JSON.stringify({
+          email: form.email,
+          password: form.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem("isLoggedIn", "true");
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem("role", data.role);
+        
+        toast({
+          title: "Login Successful",
+          description: "Welcome back!",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+          position: "top-right",
+        });
+
+        navigate("/dashboard");
+      } else {
+        toast({
+          title: "Login Failed",
+          description: data.message || "Invalid email or password.",
+          status: "error",
+          duration: 4000,
+          isClosable: true,
+          position: "top-right",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Connection Error",
+        description: "Failed to connect to the server. Please try again.",
+        status: "error",
+        duration: 4000,
+        isClosable: true,
+        position: "top-right",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-indigo-200 flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl shadow-2xl overflow-hidden w-full max-w-4xl grid grid-cols-1 md:grid-cols-2">
-        {/* IMAGE */}
-        <div className="hidden md:block">
-          <img src={login} alt="login" className="h-full w-full object-cover" />
-        </div>
+    <Flex minH="100vh" direction={{ base: "column", lg: "row" }} bg="gray.50">
+      {/* Left side: Graphic/Image */}
+      <Flex
+        display={{ base: "none", lg: "flex" }}
+        flex={1}
+        bg="blue.600"
+        align="center"
+        justify="center"
+        position="relative"
+        overflow="hidden"
+      >
+        <Image
+          src={loginPic}
+          alt="Login illustration"
+          w="full"
+          h="full"
+          objectFit="cover"
+          opacity={0.8}
+          zIndex={1}
+        />
+        <Box
+          position="absolute"
+          top={0}
+          left={0}
+          right={0}
+          bottom={0}
+          bgGradient="linear(to-br, blue.800, transparent)"
+          opacity={0.7}
+          zIndex={2}
+        />
+        <VStack
+          position="absolute"
+          zIndex={3}
+          align="flex-start"
+          bottom={16}
+          left={16}
+          color="white"
+          spacing={4}
+        >
+          <Heading size="2xl" fontWeight="bold">
+            RoomRent 100
+          </Heading>
+          <Text fontSize="xl" maxW="md">
+            Manage your tenants, leases, and utility bills seamlessly.
+          </Text>
+        </VStack>
+      </Flex>
 
-        {/* FORM */}
-        <div className="p-8 md:p-12">
-          <h2 className="text-3xl font-bold text-gray-800 mb-2">
-            Admin Login 🔐
-          </h2>
-          <p className="text-gray-500 mb-6">
-            Use admin credentials to continue
-          </p>
+      {/* Right side: Login Form */}
+      <Flex
+        flex={1}
+        align="center"
+        justify="center"
+        bg="white"
+        p={{ base: 8, md: 10, lg: 16 }}
+        boxShadow={{ base: "none", lg: "-10px 0 30px rgba(0,0,0,0.05)" }}
+        zIndex={10}
+      >
+        <Box w="full" maxW="md">
+          <VStack spacing={8} align="stretch">
+            <Box textAlign="left">
+              <Heading size="xl" color="gray.800" mb={3} fontWeight="extrabold">
+                Welcome Back
+              </Heading>
+              <Text color="gray.500" fontSize="md">
+                Please enter your credentials to access your dashboard.
+              </Text>
+            </Box>
 
-          {loginError && (
-            <div className="bg-red-100 text-red-600 p-3 rounded mb-4 text-sm">
-              {loginError}
-            </div>
-          )}
+            <form onSubmit={handleSubmit} style={{ width: "100%" }}>
+              <VStack spacing={6} align="stretch">
+                <FormControl isInvalid={!!errors.email} isRequired>
+                  <FormLabel color="gray.700" fontWeight="bold">
+                    Username
+                  </FormLabel>
+                  <Input
+                    type="text"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    placeholder="Enter your username or email"
+                    size="lg"
+                    borderRadius="md"
+                    focusBorderColor="blue.500"
+                    bg="white"
+                    _hover={{ borderColor: "blue.300" }}
+                  />
+                  {errors.email && (
+                    <FormErrorMessage>{errors.email}</FormErrorMessage>
+                  )}
+                </FormControl>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* EMAIL */}
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-600">
-                Email
-              </label>
-              <input
-                type="text"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="admin@gmail.com"
-                className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2
-                  ${
-                    errors.email
-                      ? "border-red-500 focus:ring-red-400"
-                      : "border-gray-300 focus:ring-indigo-500"
-                  }`}
-              />
-              {errors.email && (
-                <p className="text-red-500 text-sm mt-1">{errors.email}</p>
-              )}
-            </div>
+                <FormControl isInvalid={!!errors.password} isRequired>
+                  <FormLabel color="gray.700" fontWeight="bold">
+                    Password
+                  </FormLabel>
+                  <InputGroup size="lg">
+                    <Input
+                      type={show ? "text" : "password"}
+                      value={form.password}
+                      onChange={(e) =>
+                        setForm({ ...form, password: e.target.value })
+                      }
+                      placeholder="••••••••"
+                      borderRadius="md"
+                      focusBorderColor="blue.500"
+                      bg="white"
+                      _hover={{ borderColor: "blue.300" }}
+                    />
+                    <InputRightElement h="full" px={2}>
+                      <IconButton
+                        variant="ghost"
+                        size="md"
+                        color="gray.400"
+                        _hover={{ color: "blue.500", bg: "transparent" }}
+                        aria-label={show ? "Hide password" : "Show password"}
+                        icon={show ? <FaEyeSlash /> : <FaEye />}
+                        onClick={() => setShow(!show)}
+                      />
+                    </InputRightElement>
+                  </InputGroup>
+                  {errors.password && (
+                    <FormErrorMessage>{errors.password}</FormErrorMessage>
+                  )}
+                </FormControl>
 
-            {/* PASSWORD */}
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-600">
-                Password
-              </label>
+                <HStack w="full" justify="space-between" pt={1}>
+                  <Checkbox 
+                    colorScheme="blue" 
+                    color="gray.600"
+                    size="md"
+                  >
+                    Remember me
+                  </Checkbox>
+                  <ChakraLink color="blue.500" fontWeight="bold" fontSize="sm" _hover={{ textDecoration: "none", color: "blue.600" }}>
+                    Forgot password?
+                  </ChakraLink>
+                </HStack>
 
-              <div className="relative">
-                <input
-                  type={show ? "text" : "password"}
-                  value={form.password}
-                  onChange={(e) =>
-                    setForm({ ...form, password: e.target.value })
-                  }
-                  placeholder="admin"
-                  className={`w-full px-4 py-3 rounded-lg border pr-10 focus:outline-none focus:ring-2
-                    ${
-                      errors.password
-                        ? "border-red-500 focus:ring-red-400"
-                        : "border-gray-300 focus:ring-indigo-500"
-                    }`}
-                />
-
-                <span
-                  onClick={() => setShow(!show)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-500"
+                <Button
+                  type="submit"
+                  colorScheme="blue"
+                  size="lg"
+                  w="full"
+                  isLoading={isLoading}
+                  loadingText="Signing in..."
+                  mt={4}
+                  borderRadius="md"
+                  boxShadow="0 4px 14px 0 rgba(0,118,255,0.39)"
+                  _hover={{ boxShadow: "0 6px 20px rgba(0,118,255,0.23)", transform: "translateY(-1px)" }}
+                  _active={{ transform: "translateY(1px)" }}
+                  transition="all 0.2s"
                 >
-                  {show ? <FaEyeSlash /> : <FaEye />}
-                </span>
-              </div>
-
-              {errors.password && (
-                <p className="text-red-500 text-sm mt-1">{errors.password}</p>
-              )}
-            </div>
-
-            {/* BUTTON */}
-            <button
-              type="submit"
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-semibold transition"
-            >
-              Login
-            </button>
-          </form>
-        </div>
-      </div>
-    </div>
+                  Sign in
+                </Button>
+              </VStack>
+            </form>
+          </VStack>
+        </Box>
+      </Flex>
+    </Flex>
   );
 }

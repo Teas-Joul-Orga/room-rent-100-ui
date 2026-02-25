@@ -1,9 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import MainPage from "./component/MainPage";
+import DashboardLayout from "./layouts/DashboardLayout";
 
 // Dashboard
 import Overview from "./page/dashboard/Overview";
+import TenantDashboard from "./page/tenant/TenantDashboard";
 import ListPending from "./page/dashboard/ListPending";
 import MonthlyIncomeChart from "./page/dashboard/MonthlyIncomeChart";
 
@@ -40,6 +41,9 @@ import PendingTenant from "./page/tenant/PendingTenant";
 import AddNewTenant from "./page/tenant/AddNewTenant";
 import ViewTenant from "./page/tenant/ViewTenant";
 import CreateAccount from "./page/tenant/CreateAccount";
+
+//Users
+import AllUsers from "./page/user/AllUsers";
 
 //Utility
 import AddPayment from "./page/utility/Addpayment";
@@ -78,11 +82,11 @@ function App() {
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <MainPage />
+                <DashboardLayout />
               </ProtectedRoute>
             }
           >
-            <Route index element={<Overview />} />
+            <Route index element={localStorage.getItem('role') === 'tenant' ? <TenantDashboard /> : <Overview />} />
             <Route path="listpending" element={<ListPending />} />
             <Route path="monthlyincome" element={<MonthlyIncomeChart />} />
             {/* </Route> */}
@@ -97,6 +101,10 @@ function App() {
               <Route path="view/:id" element={<ViewTenant />} />
               <Route path="createaccount/:id" element={<CreateAccount />} />
               {/* <Route path="changepassword" element={<ChangePassword />} /> */}
+            </Route>
+            {/* Users */}
+            <Route path="users">
+              <Route index element={<AllUsers />} />
             </Route>
 
             {/* Furniture  */}

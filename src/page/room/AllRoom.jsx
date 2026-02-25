@@ -1,322 +1,455 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
+import {
+  Box,
+  Flex,
+  Heading,
+  Button,
+  Input,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  TableContainer,
+  Badge,
+  Image,
+  Checkbox,
+  Select,
+  Text,
+  useColorModeValue,
+  IconButton,
+  Tooltip,
+  Spinner,
+} from "@chakra-ui/react";
+import { FiEdit2, FiTrash2, FiEye, FiPlus } from "react-icons/fi";
 
 export default function AllRoom() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [rooms, setRooms] = useState([]);
-  const [showModal, setShowModal] = useState(false);
-  const [selectedItem, setSelectedItem] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [totalPages, setTotalPages] = useState(1);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [showModal, setShowModal] = useState(false);
   const [showBulkDelete, setShowBulkDelete] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+
+  const token = localStorage.getItem("token");
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("rooms")) || [];
-    const sorted = [...saved].sort(
-      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-    );
-    setRooms(sorted);
-  }, []);
+    fetchRooms();
+    // eslint-disable-next-line
+  }, [currentPage, rowsPerPage, search]);
 
-  const filtered = rooms.filter((r) =>
-    r.name.toLowerCase().includes(search.trim().toLowerCase())
-  );
+  const fetchRooms = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`http://localhost:8000/api/v1/admin/rooms?page=${currentPage}&limit=${rowsPerPage}&search=${search}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setRooms(data.data || []);
+        setTotalPages(data.last_page || 1);
+      } else {
+        toast.error("Failed to fetch rooms.");
+      }
+    } catch (err) {
+      toast.error("Network error fetching rooms.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const lastIndex = currentPage * rowsPerPage;
-  const firstIndex = lastIndex - rowsPerPage;
-  const paginated = filtered.slice(firstIndex, lastIndex);
-  const totalPages = Math.ceil(filtered.length / rowsPerPage);
+  // Colors
+  const bg = useColorModeValue("sky.50", "gray.900");
+  const cardBg = useColorModeValue("white", "gray.800");
+  const textColor = useColorModeValue("gray.800", "white");
+  const mutedText = useColorModeValue("gray.500", "gray.400");
+  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const tableHeaderBg = useColorModeValue("sky.100", "gray.700");
+  const hoverBg = useColorModeValue("sky.50", "gray.700");
 
-  // Single delete
-  const confirmDelete = () => {
-    const updated = rooms.filter((r) => r.id !== selectedItem.id);
-    setRooms(updated);
-    localStorage.setItem("rooms", JSON.stringify(updated));
-    toast.success("Room deleted successfully");
-    setShowModal(false);
-    setSelectedItem(null);
+  const handleToggleActive = async (room, newStatus) => {
+    setIsLoading(true);
+    try {
+      if (newStatus === "disabled") {
+        const res = await fetch(`http://localhost:8000/api/v1/admin/rooms/${room.uid}`, {
+          method: "DELETE",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`
+          }
+        });
+        if (res.ok) toast.success("Room disabled successfully");
+        else toast.error("Failed to disable room");
+      } else {
+        const res = await fetch(`http://localhost:8000/api/v1/admin/rooms/${room.uid}/restore`, {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`
+          }
+        });
+        if (res.ok) toast.success("Room enabled successfully");
+        else toast.error("Failed to enable room");
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Network Error");
+    } finally {
+      fetchRooms();
+    }
+  };
+
+  // Single disable
+  const confirmDelete = async () => {
+    try {
+      const res = await fetch(`http://localhost:8000/api/v1/admin/rooms/${selectedItem.uid}`, {
+        method: "DELETE",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.ok) {
+        toast.success("Room disabled successfully");
+        fetchRooms();
+        setShowModal(false);
+        setSelectedItem(null);
+      } else {
+        toast.error("Failed to disable room");
+      }
+    } catch(err) {
+      toast.error("Network Error");
+    }
   };
 
   return (
-    <div className="p-6 bg-sky-50 min-h-screen space-y-6">
+    <Box p={6} bg={bg} minH="100vh">
       <Toaster position="top-right" />
 
       {/* ===== HEADER ===== */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h2 className="text-2xl font-bold text-sky-900">All Rooms</h2>
-        <button
+      <Flex direction={{ base: "column", sm: "row" }} align={{ sm: "center" }} justify="space-between" gap={4} mb={6}>
+        <Heading size="lg" color={useColorModeValue("sky.900", "white")}>
+          All Rooms
+        </Heading>
+        <Button
+          leftIcon={<FiPlus />}
+          colorScheme="blue"
           onClick={() => navigate("/dashboard/rooms/add")}
-          className="bg-sky-600 hover:bg-sky-700 text-white px-5 py-2 rounded-lg shadow transition"
+          shadow="sm"
         >
-          + Add New Room
-        </button>
-      </div>
+          Add New Room
+        </Button>
+      </Flex>
 
       {/* ===== SEARCH ===== */}
-      <div className="bg-white p-4 rounded-xl shadow">
-        <input
-          type="text"
+      <Box bg={cardBg} p={4} borderRadius="xl" shadow="sm" mb={6}>
+        <Input
           placeholder="Search room..."
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
             setCurrentPage(1);
           }}
-          className="w-full border border-sky-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-400"
+          borderColor={borderColor}
+          _hover={{ borderColor: "blue.400" }}
+          _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
         />
-      </div>
+      </Box>
 
       {/* ===== TABLE ===== */}
-      <div className="bg-white rounded-xl shadow overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-sky-100 text-sky-900">
-            <tr>
-              <th className="px-4 py-3 text-left">Check Box</th>
-              <th className="px-4 py-3 text-left">Photo</th>
-              <th className="px-4 py-3 text-left">Room</th>
-              <th className="px-4 py-3 text-left">Base Rent</th>
-              <th className="px-4 py-3 text-left">Status</th>
-              <th className="px-4 py-3 text-center">Action</th>
-            </tr>
-          </thead>
+      <TableContainer bg={cardBg} borderRadius="xl" shadow="sm" mb={4}>
+        <Table variant="simple">
+          <Thead bg={tableHeaderBg}>
+            <Tr>
+              <Th w="50px">Check Box</Th>
+              <Th>Photo</Th>
+              <Th>Room</Th>
+              <Th>Base Rent</Th>
+              <Th>Status</Th>
+              <Th>Active</Th>
+              <Th textAlign="center">Action</Th>
+            </Tr>
+          </Thead>
 
-          <tbody className="divide-y">
-            {paginated.map((r, index) => (
-              <tr key={r.id} className="hover:bg-sky-50 transition">
-                <td className="px-4 py-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.includes(r.id)}
+          <Tbody>
+            {isLoading ? (
+              <Tr>
+                <Td colSpan={6} textAlign="center" py={10}>
+                  <Spinner size="lg" color="blue.500" />
+                </Td>
+              </Tr>
+            ) : rooms.length > 0 ? (
+            rooms.map((r) => (
+              <Tr key={r.uid} _hover={{ bg: hoverBg }} transition="all 0.2s">
+                <Td>
+                  <Checkbox
+                    isChecked={selectedIds.includes(r.uid)}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        setSelectedIds([...selectedIds, r.id]);
+                        setSelectedIds([...selectedIds, r.uid]);
                       } else {
-                        setSelectedIds(selectedIds.filter((id) => id !== r.id));
+                        setSelectedIds(selectedIds.filter((id) => id !== r.uid));
                       }
                     }}
+                    colorScheme="blue"
                   />
-                </td>
+                </Td>
 
                 {/* PHOTO */}
-                <td className="px-4 py-3">
-                  <img
-                    src={r.photo || "https://via.placeholder.com/80"}
+                <Td>
+                  <Image
+                    src={r.images?.length > 0 ? `http://localhost:8000/storage/${r.images[0].path}` : "https://via.placeholder.com/80"}
                     alt="room"
-                    className="w-14 h-14 object-cover rounded-lg border"
+                    boxSize="50px"
+                    objectFit="cover"
+                    borderRadius="lg"
+                    border="1px solid"
+                    borderColor={borderColor}
                   />
-                </td>
+                </Td>
 
                 {/* NAME */}
-                <td className="px-4 py-3 font-medium text-slate-800">
+                <Td fontWeight="medium" color={textColor}>
                   {r.name}
-                </td>
+                </Td>
 
                 {/* RENT */}
-                <td className="px-4 py-3 text-slate-700">${r.rent}</td>
+                <Td color={useColorModeValue("gray.700", "gray.300")}>
+                  ${r.base_rent_price}
+                </Td>
 
                 {/* STATUS */}
-                <td className="px-4 py-3">
-                  <span
-                    className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                      r.status === "Occupied"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-green-100 text-green-700"
-                    }`}
+                <Td>
+                  <Badge
+                    colorScheme={r.status === "available" ? "green" : r.status === "occupied" ? "red" : "orange"}
+                    px={3}
+                    py={1.5}
+                    borderRadius="full"
+                    textTransform="uppercase"
+                    fontSize="xs"
+                    fontWeight="bold"
+                    letterSpacing="wider"
+                    boxShadow="sm"
+                    display="inline-flex"
+                    alignItems="center"
                   >
                     {r.status}
-                  </span>
-                </td>
+                  </Badge>
+                </Td>
+
+                {/* ACTIVE TOGGLE */}
+                <Td p={3}>
+                  <Select
+                    size="xs"
+                    fontWeight="bold"
+                    w="110px"
+                    bg={r.deleted_at ? "red.50" : "green.50"}
+                    color={r.deleted_at ? "red.700" : "green.700"}
+                    borderColor={r.deleted_at ? "red.200" : "green.200"}
+                    value={r.deleted_at ? "disabled" : "enabled"}
+                    onChange={(e) => handleToggleActive(r, e.target.value)}
+                    cursor="pointer"
+                  >
+                    <option value="enabled">Enabled</option>
+                    <option value="disabled">Disabled</option>
+                  </Select>
+                </Td>
 
                 {/* ACTION */}
-                <td className="px-4 py-3">
-                  <div className="flex justify-center gap-2">
-                    <button
-                      onClick={() =>
-                        navigate(`/dashboard/rooms/viewroom/${r.id}`)
-                      }
-                      className="px-3 py-1 text-xs rounded-full text-green-600 hover:bg-green-600 hover:text-white transition"
-                    >
-                      View
-                    </button>
-                    <button
-                      onClick={() => navigate(`/dashboard/rooms/edit/${r.id}`)}
-                      className="px-3 py-1 text-xs rounded-full text-indigo-600 hover:bg-indigo-600 hover:text-white transition"
-                    >
-                      Edit
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setSelectedItem(r);
-                        setShowModal(true);
-                      }}
-                      className="px-3 py-1 text-xs rounded-full text-red-600 hover:bg-red-600 hover:text-white transition"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan="6" className="text-center py-10 text-gray-400">
+                <Td>
+                  <Flex justify="center" gap={2}>
+                    <Tooltip label="View Room" hasArrow>
+                      <IconButton
+                        icon={<FiEye />}
+                        size="sm"
+                        colorScheme="green"
+                        variant="ghost"
+                        onClick={() => navigate(`/dashboard/rooms/viewroom/${r.uid}`)}
+                        aria-label="View room"
+                      />
+                    </Tooltip>
+                    <Tooltip label="Edit Room" hasArrow>
+                      <IconButton
+                        icon={<FiEdit2 />}
+                        size="sm"
+                        colorScheme="blue"
+                        variant="ghost"
+                        onClick={() => navigate(`/dashboard/rooms/edit/${r.uid}`)}
+                        aria-label="Edit room"
+                      />
+                    </Tooltip>
+                  </Flex>
+                </Td>
+              </Tr>
+            ))
+            ) : (
+              <Tr>
+                <Td colSpan={6} textAlign="center" py={10} color={mutedText}>
                   No rooms found
-                </td>
-              </tr>
+                </Td>
+              </Tr>
             )}
-          </tbody>
-        </table>
+          </Tbody>
+        </Table>
 
-        {/* Bulk Delete */}
+        {/* Bulk Disable */}
         {selectedIds.length > 0 && (
-          <button
-            onClick={() => setShowBulkDelete(true)}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg mt-2 hover:bg-red-700"
-          >
-            Delete Selected ({selectedIds.length})
-          </button>
+          <Box p={4} borderTop="1px solid" borderColor={borderColor}>
+            <Button
+              colorScheme="red"
+              onClick={() => setShowBulkDelete(true)}
+              leftIcon={<FiTrash2 />}
+            >
+              Disable Selected ({selectedIds.length})
+            </Button>
+          </Box>
         )}
-      </div>
+      </TableContainer>
 
       {/* ===== PAGINATION ===== */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-4">
-        <div className="flex items-center gap-2 text-sm">
-          Show
-          <select
+      <Flex direction={{ base: "column", sm: "row" }} justify="space-between" align="center" gap={4}>
+        <Flex align="center" gap={2} fontSize="sm" color={textColor}>
+          <Text>Show</Text>
+          <Select
+            size="sm"
+            w="auto"
             value={rowsPerPage}
             onChange={(e) => {
               setRowsPerPage(Number(e.target.value));
               setCurrentPage(1);
             }}
-            className="border rounded px-2 py-1"
           >
             <option value={5}>5</option>
             <option value={10}>10</option>
-          </select>
-          entries
-        </div>
+          </Select>
+          <Text>entries</Text>
+        </Flex>
 
-        <div className="flex items-center gap-2">
-          <button
-            disabled={currentPage === 1}
+        <Flex align="center" gap={2}>
+          <Button
+            size="sm"
+            variant="outline"
+            isDisabled={currentPage === 1}
             onClick={() => setCurrentPage((p) => p - 1)}
-            className="px-3 py-1 rounded border disabled:opacity-40"
           >
             Prev
-          </button>
+          </Button>
 
           {[...Array(totalPages)].map((_, i) => (
-            <button
+            <Button
               key={i}
+              size="sm"
+              variant={currentPage === i + 1 ? "solid" : "outline"}
+              colorScheme={currentPage === i + 1 ? "blue" : "gray"}
               onClick={() => setCurrentPage(i + 1)}
-              className={`px-3 py-1 rounded border ${
-                currentPage === i + 1 ? "bg-sky-600 text-white" : ""
-              }`}
             >
               {i + 1}
-            </button>
+            </Button>
           ))}
 
-          <button
-            disabled={currentPage === totalPages}
+          <Button
+            size="sm"
+            variant="outline"
+            isDisabled={currentPage === totalPages || totalPages === 0}
             onClick={() => setCurrentPage((p) => p + 1)}
-            className="px-3 py-1 rounded border disabled:opacity-40"
           >
             Next
-          </button>
-        </div>
-      </div>
+          </Button>
+        </Flex>
+      </Flex>
 
-      {/* ===== SINGLE DELETE MODAL ===== */}
-      <AnimatePresence>
-        {showModal && selectedItem && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 px-4"
-          >
-            <motion.div
-              initial={{ scale: 0.85, y: 30, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.85, y: 30, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 text-center"
-            >
-              <h3 className="text-xl font-bold text-gray-800 mb-3">
-                Delete Room
-              </h3>
-
-              <p className="text-gray-700 mb-1">
-                Are you sure you want to delete
-              </p>
-              <p className="font-semibold mb-4">{selectedItem.name}?</p>
-
-              <div className="flex justify-center gap-4">
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="px-5 py-2 rounded-lg border hover:bg-gray-100"
-                >
-                  Cancel
-                </button>
-
-                <button
-                  onClick={confirmDelete}
-                  className="px-5 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
-                >
-                  Yes, Delete
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ===== BULK DELETE MODAL ===== */}
-      {showBulkDelete && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-lg">
-            <h3 className="text-lg font-bold text-slate-800 mb-2">
-              Confirm Delete
-            </h3>
-
-            <p className="text-slate-600 mb-5">
-              Are you sure you want to delete <b>{selectedIds.length}</b>{" "}
-              selected rooms? This action cannot be undone.
-            </p>
-
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowBulkDelete(false)}
-                className="px-4 py-2 rounded-lg border hover:bg-slate-100"
-              >
+      {/* SINGLE DISABLE MODAL */}
+      {showModal && selectedItem && (
+        <Flex
+          position="fixed"
+          top={0} left={0} right={0} bottom={0}
+          bg="blackAlpha.600"
+          zIndex={9999}
+          align="center"
+          justify="center"
+          p={4}
+        >
+          <Box bg={cardBg} borderRadius="xl" shadow="2xl" maxW="md" w="full" p={6}>
+            <Heading size="md" mb={4} color={textColor}>
+              Disable Room
+            </Heading>
+            <Text mb={6} color={mutedText}>
+              Are you sure you want to disable <strong>{selectedItem.name}</strong>?
+            </Text>
+            <Flex justify="flex-end" gap={3}>
+              <Button onClick={() => setShowModal(false)} variant="ghost">
                 Cancel
-              </button>
-
-              <button
-                onClick={() => {
-                  const updated = rooms.filter(
-                    (r) => !selectedIds.includes(r.id)
-                  );
-                  setRooms(updated);
-                  localStorage.setItem("rooms", JSON.stringify(updated));
-                  setSelectedIds([]);
-                  setShowBulkDelete(false);
-                  toast.success("Selected rooms deleted");
-                }}
-                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
-              >
-                Yes, Delete
-              </button>
-            </div>
-          </div>
-        </div>
+              </Button>
+              <Button colorScheme="red" onClick={confirmDelete}>
+                Disable
+              </Button>
+            </Flex>
+          </Box>
+        </Flex>
       )}
-    </div>
+
+      {/* BULK DISABLE MODAL */}
+      {showBulkDelete && (
+        <Flex
+          position="fixed"
+          top={0} left={0} right={0} bottom={0}
+          bg="blackAlpha.600"
+          zIndex={9999}
+          align="center"
+          justify="center"
+          p={4}
+        >
+          <Box bg={cardBg} borderRadius="xl" shadow="2xl" maxW="md" w="full" p={6}>
+            <Heading size="md" mb={4} color={textColor}>
+              Disable Multiple Rooms
+            </Heading>
+            <Text mb={6} color={mutedText}>
+              Are you sure you want to disable {selectedIds.length} rooms?
+            </Text>
+            <Flex justify="flex-end" gap={3}>
+              <Button onClick={() => setShowBulkDelete(false)} variant="ghost">
+                Cancel
+              </Button>
+              <Button colorScheme="red" onClick={async () => {
+                let successCount = 0;
+                setIsLoading(true);
+                for (let id of selectedIds) {
+                  try {
+                    await fetch(`http://localhost:8000/api/v1/admin/rooms/${id}`, {
+                      method: "DELETE",
+                      headers: {
+                        Accept: "application/json",
+                        Authorization: `Bearer ${token}`
+                      }
+                    });
+                    successCount++;
+                  } catch(e) {
+                    console.error(`Failed to disable room ${id}`, e);
+                  }
+                }
+                toast.success(`${successCount} rooms disabled`);
+                setSelectedIds([]);
+                setShowBulkDelete(false);
+                fetchRooms();
+              }}>
+                Disable All
+              </Button>
+            </Flex>
+          </Box>
+        </Flex>
+      )}
+    </Box>
   );
 }

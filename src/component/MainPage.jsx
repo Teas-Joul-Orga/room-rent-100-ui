@@ -29,12 +29,10 @@ function MainPage() {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [lastSidebarPath, setLastSidebarPath] = useState({});
-
-  useEffect(() => {
+  const [lastSidebarPath, setLastSidebarPath] = useState(() => {
     const saved = localStorage.getItem("lastSidebarPath");
-    if (saved) setLastSidebarPath(JSON.parse(saved));
-  }, []);
+    return saved ? JSON.parse(saved) : {};
+  });
 
   useEffect(() => {
     localStorage.setItem("lastSidebarPath", JSON.stringify(lastSidebarPath));

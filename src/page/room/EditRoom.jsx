@@ -1,28 +1,28 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import toast from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function EditRoom() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [room, setRoom] = useState(null);
-  const [allFurniture, setAllFurniture] = useState([]);
-  const [selectedFurniture, setSelectedFurniture] = useState([]);
-  const [photo, setPhoto] = useState("");
-
-  useEffect(() => {
+  const [room, setRoom] = useState(() => {
+    const rooms = JSON.parse(localStorage.getItem("rooms")) || [];
+    return rooms.find((r) => r.id === Number(id)) || null;
+  });
+  const [allFurniture] = useState(() => {
+    return JSON.parse(localStorage.getItem("furniture")) || [];
+  });
+  const [selectedFurniture, setSelectedFurniture] = useState(() => {
     const rooms = JSON.parse(localStorage.getItem("rooms")) || [];
     const found = rooms.find((r) => r.id === Number(id));
-    if (found) {
-      setRoom(found);
-      setSelectedFurniture(found.furniture || []);
-      setPhoto(found.photo || "");
-    }
-
-    const furniture = JSON.parse(localStorage.getItem("furniture")) || [];
-    setAllFurniture(furniture);
-  }, [id]);
+    return found ? found.furniture || [] : [];
+  });
+  const [photo, setPhoto] = useState(() => {
+    const rooms = JSON.parse(localStorage.getItem("rooms")) || [];
+    const found = rooms.find((r) => r.id === Number(id));
+    return found ? found.photo || "" : "";
+  });
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
@@ -49,6 +49,7 @@ export default function EditRoom() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 to-white p-6">
+      <Toaster />
       <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-8">
         <h2 className="text-2xl font-bold text-sky-900 mb-6">Edit Room</h2>
 
