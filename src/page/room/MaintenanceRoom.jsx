@@ -10,6 +10,10 @@ import { toast } from "react-hot-toast";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/en";
+import Echo from 'laravel-echo';
+import Pusher from 'pusher-js';
+
+window.Pusher = Pusher;
 
 dayjs.extend(relativeTime);
 const API = "http://localhost:8000/api/v1";
@@ -68,8 +72,25 @@ function MaintenanceRoom() {
   }, [search, statusFilter]);
 
   useEffect(() => {
-    const interval = setInterval(fetchRequests, 15000); // Live polling every 15s
-    return () => clearInterval(interval);
+    const echo = new Echo({
+      broadcaster: 'reverb',
+      key: 'ia6m3xrvsph7zmudqiif',
+      wsHost: 'localhost',
+      wsPort: 8080,
+      wssPort: 8080,
+      forceTLS: false,
+      enabledTransports: ['ws', 'wss'],
+    });
+
+    echo.channel('maintenance')
+      .listen('.App\\Events\\MaintenanceCountUpdated', () => {
+        // Trigger a fresh fetch of the list natively when any event is broadcasted
+        fetchRequests();
+      });
+
+    return () => {
+      echo.leaveChannel('maintenance');
+    };
   }, [search, statusFilter]);
 
   const handleUpdateSubmit = async (e) => {

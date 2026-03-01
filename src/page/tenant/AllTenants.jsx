@@ -272,6 +272,7 @@ export default function AllTenants() {
         </Heading>
 
         <Button
+          display={{ base: "none", sm: "flex" }}
           leftIcon={<FiPlus />}
           colorScheme="blue"
           onClick={() => {
@@ -293,6 +294,36 @@ export default function AllTenants() {
         >
           Add New Tenant
         </Button>
+
+        {/* Mobile FAB */}
+        <IconButton
+          display={{ base: "flex", sm: "none" }}
+          icon={<FiPlus size={24} />}
+          colorScheme="blue"
+          onClick={() => {
+            setIsEdit(false);
+            setSelectedTenant(null);
+            setForm({
+              name: "",
+              email: "",
+              phone: "",
+              dob: "",
+              job: "",
+              photo: "",
+              idFront: "",
+              idBack: "",
+            });
+            setShowFormModal(true);
+          }}
+          isRound
+          size="lg"
+          position="fixed"
+          bottom="85px"
+          right="20px"
+          zIndex={999}
+          shadow="dark-lg"
+          aria-label="Add Tenant"
+        />
       </Flex>
 
       {/* ===== SUMMARY CARDS ===== */}

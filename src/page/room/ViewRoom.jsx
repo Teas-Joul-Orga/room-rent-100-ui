@@ -38,12 +38,17 @@ export default function ViewRoom() {
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [activePhoto, setActivePhoto] = useState("");
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const bg = useColorModeValue("sky.50", "gray.900");
   const cardBg = useColorModeValue("white", "gray.800");
   const textColor = useColorModeValue("gray.800", "white");
   const mutedText = useColorModeValue("gray.500", "gray.400");
   const borderColor = useColorModeValue("gray.200", "gray.700");
+  
+  // Header Colors
+  const headerTextColor = useColorModeValue("sky.900", "white");
+  const hoverBg = useColorModeValue("gray.50", "whiteAlpha.100");
 
   useEffect(() => {
     const fetchRoom = async () => {
@@ -90,6 +95,21 @@ export default function ViewRoom() {
     onOpen();
   };
 
+  const nextImage = (e) => {
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev === roomImages.length - 1 ? 0 : prev + 1));
+  };
+
+  const prevImage = (e) => {
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev === 0 ? roomImages.length - 1 : prev - 1));
+  };
+
+  const goToImage = (e, index) => {
+    e.stopPropagation();
+    setCurrentImageIndex(index);
+  };
+
   return (
     <Box p={6} bg={bg} minH="100vh">
       <Box maxW="7xl" mx="auto">
@@ -101,7 +121,7 @@ export default function ViewRoom() {
           mb={6}
           gap={4}
         >
-          <Heading size="lg" color={useColorModeValue("sky.900", "white")}>
+          <Heading size="lg" color={headerTextColor}>
             Room Details: {room.name}
           </Heading>
           <Button
@@ -130,14 +150,14 @@ export default function ViewRoom() {
                     <Box
                       position="relative"
                       cursor="zoom-in"
-                      onClick={() => handleOpenGallery(roomImages[0].path)}
+                      onClick={() => handleOpenGallery(roomImages[currentImageIndex].path)}
                       role="group"
                       overflow="hidden"
                       borderRadius="2xl"
                       shadow="lg"
                     >
                       <Image
-                        src={`http://localhost:8000/storage/${roomImages[0].path}`}
+                        src={`http://localhost:8000/storage/${roomImages[currentImageIndex].path}`}
                         alt="Main"
                         w="full"
                         h="320px"
@@ -165,16 +185,19 @@ export default function ViewRoom() {
 
                     {roomImages.length > 1 && (
                       <Grid templateColumns="repeat(4, 1fr)" gap={3}>
-                        {roomImages.slice(1).map((img) => (
+                        {roomImages.map((img, idx) => (
                           <GridItem key={img.id}>
                             <Box
                               cursor="pointer"
-                              onClick={() => handleOpenGallery(img.path)}
+                              onClick={(e) => goToImage(e, idx)}
                               role="group"
                               overflow="hidden"
                               borderRadius="xl"
-                              border="1px"
-                              borderColor={borderColor}
+                              border="3px solid"
+                              borderColor={currentImageIndex === idx ? "blue.500" : borderColor}
+                              opacity={currentImageIndex === idx ? 1 : 0.6}
+                              transition="all 0.3s"
+                              _hover={{ opacity: 1, borderColor: "blue.300" }}
                             >
                               <Image
                                 src={`http://localhost:8000/storage/${img.path}`}
@@ -345,7 +368,7 @@ export default function ViewRoom() {
                     <Tbody>
                       {room.leases && room.leases.length > 0 ? (
                         room.leases.map((lease) => (
-                          <Tr key={lease.id} _hover={{ bg: useColorModeValue("gray.50", "whiteAlpha.100") }}>
+                          <Tr key={lease.id} _hover={{ bg: hoverBg }}>
                             <Td py={4}>
                               <Text fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="tight" color={textColor}>
                                 {lease.tenant?.name || "Unknown"}
@@ -450,7 +473,7 @@ export default function ViewRoom() {
                       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
                       .slice(0, 5)
                       .map((bill) => (
-                        <Tr key={bill.id} _hover={{ bg: useColorModeValue("gray.50", "whiteAlpha.100") }}>
+                        <Tr key={bill.id} _hover={{ bg: hoverBg }}>
                           <Td py={3}>
                             <Text fontSize="xs" fontWeight="bold" color={textColor}>
                               {new Date(bill.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}

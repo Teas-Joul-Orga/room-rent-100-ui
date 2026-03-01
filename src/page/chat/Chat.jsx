@@ -4,10 +4,11 @@ import {
   useColorModeValue, Divider, Tooltip, useToast, Popover, PopoverTrigger,
   PopoverContent, PopoverArrow, PopoverBody, Button, useDisclosure,
   AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader,
-  AlertDialogContent, AlertDialogOverlay, Tag
+  AlertDialogContent, AlertDialogOverlay, Tag, Badge
 } from '@chakra-ui/react';
-import { FiSend, FiMoreVertical, FiEdit2, FiTrash2, FiMessageSquare } from 'react-icons/fi';
+import { FiSend, FiMoreVertical, FiEdit2, FiTrash2, FiMessageSquare, FiArrowLeft } from 'react-icons/fi';
 import dayjs from 'dayjs';
+import echo from '../../lib/echo';
 
 const API = "http://localhost:8000/api/v1";
 
@@ -38,6 +39,13 @@ export default function Chat() {
   const otherMessageBg = useColorModeValue("gray.100", "gray.700");
   const textColor = useColorModeValue("gray.800", "white");
   const otherMessageTextColor = useColorModeValue("gray.800", "gray.100");
+  
+  // The following variables were causing React Rules of Hooks ordering errors because they
+  // used to be called conditionally inside the `{selectedContact ? (...) : (...)}` JSX render tree block.
+  const threadHeaderBg = useColorModeValue("gray.50", "gray.800");
+  const stickyDateBadgeBg = useColorModeValue("white", "gray.800");
+  const noMessagesColor = useColorModeValue("gray.400", "gray.500");
+  const inputBg = useColorModeValue("gray.100", "gray.700");
 
   const token = localStorage.getItem('token');
   const role = localStorage.getItem('role');
@@ -93,6 +101,39 @@ export default function Chat() {
     initChat();
   }, [role, token]);
 
+  // 1.5 Fetch Unread per contact
+  const [unreadCounts, setUnreadCounts] = useState({});
+
+  useEffect(() => {
+    if (!currentUser?.id || !token) return;
+
+    const fetchUnreadCounts = async () => {
+      try {
+        const res = await fetch(`${API}/messages/unread-per-contact`, { headers: { Authorization: `Bearer ${token}` } });
+        if (res.ok) {
+          const data = await res.json();
+          setUnreadCounts(data.counts || {});
+        }
+      } catch (e) {}
+    };
+    fetchUnreadCounts();
+
+    const channel = echo().private(`chat.user.${currentUser.id}`)
+      .listen('.App\\Events\\ChatCountsUpdated', (e) => {
+         // The backend now pipes down the EXACT integers for every contact.
+         // No need to blindly compute additions and subtractions natively in React anymore!
+         setUnreadCounts(e.unreadPerContact || {});
+      })
+      .listen('.App\\Events\\MessageSent', (e) => {
+         // Keep listening for MessageSent SOLELY to trigger the "on-screen active chat" marking read dispatch
+         window.dispatchEvent(new CustomEvent('wsMessageRead', { detail: { sender_id: e.sender_id }}));
+      });
+
+    return () => {
+      echo().leaveChannel(`chat.user.${currentUser.id}`);
+    };
+  }, [currentUser?.id, token]);
+
   // 2. Fetch Messages (Poll every 10 seconds)
   useEffect(() => {
     if (!selectedContact) return;
@@ -104,23 +145,44 @@ export default function Chat() {
           const data = await res.json();
           // The API returns the last 50 messages for the current user.
           // We need to filter for the conversation with the selected contact.
-          // A message belongs to this thread if:
-          // (sender is me AND receiver is contact) OR (sender is contact AND receiver is me)
           const thread = data.messages.filter(m => 
             (m.sender_id === currentUser?.id && m.receiver_id === selectedContact.id) ||
             (m.sender_id === selectedContact.id && m.receiver_id === currentUser?.id)
-          ).reverse(); // Reverse because API returns latest first (DESC), but we want chronological (ASC) for display
+          ).reverse(); 
           
           setMessages(thread);
         }
-      } catch(e) {
-        // silent fail for polling
-      }
+      } catch(e) {}
     };
 
     fetchMessages(); // Initial fetch
+    
+    // We only need to mark as read when selecting the contact, or actively getting a new websocket push in that thread
+    const markRead = async () => {
+      try {
+        await fetch(`${API}/messages/mark-read`, {
+          method: 'POST',
+          headers: { 
+            Authorization: `Bearer ${token}`, 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json' 
+          },
+          body: JSON.stringify({ sender_id: selectedContact.id })
+        });
+      } catch (e) {}
+    };
+    
+    // Fire ONCE when this specific thread is opened by the user
+    markRead();
+    
+    // Also mark read if a websocket message from them arrives while we are looking at them
+    window.addEventListener('wsMessageRead', markRead);
+
     const interval = setInterval(fetchMessages, 10000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('wsMessageRead', markRead);
+    };
   }, [selectedContact, currentUser?.id, token]);
 
   // Keep chat scrolled to bottom
@@ -135,17 +197,7 @@ export default function Chat() {
 
     setIsSending(true);
     const tempText = newMessage;
-    setNewMessage(''); // optimistic clear
-    
-    // Create optimistic message
-    const optMsg = {
-        id: 'temp-' + Date.now(),
-        sender_id: currentUser.id,
-        receiver_id: selectedContact.id,
-        message: tempText,
-        created_at: new Date().toISOString()
-    };
-    setMessages(prev => [...prev, optMsg]);
+    setNewMessage(''); // clear input field
 
     try {
       const res = await fetch(`${API}/messages/send`, {
@@ -161,13 +213,12 @@ export default function Chat() {
       if (!res.ok) throw new Error("Failed to send");
       const data = await res.json();
       
-      // Replace optimistic message with real db message
-      setMessages(prev => prev.map(m => m.id === optMsg.id ? data.data : m));
+      // Append the real, verified database message
+      setMessages(prev => [...prev, data.data]);
       
     } catch (e) {
       toast({ title: "Message failed to send", status: "error" });
       setNewMessage(tempText); // revert input
-      setMessages(prev => prev.filter(m => m.id !== optMsg.id)); // remove optimistic
     } finally {
       setIsSending(false);
     }
@@ -218,10 +269,14 @@ export default function Chat() {
   };
 
   return (
-    <Flex h="calc(100vh - 80px)" bg="gray.100" p={4} direction={{ base: 'column', md: 'row' }} gap={4}>
+    <Flex h="100%" w="100%" direction="row" gap={4}>
       
       {/* LEFT SIDEBAR: Contacts list */}
-      <Box w={{ base: "100%", md: "350px" }} bg={bg} borderRadius="2xl" shadow="sm" border="1px solid" borderColor={borderColor} display="flex" flexDirection="column" overflow="hidden">
+      <Box 
+        w={{ base: "100%", md: "350px" }} 
+        display={{ base: selectedContact ? "none" : "flex", md: "flex" }}
+        bg={bg} borderRadius="2xl" shadow="sm" border="1px solid" borderColor={borderColor} flexDirection="column" overflow="hidden"
+      >
         <Box p={4} borderBottom="1px solid" borderColor={borderColor}>
           <Text fontSize="lg" fontWeight="bold" color={textColor}>Messages</Text>
         </Box>
@@ -233,7 +288,9 @@ export default function Chat() {
              <Text textAlign="center" color="gray.500" p={6}>No contacts found.</Text>
           ) : (
             <VStack spacing={1} align="stretch">
-              {contacts.map(contact => (
+              {contacts.map(contact => {
+                const unread = unreadCounts[contact.id] || 0;
+                return (
                 <Flex 
                   key={contact.id} 
                   p={3} 
@@ -248,22 +305,41 @@ export default function Chat() {
                 >
                   <Avatar size="md" name={contact.name} src={contact.photo} />
                   <Box flex="1" overflow="hidden">
-                    <Text fontWeight="semibold" color={textColor} isTruncated>{contact.name}</Text>
-                    <Text fontSize="sm" color="gray.500" isTruncated>{contact.role.toUpperCase()}</Text>
+                    <Text fontWeight={unread > 0 ? "bold" : "semibold"} color={textColor} isTruncated>{contact.name}</Text>
+                    <Text fontSize="sm" color={unread > 0 ? "blue.500" : "gray.500"} fontWeight={unread > 0 ? "bold" : "normal"} isTruncated>{contact.role.toUpperCase()}</Text>
                   </Box>
+                  {unread > 0 && (
+                     <Badge colorScheme="red" borderRadius="full" px={2} py={0.5}>
+                        {unread > 9 ? '9+' : unread}
+                     </Badge>
+                  )}
                 </Flex>
-              ))}
+                );
+              })}
             </VStack>
           )}
         </Box>
       </Box>
 
       {/* RIGHT AREA: Message Thread */}
-      <Box flex="1" bg={bg} borderRadius="2xl" shadow="sm" border="1px solid" borderColor={borderColor} display="flex" flexDirection="column" overflow="hidden">
+      <Box 
+        flex="1" 
+        display={{ base: selectedContact ? "flex" : "none", md: "flex" }}
+        bg={bg} borderRadius="2xl" shadow="sm" border="1px solid" borderColor={borderColor} flexDirection="column" overflow="hidden"
+      >
         {selectedContact ? (
           <>
             {/* Thread Header */}
-            <Flex p={4} borderBottom="1px solid" borderColor={borderColor} align="center" gap={3} bg={useColorModeValue('gray.50', 'gray.800')}>
+            <Flex p={4} borderBottom="1px solid" borderColor={borderColor} align="center" gap={3} bg={threadHeaderBg}>
+              <IconButton 
+                 display={{ base: "flex", md: "none" }}
+                 icon={<FiArrowLeft />}
+                 size="sm"
+                 variant="ghost"
+                 onClick={() => setSelectedContact(null)}
+                 aria-label="Back to contacts"
+                 mr={1}
+              />
               <Avatar size="sm" name={selectedContact.name} src={selectedContact.photo} />
               <Box>
                 <Text fontWeight="bold" color={textColor}>{selectedContact.name}</Text>
@@ -274,7 +350,7 @@ export default function Chat() {
             {/* Messages Area */}
             <Box flex="1" p={6} overflowY="auto" display="flex" flexDirection="column" gap={4}>
                {messages.length === 0 && (
-                  <Flex flex="1" justify="center" align="center" direction="column" color="gray.400">
+                  <Flex flex="1" justify="center" align="center" direction="column" color={noMessagesColor}>
                      <FiMessageSquare size={40} />
                      <Text mt={4}>Start a conversation with {selectedContact.name}</Text>
                   </Flex>
@@ -284,10 +360,12 @@ export default function Chat() {
                  const isMe = msg.sender_id === currentUser?.id;
                  
                  return (
-                   <Flex key={msg.id} justify={isMe ? "flex-end" : "flex-start"} w="100%" group="true">
+                   <Flex key={msg.id} justify={isMe ? "flex-end" : "flex-start"} w="100%" role="group">
                      
                      <HStack maxW="70%" align="flex-start" flexDirection={isMe ? "row-reverse" : "row"}>
-                        <Avatar size="sm" name={isMe ? currentUser?.name : selectedContact.name} src={isMe ? null : selectedContact.photo} mt={1} />
+                        {!isMe && (
+                           <Avatar size="sm" name={selectedContact.name} src={selectedContact.photo} mt={1} />
+                        )}
                         
                         <Flex direction="column" align={isMe ? "flex-end" : "flex-start"}>
                           
@@ -368,7 +446,7 @@ export default function Chat() {
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     borderRadius="full"
-                    bg={useColorModeValue('gray.100', 'gray.700')}
+                    bg={inputBg}
                     border="none"
                     _focus={{ ring: 2, ringColor: "blue.400" }}
                   />
@@ -387,7 +465,7 @@ export default function Chat() {
           </>
         ) : (
            <Flex flex="1" direction="column" justify="center" align="center" color="gray.400" textAlign="center" px={10}>
-              <Box bg={useColorModeValue('gray.100', 'gray.700')} p={6} borderRadius="full" mb={6}>
+              <Box bg={inputBg} p={6} borderRadius="full" mb={6}>
                  <FiMessageSquare size={48} />
               </Box>
               <Text fontSize="xl" fontWeight="bold" color={textColor} mb={2}>RoomRent Chat Support</Text>

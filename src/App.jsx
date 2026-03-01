@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
+import { Box } from "@chakra-ui/react";
 import DashboardLayout from "./layouts/DashboardLayout";
 
 // Dashboard
@@ -161,7 +162,13 @@ function App() {
             <Route path="maintenance" element={<MaintenanceRoom />} />
 
             {/* Notification */}
-            <Route path="notifications" element={<Notification />} />
+            <Route path="notifications" element={
+              <Box p={4} display="flex" justifyContent="center">
+                <Box w="full" maxW="600px" shadow="sm" border="1px" borderColor="gray.100" rounded="xl" bg="white" _dark={{ bg: "gray.800", borderColor: "gray.700" }}>
+                  <Notification />
+                </Box>
+              </Box>
+            } />
 
             {/* Report */}
             <Route path="report" element={<Report />} />

@@ -32,6 +32,10 @@ function Dashboard() {
   const textColor = useColorModeValue("gray.800", "white");
   const mutedText = useColorModeValue("gray.500", "gray.400");
   
+  // Custom colors that were used inline below
+  const gray50_gray700 = useColorModeValue("gray.50", "gray.700");
+  const blue50_gray700 = useColorModeValue("blue.50", "gray.700");
+  
   const headers = () => {
     const token = localStorage.getItem("token");
     return token ? { Authorization: `Bearer ${token}` } : {};
@@ -91,8 +95,8 @@ function Dashboard() {
   ];
 
   return (
-    <Box p={6}>
-      <Flex justify="space-between" align="center" mb={6}>
+    <Box p={{ base: 2, md: 6 }}>
+      <Flex direction={{ base: "column", sm: "row" }} justify="space-between" align={{ base: "flex-start", sm: "center" }} mb={6} gap={{ base: 4, sm: 0 }}>
         <Box>
           <Text fontSize="2xl" fontWeight="black" letterSpacing="tight" color={textColor}>
             Dashboard Overview
@@ -167,7 +171,7 @@ function Dashboard() {
           {/* P&L Bar Chart */}
           <Box bg={bg} p={6} borderRadius="xl" border="1px solid" borderColor={borderColor} shadow="sm" h="400px">
             <Text fontSize="md" fontWeight="bold" color={textColor} mb={6} textTransform="uppercase">Revenue vs Expenses ({yearFilter})</Text>
-            <ResponsiveContainer width="100%" height="90%">
+            <ResponsiveContainer width="100%" height={300}>
               <BarChart data={trendData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={borderColor} />
                 <XAxis dataKey="month" tick={{ fontSize: 12, fill: mutedText }} axisLine={false} tickLine={false} />
@@ -189,7 +193,7 @@ function Dashboard() {
           {/* Occupancy Pie Chart */}
           <Box bg={bg} p={6} borderRadius="xl" border="1px solid" borderColor={borderColor} shadow="sm" h="400px">
             <Text fontSize="md" fontWeight="bold" color={textColor} mb={2} textTransform="uppercase">Current Occupancy</Text>
-            <ResponsiveContainer width="100%" height="80%">
+            <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
                   data={pieData}
@@ -222,7 +226,7 @@ function Dashboard() {
         <GridItem>
           {/* Maintenance Focus */}
           <Box bg={bg} borderRadius="xl" border="1px solid" borderColor={borderColor} shadow="sm" overflow="hidden">
-            <Flex p={4} bg={useColorModeValue("gray.50", "gray.700")} align="center" justify="space-between">
+            <Flex p={4} bg={gray50_gray700} align="center" justify="space-between">
               <Flex align="center" gap={2}>
                 <Icon as={FiTool} color="orange.500" />
                 <Text fontSize="sm" fontWeight="bold" textTransform="uppercase" color={textColor}>Highest Maintenance Cost (By Unit)</Text>
@@ -257,7 +261,7 @@ function Dashboard() {
         <GridItem>
            {/* Utility Efficiency or Lease Renewals Focus could go here. Doing Lease Renewals */}
            <Box bg={bg} borderRadius="xl" border="1px solid" borderColor={borderColor} shadow="sm" overflow="hidden">
-            <Flex p={4} bg={useColorModeValue("blue.50", "gray.700")} align="center" justify="space-between">
+            <Flex p={4} bg={blue50_gray700} align="center" justify="space-between">
               <Text fontSize="sm" fontWeight="bold" textTransform="uppercase" color={textColor}>Upcoming Lease Expirations</Text>
               <Badge colorScheme="red">{occupancy?.expiringSoon?.length || 0} Expiring Soon</Badge>
             </Flex>

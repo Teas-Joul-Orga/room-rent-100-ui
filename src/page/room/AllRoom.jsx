@@ -147,6 +147,7 @@ export default function AllRoom() {
           All Rooms
         </Heading>
         <Button
+          display={{ base: "none", sm: "flex" }}
           leftIcon={<FiPlus />}
           colorScheme="blue"
           onClick={() => navigate("/dashboard/rooms/add")}
@@ -154,6 +155,22 @@ export default function AllRoom() {
         >
           Add New Room
         </Button>
+        
+        {/* Mobile FAB */}
+        <IconButton
+          display={{ base: "flex", sm: "none" }}
+          icon={<FiPlus size={24} />}
+          colorScheme="blue"
+          onClick={() => navigate("/dashboard/rooms/add")}
+          isRound
+          size="lg"
+          position="fixed"
+          bottom="85px"
+          right="20px"
+          zIndex={999}
+          shadow="dark-lg"
+          aria-label="Add Room"
+        />
       </Flex>
 
       {/* ===== SEARCH ===== */}
