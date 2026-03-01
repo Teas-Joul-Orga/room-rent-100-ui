@@ -43,7 +43,10 @@ export default function AllRoom() {
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-    fetchRooms();
+    const handler = setTimeout(() => {
+      fetchRooms();
+    }, 400);
+    return () => clearTimeout(handler);
     // eslint-disable-next-line
   }, [currentPage, rowsPerPage, search]);
 

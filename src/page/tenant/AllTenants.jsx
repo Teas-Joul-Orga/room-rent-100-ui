@@ -121,6 +121,9 @@ export default function AllTenants() {
     photo: "",
     idFront: "",
     idBack: "",
+    createAccount: false,
+    password: "",
+    confirmPassword: "",
   });
 
   const deleteSelected = async () => {
@@ -162,6 +165,17 @@ export default function AllTenants() {
     if (form.photo && form.photo.file) formData.append("photo", form.photo.file);
     if (form.idFront && form.idFront.file) formData.append("id_photo", form.idFront.file);
     if (form.idBack && form.idBack.file) formData.append("id_card_back", form.idBack.file);
+
+    // Optional login account creation
+    if (!isEdit && form.createAccount) {
+      if (form.password !== form.confirmPassword) {
+        toast.error("Passwords do not match");
+        return;
+      }
+      formData.append("create_account", "1");
+      formData.append("password", form.password);
+      formData.append("password_confirmation", form.confirmPassword);
+    }
 
     const url = isEdit 
       ? `http://localhost:8000/api/v1/admin/tenants/${selectedTenant.uid}` 
@@ -618,72 +632,253 @@ export default function AllTenants() {
       {/* ===== FORM MODAL ===== */}
       {showFormModal && (
         <Box position="fixed" inset={0} bg="blackAlpha.600" backdropFilter="blur(4px)" display="flex" alignItems="center" justifyContent="center" zIndex={50} px={4}>
-          <Box bg={cardBg} borderRadius="2xl" shadow="xl" w="full" maxW="3xl" p={6} overflowY="auto" maxH="90vh">
-            <Heading size="lg" color={useColorModeValue("sky.900", "white")} textAlign="center" mb={6}>
-              {isEdit ? "Edit Tenant" : "Add New Tenant"}
-            </Heading>
+          <Box bg={cardBg} borderRadius="xl" shadow="2xl" w="full" maxW="5xl" position="relative" overflowY="auto" maxH="90vh">
 
-            <Box>
-              {/* BASIC INFO */}
-              <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4} mb={6}>
-                <ModalInput
-                  label="Full Name"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                />
-                <ModalInput
-                  label="Email Address"
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                />
-                <ModalInput
-                  label="Phone Number"
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                />
-                <ModalInput
-                  label="Occupation"
-                  value={form.job}
-                  onChange={(e) => setForm({ ...form, job: e.target.value })}
-                />
-                <ModalInput
-                  label="Date of Birth"
-                  type="date"
-                  value={form.dob}
-                  onChange={(e) => setForm({ ...form, dob: e.target.value })}
-                />
-              </SimpleGrid>
+            {/* Close X button */}
+            <IconButton
+              icon={<Box fontSize="lg" fontWeight="bold">×</Box>}
+              size="sm"
+              variant="ghost"
+              position="absolute"
+              top={4}
+              right={4}
+              onClick={() => setShowFormModal(false)}
+              aria-label="Close"
+              color="gray.400"
+              _hover={{ color: "gray.700", bg: "gray.100" }}
+              borderRadius="full"
+              zIndex={1}
+            />
 
-              {/* IMAGE UPLOAD */}
-              <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} mb={6}>
-                <ImageInput
-                  label="Tenant Photo"
-                  value={form.photo}
-                  onChange={(imgData) => setForm({ ...form, photo: imgData })}
-                />
-                <ImageInput
-                  label="ID Card (Front)"
-                  value={form.idFront}
-                  onChange={(imgData) => setForm({ ...form, idFront: imgData })}
-                />
-                <ImageInput
-                  label="ID Card (Back)"
-                  value={form.idBack}
-                  onChange={(imgData) => setForm({ ...form, idBack: imgData })}
-                />
-              </SimpleGrid>
+            <Box px={8} pt={8} pb={6}>
+              {/* Title */}
+              <Heading size="md" color={textColor} mb={6} fontWeight="black" textTransform="uppercase" letterSpacing="tight">
+                {isEdit ? "Edit Tenant" : "Add New Tenant"}
+              </Heading>
 
-              {/* BUTTONS */}
-              <Flex pt={4} justify="flex-end" gap={3}>
-                <Button variant="outline" onClick={() => setShowFormModal(false)}>
-                  Cancel
-                </Button>
-                <Button colorScheme="blue" onClick={handleSaveTenant}>
-                  {isEdit ? "Update Tenant" : "Save Tenant"}
-                </Button>
+              {/* TOP: Photo left + Fields right */}
+              <Flex gap={8} mb={6} direction={{ base: "column", md: "row" }}>
+                {/* Photo Upload — dashed container */}
+                <Box
+                  as="label"
+                  cursor="pointer"
+                  border="2px dashed"
+                  borderColor="gray.300"
+                  borderRadius="xl"
+                  p={6}
+                  display="flex"
+                  flexDirection="column"
+                  alignItems="center"
+                  justifyContent="center"
+                  flexShrink={0}
+                  w="200px"
+                  _hover={{ borderColor: "blue.400", bg: "gray.50" }}
+                  transition="all 0.2s"
+                >
+                  <input type="file" accept="image/*" hidden onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onloadend = () => setForm({ ...form, photo: { file, preview: reader.result } });
+                    reader.readAsDataURL(file);
+                  }} />
+                  {form.photo?.preview ? (
+                    <Box
+                      w="120px" h="120px" borderRadius="full" overflow="hidden"
+                      border="2px solid" borderColor="gray.200" shadow="sm" bg="gray.50"
+                    >
+                      <img src={form.photo.preview} alt="photo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    </Box>
+                  ) : (
+                    <Flex
+                      w="120px" h="120px" borderRadius="full" align="center" justify="center"
+                      bg="gray.100" color="gray.300"
+                    >
+                      <Icon as={FiUserPlus} boxSize={12} strokeWidth={1} />
+                    </Flex>
+                  )}
+                  <Button
+                    size="xs" variant="outline" mt={4}
+                    pointerEvents="none"
+                    fontWeight="bold" textTransform="uppercase" fontSize="10px" letterSpacing="wider"
+                    borderColor="gray.400" color="gray.600"
+                    px={4}
+                  >
+                    Select Photo
+                  </Button>
+                </Box>
+
+                {/* Form Fields */}
+                <Box flex={1}>
+                  {/* Name */}
+                  <Box mb={4}>
+                    <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>Name</Text>
+                    <Input
+                      placeholder="Full Legal Name"
+                      size="md"
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      borderColor={borderColor}
+                      _hover={{ borderColor: "blue.400" }}
+                      _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                    />
+                  </Box>
+
+                  {/* Email */}
+                  <Box mb={4}>
+                    <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>Email (Unique)</Text>
+                    <Input
+                      type="email"
+                      placeholder="email@example.com"
+                      size="md"
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      borderColor={borderColor}
+                      _hover={{ borderColor: "blue.400" }}
+                      _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                    />
+                  </Box>
+
+                  {/* Phone + Job */}
+                  <SimpleGrid columns={2} spacing={4} mb={4}>
+                    <Box>
+                      <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>Phone</Text>
+                      <Input
+                        placeholder="+1 234 567 8900"
+                        size="md"
+                        value={form.phone}
+                        onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                        borderColor={borderColor}
+                        _hover={{ borderColor: "blue.400" }}
+                        _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                      />
+                    </Box>
+                    <Box>
+                      <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>Job / Occupation</Text>
+                      <Input
+                        placeholder="Software Engineer"
+                        size="md"
+                        value={form.job}
+                        onChange={(e) => setForm({ ...form, job: e.target.value })}
+                        borderColor={borderColor}
+                        _hover={{ borderColor: "blue.400" }}
+                        _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                      />
+                    </Box>
+                  </SimpleGrid>
+
+                  {/* Date of Birth */}
+                  <Box>
+                    <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>Date of Birth</Text>
+                    <Input
+                      type="date"
+                      size="md"
+                      value={form.dob}
+                      onChange={(e) => setForm({ ...form, dob: e.target.value })}
+                      borderColor={borderColor}
+                      _hover={{ borderColor: "blue.400" }}
+                      _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                    />
+                  </Box>
+                </Box>
               </Flex>
+
+              {/* ID Card Uploads */}
+              <SimpleGrid columns={2} spacing={4} mb={5}>
+                <Box>
+                  <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>ID Card Photo (Front)</Text>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    style={{ fontSize: "14px" }}
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onloadend = () => setForm({ ...form, idFront: { file, preview: reader.result } });
+                      reader.readAsDataURL(file);
+                    }}
+                  />
+                  {form.idFront?.preview && (
+                    <Image src={form.idFront.preview} mt={2} w="50px" h="50px" objectFit="cover" borderRadius="md" border="1px solid" borderColor="gray.200" />
+                  )}
+                </Box>
+                <Box>
+                  <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>ID Card Photo (Back)</Text>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    style={{ fontSize: "14px" }}
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onloadend = () => setForm({ ...form, idBack: { file, preview: reader.result } });
+                      reader.readAsDataURL(file);
+                    }}
+                  />
+                  {form.idBack?.preview && (
+                    <Image src={form.idBack.preview} mt={2} w="50px" h="50px" objectFit="cover" borderRadius="md" border="1px solid" borderColor="gray.200" />
+                  )}
+                </Box>
+              </SimpleGrid>
+
+              {/* Create Login Account Toggle */}
+              {!isEdit && (
+                <Box mb={5}>
+                  <Checkbox
+                    isChecked={form.createAccount}
+                    onChange={(e) => setForm({ ...form, createAccount: e.target.checked })}
+                    colorScheme="blue"
+                    fontWeight="bold"
+                    fontSize="sm"
+                  >
+                    Create Login Account
+                  </Checkbox>
+
+                  {form.createAccount && (
+                    <Box mt={3} p={4} bg="gray.50" border="1px solid" borderColor="gray.200" borderRadius="lg">
+                      <SimpleGrid columns={2} spacing={4}>
+                        <Box>
+                          <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>Password</Text>
+                          <Input
+                            type="password"
+                            size="md"
+                            value={form.password}
+                            onChange={(e) => setForm({ ...form, password: e.target.value })}
+                            borderColor={borderColor}
+                            _hover={{ borderColor: "blue.400" }}
+                            _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                          />
+                        </Box>
+                        <Box>
+                          <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>Confirm</Text>
+                          <Input
+                            type="password"
+                            size="md"
+                            value={form.confirmPassword}
+                            onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                            borderColor={borderColor}
+                            _hover={{ borderColor: "blue.400" }}
+                            _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                          />
+                        </Box>
+                      </SimpleGrid>
+                    </Box>
+                  )}
+                </Box>
+              )}
             </Box>
+
+            {/* BUTTONS — bottom bar */}
+            <Flex px={8} py={4} justify="flex-end" gap={3} borderTop="1px solid" borderColor={borderColor}>
+              <Button variant="ghost" onClick={() => setShowFormModal(false)} fontWeight="bold" textTransform="uppercase" fontSize="xs" letterSpacing="wider">
+                Cancel
+              </Button>
+              <Button colorScheme="blue" onClick={handleSaveTenant} fontWeight="bold" textTransform="uppercase" fontSize="xs" letterSpacing="wider" px={6}>
+                {isEdit ? "Update Tenant" : "Save Tenant"}
+              </Button>
+            </Flex>
           </Box>
         </Box>
       )}

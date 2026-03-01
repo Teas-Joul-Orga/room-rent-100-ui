@@ -3,6 +3,7 @@ import { Toaster } from "react-hot-toast";
 import DashboardLayout from "./layouts/DashboardLayout";
 
 // Dashboard
+import Dashboard from "./page/dashboard/Dashboard";
 import Overview from "./page/dashboard/Overview";
 import TenantDashboard from "./page/tenant/TenantDashboard";
 import ListPending from "./page/dashboard/ListPending";
@@ -22,7 +23,7 @@ import ExpiredLease from "./page/lease/ExpiredLease";
 import CreateNewLease from "./page/lease/CreateNewLease";
 
 // Chat
-import Message from "./page/chat/Message";
+import Chat from "./page/chat/Chat";
 
 // Notification
 import Notification from "./page/notification/Notification";
@@ -30,9 +31,14 @@ import Notification from "./page/notification/Notification";
 // Report
 import Report from "./page/report/Report";
 
-//Recycle bin
+// Recycle Bin
 import AllRecyclebin from "./page/recycleben/AllRecyclebin";
-import Recentlydeleted from "./page/recycleben/Recentlydeleted";
+
+// Announcements
+import Announcements from "./page/announcements/Announcements";
+
+// Settings
+import Settings from "./page/settings/Settings";
 
 //Tenant
 import AllTenants from "./page/tenant/AllTenants";
@@ -45,7 +51,14 @@ import CreateAccount from "./page/tenant/CreateAccount";
 //Users
 import AllUsers from "./page/user/AllUsers";
 
+//Payment
+import Payment from "./page/payment/Payment";
+
+// Expenses
+import Expense from "./page/dashboard/Expense";
+
 //Utility
+import Utility from "./page/utility/Utility";
 import AddPayment from "./page/utility/Addpayment";
 import PaymentHistory from "./page/utility/PaymentHistory";
 
@@ -86,7 +99,7 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={localStorage.getItem('role') === 'tenant' ? <TenantDashboard /> : <Overview />} />
+            <Route index element={localStorage.getItem('role') === 'tenant' ? <TenantDashboard /> : <Dashboard />} />
             <Route path="listpending" element={<ListPending />} />
             <Route path="monthlyincome" element={<MonthlyIncomeChart />} />
             {/* </Route> */}
@@ -124,7 +137,7 @@ function App() {
               <Route index element={<AllRoom />} />
               <Route path="available" element={<AvailableRoom />} />
               <Route path="occupied" element={<OccupiedRoom />} />
-              <Route path="maintenance" element={<MaintenanceRoom />} />
+              <Route path="occupied" element={<OccupiedRoom />} />
               <Route path="add" element={<AddNewRoom />} />
               <Route path="viewroom/:id" element={<ViewRoom />} />
               <Route path="edit/:id" element={<EditRoom />} />
@@ -142,9 +155,10 @@ function App() {
             </Route>
 
             {/* Chat */}
-            <Route path="chat">
-              <Route index element={<Message />} />
-            </Route>
+            <Route path="chat" element={<Chat />} />
+
+            {/* Maintenance */}
+            <Route path="maintenance" element={<MaintenanceRoom />} />
 
             {/* Notification */}
             <Route path="notifications" element={<Notification />} />
@@ -152,15 +166,24 @@ function App() {
             {/* Report */}
             <Route path="report" element={<Report />} />
 
+            {/* Settings */}
+            <Route path="settings" element={<Settings />} />
+
             {/* Trash */}
-            <Route path="recyclebin">
-              <Route index element={<AllRecyclebin />} />
-              <Route path="recentlydeleted" element={<Recentlydeleted />} />
-            </Route>
+            <Route path="recyclebin" element={<AllRecyclebin />} />
+
+            {/* Announcements */}
+            <Route path="announcements" element={<Announcements />} />
+
+            {/* Expenses */}
+            <Route path="expenses" element={<Expense />} />
+
+            {/* Payments */}
+            <Route path="payments" element={<Payment />} />
 
             {/* utitlity */}
             <Route path="utility">
-              <Route index element={<Allpayment />} />
+              <Route index element={<Utility />} />
               <Route path="addpayment" element={<AddPayment />} />
               <Route path="addbill" element={<AddBill />} />
               <Route path="recordpayment" element={<RecordPayment />} />
