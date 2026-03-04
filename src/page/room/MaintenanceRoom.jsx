@@ -96,7 +96,7 @@ function MaintenanceRoom() {
   const handleUpdateSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${API}/admin/maintenance/${selectedReq.id}`, {
+      const res = await fetch(`${API}/admin/maintenance/${selectedReq.uid}`, {
         method: "PUT",
         headers: { ...headers(), "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify(updateForm)

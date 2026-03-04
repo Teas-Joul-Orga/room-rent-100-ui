@@ -264,7 +264,7 @@ export default function AllTenants() {
   const hoverBg = useColorModeValue("sky.50", "gray.700");
 
   return (
-    <Box p={6} bg={bg} minH="100vh">
+    <Box p={6} bg={bg} h="full">
       {/* ===== HEADER ===== */}
       <Flex direction={{ base: "column", sm: "row" }} align={{ sm: "center" }} justify="space-between" gap={4} mb={6}>
         <Heading size="lg" color={useColorModeValue("sky.900", "white")}>
@@ -275,21 +275,7 @@ export default function AllTenants() {
           display={{ base: "none", sm: "flex" }}
           leftIcon={<FiPlus />}
           colorScheme="blue"
-          onClick={() => {
-            setIsEdit(false);
-            setSelectedTenant(null);
-            setForm({
-              name: "",
-              email: "",
-              phone: "",
-              dob: "",
-              job: "",
-              photo: "",
-              idFront: "",
-              idBack: "",
-            });
-            setShowFormModal(true);
-          }}
+          onClick={() => navigate("/dashboard/tenants/addtenant")}
           shadow="sm"
         >
           Add New Tenant
@@ -300,21 +286,7 @@ export default function AllTenants() {
           display={{ base: "flex", sm: "none" }}
           icon={<FiPlus size={24} />}
           colorScheme="blue"
-          onClick={() => {
-            setIsEdit(false);
-            setSelectedTenant(null);
-            setForm({
-              name: "",
-              email: "",
-              phone: "",
-              dob: "",
-              job: "",
-              photo: "",
-              idFront: "",
-              idBack: "",
-            });
-            setShowFormModal(true);
-          }}
+          onClick={() => navigate("/dashboard/tenants/addtenant")}
           isRound
           size="lg"
           position="fixed"

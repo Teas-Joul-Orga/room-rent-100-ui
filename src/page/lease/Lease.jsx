@@ -18,17 +18,8 @@ import {
   useColorModeValue,
   Spinner,
   Text,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalCloseButton,
-  ModalBody,
-  ModalFooter,
-  useDisclosure,
   FormControl,
   FormLabel,
-  SimpleGrid,
   Checkbox,
   Icon,
   IconButton,
@@ -58,22 +49,7 @@ export default function Leases() {
   // Selection
   const [selectedIds, setSelectedIds] = useState([]);
 
-  // Modal State
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const [isEdit, setIsEdit] = useState(false);
-  const [formData, setFormData] = useState({
-    uid: null,
-    tenant_id: "",
-    room_id: "",
-    start_date: "",
-    end_date: "",
-    rent_amount: "",
-    security_deposit: "",
-    status: "active",
-  });
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Pagination bounds (mockup shows all in one scrollable page usually, but we keep basic pagination out of view or simplified)
+  // Pagination bounds
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
 
@@ -139,8 +115,13 @@ export default function Leases() {
           Authorization: `Bearer ${token}`
         }
       });
-      if (res.ok) toast.success("Lease deleted successfully");
-      else toast.error("Failed to delete lease");
+      if (res.ok) {
+        toast.success("Lease deleted successfully");
+        // Clear selection if the deleted item was selected
+        setSelectedIds(prev => prev.filter(id => id !== l.uid));
+      } else {
+        toast.error("Failed to delete lease");
+      }
     } catch (e) {
       console.error(e);
       toast.error("Network Error");
@@ -149,95 +130,14 @@ export default function Leases() {
     }
   };
 
+  // --- NAVIGATION HANDLERS ---
   const handleRenew = () => {
     if (selectedIds.length !== 1) {
       toast.error("Please select exactly one lease to renew.");
       return;
     }
-    const leaseToRenew = leases.find(l => l.uid === selectedIds[0]);
-    if (leaseToRenew) {
-      setIsEdit(false);
-      setFormData({
-        uid: null,
-        tenant_id: leaseToRenew.tenant?.id || "",
-        room_id: leaseToRenew.room?.id || "",
-        start_date: leaseToRenew.end_date ? leaseToRenew.end_date.split("T")[0] : "",
-        end_date: "",
-        rent_amount: leaseToRenew.rent_amount || "",
-        security_deposit: leaseToRenew.security_deposit || 0,
-        status: "active",
-      });
-      onOpen();
-    }
-  };
-
-  const handleOpenModal = (item = null) => {
-    if (item) {
-      setIsEdit(true);
-      setFormData({
-        uid: item.uid,
-        tenant_id: item.tenant?.id || "",
-        room_id: item.room?.id || "",
-        start_date: item.start_date ? item.start_date.split("T")[0] : "",
-        end_date: item.end_date ? item.end_date.split("T")[0] : "",
-        rent_amount: item.rent_amount || "",
-        security_deposit: item.security_deposit || 0,
-        status: item.status || "active",
-      });
-    } else {
-      setIsEdit(false);
-      setFormData({
-        uid: null,
-        tenant_id: "",
-        room_id: "",
-        start_date: "",
-        end_date: "",
-        rent_amount: "",
-        security_deposit:  0,
-        status: "active",
-      });
-    }
-    onOpen();
-  };
-
-  const handleSave = async (e) => {
-    e.preventDefault();
-    if (!formData.tenant_id || !formData.room_id || !formData.start_date || !formData.end_date || formData.rent_amount === "") {
-      toast.error("Please fill all required fields.");
-      return;
-    }
-
-    setIsSaving(true);
-    const token = localStorage.getItem("token");
-    const url = isEdit
-      ? `http://localhost:8000/api/v1/admin/leases/${formData.uid}`
-      : `http://localhost:8000/api/v1/admin/leases`;
-
-    try {
-      const res = await fetch(url, {
-        method: isEdit ? "PUT" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        toast.success(isEdit ? "Lease updated successfully" : "Lease added successfully");
-        onClose();
-        fetchData();
-      } else {
-        toast.error(data.message || "Failed to save lease");
-      }
-    } catch (e) {
-      toast.error("Network error");
-    } finally {
-      setIsSaving(false);
-    }
+    // Navigate to a dedicated renew route, or pass state to your form component
+    navigate(`/dashboard/lease/renew/${selectedIds[0]}`);
   };
 
   const isExpiringSoon = (lease) => {
@@ -251,17 +151,14 @@ export default function Leases() {
 
   // Process data (Filter & Sort)
   let processed = [...leases].filter((l) => {
-    // 1. Search Filter
     const s = search.toLowerCase();
     const tName = l.tenant?.name?.toLowerCase() || "";
     const rName = l.room?.name?.toLowerCase() || "";
     const statusText = l.status?.toLowerCase() || "";
     const matchesSearch = tName.includes(s) || rName.includes(s) || statusText.includes(s);
 
-    // 2. Status Filter
     const matchesStatus = statusFilter === "" || l.status === statusFilter;
 
-    // 3. Date Filters
     let matchesStartsAfter = true;
     let matchesEndsBefore = true;
     if (startsAfter) {
@@ -287,7 +184,6 @@ export default function Leases() {
       valA = a.status;
       valB = b.status;
     } else {
-      // Default sort for expiring soon at the top
       const aExpiring = isExpiringSoon(a) ? 1 : 0;
       const bExpiring = isExpiringSoon(b) ? 1 : 0;
       if (aExpiring !== bExpiring) return bExpiring - aExpiring;
@@ -362,7 +258,6 @@ export default function Leases() {
           align="flex-end"
           wrap="wrap"
         >
-          {/* Search */}
           <FormControl flex="2" minW="200px">
             <FormLabel fontSize="xs" fontWeight="semibold" color={thColor} mb={1}>Search</FormLabel>
             <Input
@@ -374,7 +269,6 @@ export default function Leases() {
             />
           </FormControl>
 
-          {/* Status Filter */}
           <FormControl flex="1" minW="140px">
             <FormLabel fontSize="xs" fontWeight="semibold" color={thColor} mb={1}>Status</FormLabel>
             <Select 
@@ -390,7 +284,6 @@ export default function Leases() {
             </Select>
           </FormControl>
 
-          {/* Date Range — grouped */}
           <FormControl flex="1.5" minW="240px">
             <FormLabel fontSize="xs" fontWeight="semibold" color={thColor} mb={1}>Date Range</FormLabel>
             <Flex align="center" gap={2}>
@@ -422,7 +315,7 @@ export default function Leases() {
             <Button size="sm" colorScheme="green" borderRadius="md" px={5} onClick={() => alert("Export functionality not implemented yet.")}>
               Export
             </Button>
-            <Button size="sm" colorScheme="blue" borderRadius="md" leftIcon={<FiPlus />} onClick={() => handleOpenModal()}>
+            <Button size="sm" colorScheme="blue" borderRadius="md" leftIcon={<FiPlus />} onClick={() => navigate("/dashboard/lease/createnewlease")}>
               New
             </Button>
           </Flex>
@@ -455,7 +348,7 @@ export default function Leases() {
                   RENT <SortIcon field="rent" />
                 </Th>
                 <Th fontSize="10px" color={thColor} cursor="pointer" onClick={() => handleSort('end_date')}>
-                  PERIOD (END DATE) <SortIcon field="end_date" />
+                  PERIOD <SortIcon field="end_date" />
                 </Th>
                 <Th fontSize="10px" color={thColor} cursor="pointer" onClick={() => handleSort('status')}>
                   STATUS <SortIcon field="status" />
@@ -491,33 +384,29 @@ export default function Leases() {
                         />
                       </Td>
 
-                      {/* TENANT */}
                       <Td>
                         <Flex direction="column">
                           <Text fontWeight="bold" color={textColor} fontSize="sm">
                             {l.tenant?.name || "Unknown"}
                           </Text>
-                          <Text fontSize="xs" color="gray.500 mt-0.5">
+                          <Text fontSize="xs" color="gray.500" mt="0.5">
                             {l.tenant?.email || "No email"}
                           </Text>
                         </Flex>
                       </Td>
 
-                      {/* ROOM */}
                       <Td>
                         <Text color="gray.600" fontSize="sm">
                           {l.room?.name || "Unknown"}
                         </Text>
                       </Td>
 
-                      {/* RENT */}
                       <Td>
                         <Text color={textColor} fontSize="sm">
                           ${Number(l.rent_amount).toFixed(2)}
                         </Text>
                       </Td>
 
-                      {/* PERIOD */}
                       <Td>
                         <Flex align="center" fontSize="sm">
                           <Text color={textColor}>{formatDate(l.start_date)}</Text>
@@ -545,7 +434,6 @@ export default function Leases() {
                         </Flex>
                       </Td>
 
-                      {/* STATUS */}
                       <Td>
                         {(() => {
                           const badge = getStatusBadge(l.status);
@@ -566,7 +454,6 @@ export default function Leases() {
                         })()}
                       </Td>
 
-                      {/* ACTIONS */}
                       <Td textAlign="right">
                         <Flex justify="flex-end" gap={2}>
                           <Tooltip label="View Lease" hasArrow placement="top">
@@ -595,7 +482,7 @@ export default function Leases() {
                               borderRadius="lg"
                               _hover={{ bg: "purple.100", transform: "scale(1.1)" }}
                               transition="all 0.15s"
-                              onClick={() => handleOpenModal(l)}
+                              onClick={() => navigate(`/dashboard/lease/edit/${l.uid}`)}
                               aria-label="Edit lease"
                             />
                           </Tooltip>
@@ -648,123 +535,6 @@ export default function Leases() {
           </Flex>
         )}
       </Box>
-
-      {/* ===== ADD/EDIT MODAL ===== */}
-      <Modal isOpen={isOpen} onClose={onClose} isCentered motionPreset="scale" size="xl">
-        <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(5px)" />
-        <ModalContent bg={cardBg} borderRadius="xl" shadow="2xl">
-          <form onSubmit={handleSave}>
-            <ModalHeader color={textColor}>
-              {isEdit ? "Edit Lease Agreement" : "Add New Lease Agreement"}
-            </ModalHeader>
-            <ModalCloseButton />
-            <ModalBody pb={6}>
-              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
-                <FormControl isRequired>
-                  <FormLabel color={mutedText} fontSize="sm" fontWeight="bold">Tenant</FormLabel>
-                  <Select
-                    placeholder="Select tenant"
-                    value={formData.tenant_id}
-                    onChange={(e) => setFormData({ ...formData, tenant_id: e.target.value })}
-                    borderColor={borderColor}
-                  >
-                    {tenants.filter(t => !t.deleted_at).map(t => (
-                      <option key={t.id} value={t.id}>{t.name}</option>
-                    ))}
-                  </Select>
-                </FormControl>
-
-                <FormControl isRequired>
-                  <FormLabel color={mutedText} fontSize="sm" fontWeight="bold">Room</FormLabel>
-                   <Select
-                    placeholder="Select room"
-                    value={formData.room_id}
-                    onChange={(e) => setFormData({ ...formData, room_id: e.target.value })}
-                    borderColor={borderColor}
-                  >
-                    {rooms.filter(r => !r.deleted_at).map(r => (
-                      <option key={r.id} value={r.id}>{r.name} - ${r.base_rent_price}</option>
-                    ))}
-                  </Select>
-                </FormControl>
-              </SimpleGrid>
-
-              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
-                <FormControl isRequired>
-                  <FormLabel color={mutedText} fontSize="sm" fontWeight="bold">Start Date</FormLabel>
-                  <Input
-                    type="date"
-                    value={formData.start_date}
-                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                    borderColor={borderColor}
-                  />
-                </FormControl>
-
-                <FormControl isRequired>
-                  <FormLabel color={mutedText} fontSize="sm" fontWeight="bold">End Date</FormLabel>
-                   <Input
-                    type="date"
-                    value={formData.end_date}
-                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                    borderColor={borderColor}
-                  />
-                </FormControl>
-              </SimpleGrid>
-
-               <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
-                <FormControl isRequired>
-                  <FormLabel color={mutedText} fontSize="sm" fontWeight="bold">Monthly Rent ($)</FormLabel>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    value={formData.rent_amount}
-                    onChange={(e) => setFormData({ ...formData, rent_amount: e.target.value })}
-                    borderColor={borderColor}
-                  />
-                </FormControl>
-
-                <FormControl isRequired>
-                  <FormLabel color={mutedText} fontSize="sm" fontWeight="bold">Security Deposit ($)</FormLabel>
-                   <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    value={formData.security_deposit}
-                    onChange={(e) => setFormData({ ...formData, security_deposit: e.target.value })}
-                    borderColor={borderColor}
-                  />
-                </FormControl>
-              </SimpleGrid>
-
-              <FormControl mt={4} isRequired>
-                <FormLabel color={mutedText} fontSize="sm" fontWeight="bold">Lease Status</FormLabel>
-                <Select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  borderColor={borderColor}
-                >
-                  <option value="active">Active</option>
-                  <option value="expired">Expired</option>
-                  <option value="terminated">Terminated</option>
-                </Select>
-              </FormControl>
-            </ModalBody>
-
-            <ModalFooter bg={useColorModeValue("gray.50", "whiteAlpha.100")} borderBottomRadius="xl">
-              <Button onClick={onClose} variant="ghost" mr={3}>
-                Cancel
-              </Button>
-              <Button colorScheme="blue" type="submit" isLoading={isSaving}>
-                {isEdit ? "Update" : "Save"} Lease
-              </Button>
-            </ModalFooter>
-          </form>
-        </ModalContent>
-      </Modal>
-
     </Box>
   );
 }

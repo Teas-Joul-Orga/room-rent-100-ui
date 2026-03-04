@@ -320,7 +320,7 @@ export default function Utility() {
                 Print Invoice ({selectedIds.length})
               </Button>
             )}
-            <Button size="sm" colorScheme="blue" leftIcon={<FiPlus />} onClick={onAddOpen}>
+            <Button size="sm" colorScheme="blue" leftIcon={<FiPlus />} onClick={() => navigate("/dashboard/utility/addbill")}>
               Add New Bill
             </Button>
           </Flex>

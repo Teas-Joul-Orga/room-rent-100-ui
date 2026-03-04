@@ -109,7 +109,7 @@ export default function ViewTenant() {
 
   if (loadingTenant) {
     return (
-      <Flex justify="center" align="center" minH="100vh" bg={bgMain}>
+      <Flex justify="center" align="center" h="full" bg={bgMain}>
         <Spinner size="xl" color="blue.500" />
       </Flex>
     );
@@ -117,14 +117,14 @@ export default function ViewTenant() {
 
   if (!tenant) {
     return (
-      <Flex justify="center" align="center" minH="100vh" bg={bgMain}>
+      <Flex justify="center" align="center" h="full" bg={bgMain}>
         <Text color="red.500" fontSize="xl">Tenant not found.</Text>
       </Flex>
     );
   }
 
   return (
-    <Box p={6} bg={bgMain} minH="100vh">
+    <Box p={6} bg={bgMain} h="full">
       <VStack spacing={6} align="stretch" w="full">
         
         {/* ===== HEADER ===== */}

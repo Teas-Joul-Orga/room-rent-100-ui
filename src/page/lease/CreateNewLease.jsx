@@ -1,191 +1,538 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
+import {
+  Box,
+  Button,
+  Flex,
+  FormControl,
+  FormLabel,
+  Heading,
+  Input,
+  Select,
+  Text,
+  VStack,
+  HStack,
+  Badge,
+  Spinner,
+  Center,
+  SimpleGrid,
+  Avatar,
+  Icon,
+  useColorModeValue,
+  Divider,
+  InputGroup,
+  InputLeftElement,
+  useOutsideClick,
+} from "@chakra-ui/react";
+import {
+  FiSearch,
+  FiCheck,
+  FiUser,
+  FiHome,
+  FiCalendar,
+  FiDollarSign,
+  FiArrowRight,
+  FiArrowLeft,
+  FiShield,
+} from "react-icons/fi";
+
+const steps = [
+  { title: "Tenant", description: "Select Tenant", icon: FiUser },
+  { title: "Room", description: "Select Room", icon: FiHome },
+  { title: "Details", description: "Lease Info", icon: FiCalendar },
+];
 
 export default function CreateNewLease() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = Boolean(id);
 
-  const [tenant, setTenant] = useState(() => {
-    if (!isEdit) return "";
-    const leases = JSON.parse(localStorage.getItem("leases")) || [];
-    const found = leases.find((l) => l.id === Number(id));
-    return found ? found.tenant : "";
-  });
-  const [room, setRoom] = useState(() => {
-    if (!isEdit) return "";
-    const leases = JSON.parse(localStorage.getItem("leases")) || [];
-    const found = leases.find((l) => l.id === Number(id));
-    return found ? found.room : "";
-  });
-  const [rent, setRent] = useState(() => {
-    if (!isEdit) return "";
-    const leases = JSON.parse(localStorage.getItem("leases")) || [];
-    const found = leases.find((l) => l.id === Number(id));
-    return found ? found.rent : "";
-  });
-  const [startDate, setStartDate] = useState(() => {
-    if (!isEdit) return "";
-    const leases = JSON.parse(localStorage.getItem("leases")) || [];
-    const found = leases.find((l) => l.id === Number(id));
-    return found ? found.startDate : "";
-  });
-  const [endDate, setEndDate] = useState(() => {
-    if (!isEdit) return "";
-    const leases = JSON.parse(localStorage.getItem("leases")) || [];
-    const found = leases.find((l) => l.id === Number(id));
-    return found ? found.endDate : "";
-  });
-  const today = new Date().toISOString().split("T")[0];
-  const status = (startDate && endDate && today >= startDate && today <= endDate) ? "Active" : "Inactive";
+  const [activeStep, setActiveStep] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const [rooms] = useState(() => {
-    return JSON.parse(localStorage.getItem("rooms")) || [];
+  const [tenants, setTenants] = useState([]);
+  const [rooms, setRooms] = useState([]);
+
+  const [tenantSearch, setTenantSearch] = useState("");
+  const [showTenantDropdown, setShowTenantDropdown] = useState(false);
+  const tenantDropdownRef = useRef();
+
+  useOutsideClick({
+    ref: tenantDropdownRef,
+    handler: () => setShowTenantDropdown(false),
   });
 
-  // ===== SAVE =====
-  const handleSubmit = (e) => {
+  const [formData, setFormData] = useState({
+    tenant_id: "",
+    room_id: "",
+    start_date: "",
+    end_date: "",
+    rent_amount: "",
+    security_deposit: 0,
+    status: "active",
+  });
+
+  // Theme
+  const bg = useColorModeValue("gray.50", "gray.900");
+  const cardBg = useColorModeValue("white", "gray.800");
+  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const textColor = useColorModeValue("gray.800", "white");
+  const mutedText = useColorModeValue("gray.500", "gray.400");
+  const inputBg = useColorModeValue("white", "gray.700");
+
+  useEffect(() => {
+    const fetchAllData = async () => {
+      setIsLoading(true);
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}`, Accept: "application/json" };
+
+      try {
+        const [roomRes, tenantRes] = await Promise.all([
+          fetch(`http://localhost:8000/api/v1/admin/rooms?per_page=all`, { headers }),
+          fetch(`http://localhost:8000/api/v1/admin/tenants?per_page=all`, { headers }),
+        ]);
+
+        if (roomRes.ok) { const d = await roomRes.json(); setRooms(d.data || d); }
+        if (tenantRes.ok) { const d = await tenantRes.json(); setTenants(d.data || d); }
+
+        if (isEdit) {
+          const leaseRes = await fetch(`http://localhost:8000/api/v1/admin/leases?per_page=all`, { headers });
+          if (leaseRes.ok) {
+            const leaseData = await leaseRes.json();
+            const found = (leaseData.data || leaseData).find((l) => String(l.uid) === String(id));
+            if (found) {
+              setFormData({
+                tenant_id: found.tenant?.id || "",
+                room_id: found.room?.id || "",
+                start_date: found.start_date ? found.start_date.split("T")[0] : "",
+                end_date: found.end_date ? found.end_date.split("T")[0] : "",
+                rent_amount: found.rent_amount || "",
+                security_deposit: found.security_deposit || 0,
+                status: found.status || "active",
+              });
+              if (found.tenant) setTenantSearch(found.tenant.name);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+        toast.error("Error loading data from server.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchAllData();
+  }, [isEdit, id]);
+
+  useEffect(() => {
+    if (formData.room_id) {
+      const room = rooms.find((r) => String(r.id) === String(formData.room_id));
+      if (room && !isEdit) {
+        setFormData((prev) => ({ ...prev, rent_amount: room.base_rent_price || 0, security_deposit: room.base_rent_price || 0 }));
+      }
+    }
+  }, [formData.room_id, rooms, isEdit]);
+
+  const handleNext = () => {
+    if (activeStep === 0 && !formData.tenant_id) return toast.error("Please select a tenant first.");
+    if (activeStep === 1 && !formData.room_id) return toast.error("Please select a room.");
+    setActiveStep((prev) => prev + 1);
+  };
+  const handlePrev = () => setActiveStep((prev) => prev - 1);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!tenant || !room || !rent || !startDate || !endDate) {
-      toast.error("Please fill all fields");
-      return;
+    if (!formData.tenant_id || !formData.room_id || !formData.start_date || !formData.end_date || formData.rent_amount === "") {
+      return toast.error("Please fill all required fields");
     }
-
-    const leases = JSON.parse(localStorage.getItem("leases")) || [];
-
-    if (isEdit) {
-      const updated = leases.map((l) =>
-        l.id === Number(id)
-          ? { ...l, tenant, room, rent, startDate, endDate, status }
-          : l
-      );
-      localStorage.setItem("leases", JSON.stringify(updated));
-      toast.success("Lease updated");
-    } else {
-      const newLease = {
-        id: Date.now(),
-        tenant,
-        room,
-        rent,
-        startDate,
-        endDate,
-        status,
-      };
-      localStorage.setItem("lease", JSON.stringify([...leases, newLease]));
-      toast.success("Lease added");
+    setIsSaving(true);
+    const token = localStorage.getItem("token");
+    const url = isEdit
+      ? `http://localhost:8000/api/v1/admin/leases/${id}`
+      : `http://localhost:8000/api/v1/admin/leases`;
+    try {
+      const res = await fetch(url, {
+        method: isEdit ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(formData),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(isEdit ? "Lease updated!" : "Lease created successfully!");
+        navigate("/dashboard/lease");
+      } else {
+        toast.error(data.message || "Failed to save lease");
+      }
+    } catch (e) {
+      toast.error("Network error");
+    } finally {
+      setIsSaving(false);
     }
-
-    navigate("/dashboard/lease");
   };
 
+  const filteredTenants = tenants.filter(
+    (t) =>
+      t.name?.toLowerCase().includes(tenantSearch.toLowerCase()) ||
+      t.email?.toLowerCase().includes(tenantSearch.toLowerCase())
+  );
+
+  const selectedTenant = tenants.find((t) => String(t.id) === String(formData.tenant_id));
+  const selectedRoom = rooms.find((r) => String(r.id) === String(formData.room_id));
+
+  if (isLoading) {
+    return (
+      <Center minH="100vh" bg={bg}>
+        <VStack gap={4}>
+          <Spinner size="xl" color="blue.500" thickness="4px" />
+          <Text color={mutedText} fontWeight="medium">Loading...</Text>
+        </VStack>
+      </Center>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-sky-50 p-6">
+    <Box h="100%" overflow="hidden" bg={bg} display="flex" flexDirection="column" mx={{ base: -4, md: -6, lg: -8 }} mt={{ base: -4, md: -6, lg: -8 }} mb={{ base: "-80px", md: -8 }} px={{ base: 4, md: 6 }} pt={4} pb={0}>
       <Toaster position="top-right" />
 
-      <div className="max-w-2xl mx-auto bg-white p-8 rounded-2xl shadow">
-        <h2 className="text-2xl font-bold mb-6 text-sky-900 text-center">
-          {isEdit ? "Edit Lease" : "Add Lease"}
-        </h2>
+      <Flex direction="column" maxW="10xl" mx="auto" w="full" flex={1} minH={0}>
+        {/* Header */}
+        <Flex align="center" gap={3} mb={4}>
+          <Button
+            leftIcon={<FiArrowLeft />}
+            variant="ghost"
+            color={mutedText}
+            onClick={() => navigate("/dashboard/lease")}
+            size="sm"
+          >
+            Back
+          </Button>
+          <Box>
+            <Heading size="lg" color={textColor} fontWeight="black">
+              {isEdit ? "Edit Lease Agreement" : "New Lease Agreement"}
+            </Heading>
+            <Text fontSize="sm" color={mutedText} mt={0.5}>
+              {isEdit ? "Update the details below" : "Complete the 3 steps to create a lease"}
+            </Text>
+          </Box>
+        </Flex>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* TENANT */}
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Tenant Name
-            </label>
-            <input
-              value={tenant}
-              onChange={(e) => setTenant(e.target.value)}
-              className="w-full border rounded-lg px-4 py-2"
-              placeholder="Enter tenant name"
-            />
-          </div>
+        {/* Custom Stepper */}
+        <Flex mb={5} align="center">
+          {steps.map((step, index) => {
+            const isDone = activeStep > index;
+            const isActive = activeStep === index;
+            return (
+              <React.Fragment key={index}>
+                <Flex align="center" gap={3}>
+                  <Flex
+                    w="42px" h="42px" borderRadius="full" align="center" justify="center"
+                    fontWeight="black" fontSize="sm"
+                    bg={isDone ? "green.500" : isActive ? "blue.600" : "gray.200"}
+                    color={isDone || isActive ? "white" : "gray.500"}
+                    transition="all 0.3s"
+                    shadow={isActive ? "0 0 0 4px rgba(66,153,225,0.25)" : "none"}
+                  >
+                    {isDone ? <Icon as={FiCheck} /> : <Icon as={step.icon} />}
+                  </Flex>
+                  <Box display={{ base: "none", md: "block" }}>
+                    <Text fontSize="xs" fontWeight="black" color={isActive ? "blue.600" : isDone ? "green.600" : mutedText} textTransform="uppercase" letterSpacing="wider">
+                      Step {index + 1}
+                    </Text>
+                    <Text fontSize="sm" fontWeight="bold" color={isActive ? textColor : mutedText}>
+                      {step.title}
+                    </Text>
+                  </Box>
+                </Flex>
+                {index < steps.length - 1 && (
+                  <Box flex={1} h="2px" mx={4} bg={activeStep > index ? "green.400" : "gray.200"} borderRadius="full" transition="background 0.4s" />
+                )}
+              </React.Fragment>
+            );
+          })}
+        </Flex>
 
-          {/* ROOM */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Room</label>
-            <select
-              value={room}
-              onChange={(e) => setRoom(e.target.value)}
-              className="w-full border rounded-lg px-4 py-2"
+        {/* Main Card */}
+        <Box bg={cardBg} borderRadius="2xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden" display="flex" flexDirection="column" flex={1} minH={0}>
+          <Box as="form" onSubmit={handleSubmit} display="flex" flexDirection="column" h="100%">
+            <Box p={{ base: 6, md: 10 }} flex={1} overflowY="auto" minH={0}
+              sx={{
+                '&::-webkit-scrollbar': { width: '0px' },
+              }}
             >
-              <option value="">-- Select Room --</option>
-              {rooms.map((r) => (
-                <option key={r.id} value={r.name}>
-                  {r.name}
-                </option>
-              ))}
-            </select>
-          </div>
 
-          {/* RENT */}
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Monthly Rent
-            </label>
-            <input
-              type="number"
-              value={rent}
-              onChange={(e) => setRent(e.target.value)}
-              className="w-full border rounded-lg px-4 py-2"
-            />
-          </div>
+              {/* ===== STEP 1: TENANT ===== */}
+              {activeStep === 0 && (
+                <Box>
+                  <Text fontSize="lg" fontWeight="black" color={textColor} mb={1}>Select Tenant</Text>
+                  <Text fontSize="sm" color={mutedText} mb={6}>Search and select the tenant for this lease.</Text>
 
-          {/* DATES */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Start Date
-              </label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full border rounded-lg px-4 py-2"
-              />
-            </div>
+                  <Box maxW="xl" position="relative" ref={tenantDropdownRef}>
+                    <FormControl isRequired>
+                      <InputGroup size="lg">
+                        <InputLeftElement pointerEvents="none">
+                          <Icon as={FiSearch} color={mutedText} />
+                        </InputLeftElement>
+                        <Input
+                          pl="44px"
+                          placeholder="Search by name or email..."
+                          value={tenantSearch}
+                          bg={inputBg}
+                          onFocus={() => setShowTenantDropdown(true)}
+                          onChange={(e) => {
+                            setTenantSearch(e.target.value);
+                            setShowTenantDropdown(true);
+                            if (formData.tenant_id) setFormData((prev) => ({ ...prev, tenant_id: "" }));
+                          }}
+                          borderColor={formData.tenant_id ? "green.400" : borderColor}
+                          _focus={{ borderColor: "blue.400", boxShadow: "0 0 0 1px #4299e1" }}
+                        />
+                      </InputGroup>
+                    </FormControl>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">End Date</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full border rounded-lg px-4 py-2"
-              />
-            </div>
-          </div>
+                    {/* Dropdown */}
+                    {showTenantDropdown && (
+                      <Box
+                        position="absolute" top="100%" left={0} right={0} zIndex={20} mt={2}
+                        bg={cardBg} shadow="2xl" borderRadius="xl" border="1px solid" borderColor={borderColor}
+                        maxH="300px" overflowY="auto"
+                      >
+                        {filteredTenants.length > 0 ? filteredTenants.map((t) => (
+                          <Flex
+                            key={t.id} px={4} py={3} cursor="pointer" align="center" gap={3}
+                            borderBottom="1px solid" borderColor={borderColor}
+                            _hover={{ bg: useColorModeValue("blue.50", "blue.900") }}
+                            bg={String(formData.tenant_id) === String(t.id) ? useColorModeValue("blue.50", "blue.900") : "transparent"}
+                            onClick={() => {
+                              setFormData((prev) => ({ ...prev, tenant_id: t.id }));
+                              setTenantSearch(t.name);
+                              setShowTenantDropdown(false);
+                            }}
+                          >
+                            <Avatar size="sm" name={t.name} />
+                            <Box flex={1}>
+                              <Flex align="center" gap={2}>
+                                <Text fontWeight="bold" fontSize="sm" color={textColor}>{t.name}</Text>
+                                {String(formData.tenant_id) === String(t.id) && (
+                                  <Icon as={FiCheck} color="green.500" boxSize={3} />
+                                )}
+                              </Flex>
+                              <Text fontSize="xs" color={mutedText}>{t.email || "No email"}</Text>
+                            </Box>
+                          </Flex>
+                        )) : (
+                          <Box px={5} py={6} textAlign="center">
+                            <Icon as={FiUser} color={mutedText} boxSize={6} mb={2} />
+                            <Text fontSize="sm" color={mutedText}>No tenants found.</Text>
+                          </Box>
+                        )}
+                      </Box>
+                    )}
+                  </Box>
 
-          {/* STATUS */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Status</label>
-            <input
-              value={status}
-              disabled
-              className="w-full bg-gray-100 border rounded-lg px-4 py-2 text-gray-600"
-            />
-          </div>
+                  {/* Selected Tenant Card */}
+                  {selectedTenant && !showTenantDropdown && (
+                    <Box mt={6} maxW="xl" p={5} bg={useColorModeValue("green.50", "green.900")} border="1px solid" borderColor={useColorModeValue("green.200", "green.700")} borderRadius="xl">
+                      <Flex align="center" gap={4}>
+                        <Avatar name={selectedTenant.name} size="md" />
+                        <Box flex={1}>
+                          <Flex align="center" gap={2} mb={1}>
+                            <Text fontWeight="black" fontSize="md" color={textColor}>{selectedTenant.name}</Text>
+                            <Badge colorScheme="green" fontSize="9px" fontWeight="black">Selected</Badge>
+                          </Flex>
+                          <Text fontSize="sm" color={mutedText}>{selectedTenant.email || "No email"}</Text>
+                          {selectedTenant.phone && <Text fontSize="sm" color={mutedText}>{selectedTenant.phone}</Text>}
+                        </Box>
+                        <Icon as={FiCheck} color="green.500" boxSize={6} />
+                      </Flex>
+                    </Box>
+                  )}
+                </Box>
+              )}
 
-          {/* BUTTONS */}
-          <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="border px-5 py-2 rounded-lg"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="bg-sky-600 text-white px-6 py-2 rounded-lg hover:bg-sky-700"
-            >
-              {isEdit ? "Update Lease" : "Save Lease"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+              {/* ===== STEP 2: ROOM ===== */}
+              {activeStep === 1 && (
+                <Box>
+                  <Text fontSize="lg" fontWeight="black" color={textColor} mb={1}>Select Room</Text>
+                  <Text fontSize="sm" color={mutedText} mb={6}>Choose an available unit for this lease.</Text>
+
+                  <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} spacing={4}>
+                    {rooms.map((r) => {
+                      const isSelected = String(formData.room_id) === String(r.id);
+                      const isAvailable = r.status?.toLowerCase() === "available" || isSelected;
+                      return (
+                        <Box
+                          key={r.id}
+                          as="button"
+                          type="button"
+                          textAlign="left"
+                          p={5}
+                          borderRadius="xl"
+                          border="2px solid"
+                          borderColor={isSelected ? "blue.500" : isAvailable ? borderColor : "red.200"}
+                          bg={isSelected ? useColorModeValue("blue.50", "blue.900") : cardBg}
+                          opacity={!isAvailable && !isSelected ? 0.55 : 1}
+                          cursor={!isAvailable && !isSelected ? "not-allowed" : "pointer"}
+                          _hover={isAvailable || isSelected ? {
+                            borderColor: isSelected ? "blue.600" : "blue.300",
+                            transform: "translateY(-2px)",
+                            shadow: "md",
+                          } : {}}
+                          transition="all 0.2s"
+                          onClick={() => { if (!isAvailable && !isSelected) return; setFormData({ ...formData, room_id: r.id }); }}
+                          position="relative"
+                        >
+                          {isSelected && (
+                            <Box position="absolute" top={3} right={3}>
+                              <Flex w="22px" h="22px" bg="blue.500" borderRadius="full" align="center" justify="center">
+                                <Icon as={FiCheck} color="white" boxSize={3} />
+                              </Flex>
+                            </Box>
+                          )}
+                          <Icon as={FiHome} color={isSelected ? "blue.500" : mutedText} boxSize={5} mb={3} />
+                          <Text fontWeight="black" fontSize="md" color={textColor} mb={1}>{r.name}</Text>
+                          <Text fontSize="xs" color={mutedText} mb={3}>{r.size || "Standard Unit"}</Text>
+                          <Text fontSize="2xl" fontWeight="black" color={isSelected ? "blue.600" : textColor}>
+                            ${Number(r.base_rent_price || 0).toFixed(2)}
+                            <Text as="span" fontSize="xs" color={mutedText} fontWeight="normal"> /mo</Text>
+                          </Text>
+                          <Badge
+                            mt={2} fontSize="9px" fontWeight="black" textTransform="uppercase"
+                            colorScheme={r.status?.toLowerCase() === "available" ? "green" : isSelected ? "blue" : "red"}
+                            borderRadius="full" px={2} py={1}
+                          >
+                            {isSelected ? "Selected" : r.status || "Available"}
+                          </Badge>
+                        </Box>
+                      );
+                    })}
+                  </SimpleGrid>
+                </Box>
+              )}
+
+              {/* ===== STEP 3: DETAILS ===== */}
+              {activeStep === 2 && (
+                <Box>
+                  <Text fontSize="lg" fontWeight="black" color={textColor} mb={1}>Lease Details</Text>
+                  <Text fontSize="sm" color={mutedText} mb={6}>Set the financial terms and dates for this agreement.</Text>
+
+                  {/* Selection Summary */}
+                  {(selectedTenant || selectedRoom) && (
+                    <Flex gap={4} mb={8} direction={{ base: "column", md: "row" }}>
+                      {selectedTenant && (
+                        <Flex flex={1} align="center" gap={3} p={4} bg={useColorModeValue("gray.50", "gray.700")} borderRadius="xl" border="1px solid" borderColor={borderColor}>
+                          <Avatar size="sm" name={selectedTenant.name} />
+                          <Box>
+                            <Text fontSize="10px" fontWeight="black" color={mutedText} textTransform="uppercase">Tenant</Text>
+                            <Text fontWeight="bold" fontSize="sm" color={textColor}>{selectedTenant.name}</Text>
+                          </Box>
+                        </Flex>
+                      )}
+                      {selectedRoom && (
+                        <Flex flex={1} align="center" gap={3} p={4} bg={useColorModeValue("gray.50", "gray.700")} borderRadius="xl" border="1px solid" borderColor={borderColor}>
+                          <Flex w="34px" h="34px" bg="blue.100" borderRadius="lg" align="center" justify="center">
+                            <Icon as={FiHome} color="blue.600" />
+                          </Flex>
+                          <Box>
+                            <Text fontSize="10px" fontWeight="black" color={mutedText} textTransform="uppercase">Room</Text>
+                            <Text fontWeight="bold" fontSize="sm" color={textColor}>{selectedRoom.name}</Text>
+                          </Box>
+                        </Flex>
+                      )}
+                    </Flex>
+                  )}
+
+                  <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={5}>
+                    {/* LEFT: Financials */}
+                    <Box p={6} bg={useColorModeValue("blue.50", "blue.900/30")} borderRadius="xl" border="1px solid" borderColor={useColorModeValue("blue.100", "blue.700")}>
+                      <Flex align="center" gap={2} mb={5}>
+                        <Icon as={FiDollarSign} color="blue.600" />
+                        <Text fontWeight="black" fontSize="sm" color={useColorModeValue("blue.800", "blue.100")}>Financial Terms</Text>
+                      </Flex>
+                      <VStack spacing={4}>
+                        <FormControl isRequired>
+                          <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Monthly Rent ($)</FormLabel>
+                          <Input size="md" type="number" step="0.01" bg={inputBg} value={formData.rent_amount}
+                            onChange={(e) => setFormData({ ...formData, rent_amount: e.target.value })} />
+                        </FormControl>
+                        <FormControl>
+                          <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Security Deposit ($)</FormLabel>
+                          <Input size="md" type="number" step="0.01" bg={inputBg} value={formData.security_deposit}
+                            onChange={(e) => setFormData({ ...formData, security_deposit: e.target.value })} />
+                        </FormControl>
+                      </VStack>
+                    </Box>
+
+                    {/* RIGHT: Dates + Status */}
+                    <VStack spacing={5}>
+                      <Box w="full" p={6} bg={useColorModeValue("gray.50", "gray.700/50")} borderRadius="xl" border="1px solid" borderColor={borderColor}>
+                        <Flex align="center" gap={2} mb={5}>
+                          <Icon as={FiCalendar} color={mutedText} />
+                          <Text fontWeight="black" fontSize="sm" color={textColor}>Lease Duration</Text>
+                        </Flex>
+                        <VStack spacing={4}>
+                          <FormControl isRequired>
+                            <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Start Date</FormLabel>
+                            <Input size="md" type="date" bg={inputBg} value={formData.start_date}
+                              onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} />
+                          </FormControl>
+                          <FormControl isRequired>
+                            <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>End Date</FormLabel>
+                            <Input size="md" type="date" bg={inputBg} value={formData.end_date}
+                              onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
+                          </FormControl>
+                        </VStack>
+                      </Box>
+
+                      <Box w="full" p={6} bg={useColorModeValue("gray.50", "gray.700/50")} borderRadius="xl" border="1px solid" borderColor={borderColor}>
+                        <Flex align="center" gap={2} mb={5}>
+                          <Icon as={FiShield} color={mutedText} />
+                          <Text fontWeight="black" fontSize="sm" color={textColor}>Lease Status</Text>
+                        </Flex>
+                        <FormControl isRequired>
+                          <Select size="md" bg={inputBg} value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
+                            <option value="active">Active</option>
+                            <option value="expired">Expired</option>
+                            <option value="terminated">Terminated</option>
+                          </Select>
+                        </FormControl>
+                      </Box>
+                    </VStack>
+                  </SimpleGrid>
+                </Box>
+              )}
+            </Box>
+
+            {/* Footer Buttons */}
+            <Box px={{ base: 6, md: 10 }} py={5} borderTop="1px solid" borderColor={borderColor} bg={useColorModeValue("gray.50", "gray.900/50")}>
+              <Flex justify="space-between" align="center">
+                {/* Left: Cancel / Back */}
+                {activeStep === 0 ? (
+                  <Button variant="ghost" color={mutedText} onClick={() => navigate("/dashboard/lease")} isDisabled={isSaving}>
+                    Cancel
+                  </Button>
+                ) : (
+                  <Button leftIcon={<FiArrowLeft />} variant="outline" onClick={handlePrev} isDisabled={isSaving}>
+                    Back
+                  </Button>
+                )}
+
+                {/* Right: Next / Save */}
+                {activeStep < steps.length - 1 ? (
+                  <Button colorScheme="blue" rightIcon={<FiArrowRight />} px={8} onClick={handleNext}>
+                    Next Step
+                  </Button>
+                ) : (
+                  <Button colorScheme="blue" leftIcon={<FiCheck />} px={10} type="submit" isLoading={isSaving}>
+                    {isEdit ? "Update Lease" : "Confirm & Save"}
+                  </Button>
+                )}
+              </Flex>
+            </Box>
+          </Box>
+        </Box>
+      </Flex>
+    </Box>
   );
 }

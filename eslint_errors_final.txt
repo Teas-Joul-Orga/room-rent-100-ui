@@ -1,0 +1,19 @@
+[0m[0m
+[0m[4mD:\laragon\www\TesJulFull\room-rent-100-ui\src\page\furniture\AddNewFurniture.jsx[24m[0m
+[0m  [2m1:17[22m  [31merror[39m  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  [2mno-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\laragon\www\TesJulFull\room-rent-100-ui\src\page\furniture\Furniture.jsx[24m[0m
+[0m   [2m1:27[22m  [31merror[39m  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u          [2mno-unused-vars[22m[0m
+[0m  [2m20:17[22m  [31merror[39m  'setRooms' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  [2mno-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\laragon\www\TesJulFull\room-rent-100-ui\src\page\furniture\ViewFurniture.jsx[24m[0m
+[0m  [2m13:17[22m  [31merror[39m  'setPhoto' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u   [2mno-unused-vars[22m[0m
+[0m  [2m14:16[22m  [31merror[39m  'setName' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u    [2mno-unused-vars[22m[0m
+[0m  [2m15:16[22m  [31merror[39m  'setType' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u    [2mno-unused-vars[22m[0m
+[0m  [2m16:18[22m  [31merror[39m  'setStatus' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  [2mno-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\laragon\www\TesJulFull\room-rent-100-ui\src\page\lease\ViewLease.jsx[24m[0m
+[0m  [2m9:17[22m  [31merror[39m  'setLease' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  [2mno-unused-vars[22m[0m
+[0m[0m
+[0m[31m[1m✖ 8 problems (8 errors, 0 warnings)[22m[39m[0m
+[0m[31m[1m[22m[39m[0m

@@ -56,6 +56,7 @@ export default function ViewLease() {
   const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure();
   const [editForm, setEditForm] = useState({ tenant_id: "", room_id: "", start_date: "", end_date: "", rent_amount: "", security_deposit: 0, status: "active", deposit_status: "unpaid" });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [isPrintingContract, setIsPrintingContract] = useState(false);
   const [allTenants, setAllTenants] = useState([]);
   const [allRooms, setAllRooms] = useState([]);
   const [tenantSearch, setTenantSearch] = useState("");
@@ -324,6 +325,27 @@ export default function ViewLease() {
     }
   };
 
+  const handlePrintContract = async () => {
+    setIsPrintingContract(true);
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`${API}/leases/${id}/print`, {
+        headers: headers(),
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        window.open(url, "_blank");
+      } else {
+        toast.error("Failed to generate contract PDF");
+      }
+    } catch (e) {
+      toast.error("Network error");
+    } finally {
+      setIsPrintingContract(false);
+    }
+  };
+
   const totalContractValue = lease ? Number(lease.rent_amount) * (
     Math.max(1, Math.round((new Date(lease.end_date) - new Date(lease.start_date)) / (1000 * 60 * 60 * 24 * 30)))
   ) : 0;
@@ -372,10 +394,21 @@ export default function ViewLease() {
           </Flex>
           <Flex gap={2}>
             <Button
+              leftIcon={<FiPrinter />}
+              size="sm"
+              colorScheme="purple"
+              variant="outline"
+              isLoading={isPrintingContract}
+              loadingText="Generating..."
+              onClick={handlePrintContract}
+            >
+              Print Contract
+            </Button>
+            <Button
               leftIcon={<FiEdit2 />}
               size="sm"
               colorScheme="gray"
-              onClick={async () => {
+              onClick={() => {
                 setEditForm({
                   tenant_id: lease.tenant?.id || "",
                   room_id: lease.room?.id || "",
@@ -388,18 +421,17 @@ export default function ViewLease() {
                 });
                 setTenantSearch("");
                 setShowTenantDropdown(false);
-                // Fetch tenants & rooms
-                try {
-                  const token = localStorage.getItem("token");
-                  const h = { Authorization: `Bearer ${token}`, Accept: "application/json" };
-                  const [tRes, rRes] = await Promise.all([
-                    fetch(`${API}/tenants?per_page=all`, { headers: h }),
-                    fetch(`${API}/rooms?per_page=all`, { headers: h }),
-                  ]);
+                onEditOpen();
+                // Fetch tenants & rooms in the background (non-blocking)
+                const token = localStorage.getItem("token");
+                const h = { Authorization: `Bearer ${token}`, Accept: "application/json" };
+                Promise.all([
+                  fetch(`${API}/tenants?per_page=all`, { headers: h }),
+                  fetch(`${API}/rooms?per_page=all`, { headers: h }),
+                ]).then(async ([tRes, rRes]) => {
                   if (tRes.ok) { const d = await tRes.json(); setAllTenants(d.data || d); }
                   if (rRes.ok) { const d = await rRes.json(); setAllRooms(d.data || d); }
-                } catch (err) { console.error(err); }
-                onEditOpen();
+                }).catch(err => console.error(err));
               }}
             >
               Edit Lease
@@ -735,7 +767,7 @@ export default function ViewLease() {
 
       {/* ===== RECORD PAYMENT MODAL ===== */}
       <Modal isOpen={isPayOpen} onClose={onPayClose} isCentered size="lg">
-        <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(4px)" />
+        <ModalOverlay bg="blackAlpha.600" />
         <ModalContent bg={cardBg} borderRadius="xl">
           <form onSubmit={handleSavePayment}>
             <ModalHeader color={textColor}>Record Payment</ModalHeader>
@@ -782,7 +814,7 @@ export default function ViewLease() {
 
       {/* ===== ADD BILL MODAL ===== */}
       <Modal isOpen={isBillOpen} onClose={onBillClose} isCentered size="4xl">
-        <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(4px)" />
+        <ModalOverlay bg="blackAlpha.600" />
         <ModalContent bg={cardBg} borderRadius="xl">
           <form onSubmit={handleSaveBill}>
             <ModalHeader color={textColor} textTransform="uppercase" fontWeight="black">Add New Utility Bill</ModalHeader>
@@ -874,7 +906,7 @@ export default function ViewLease() {
 
       {/* ===== PAY SELECTED BILLS MODAL ===== */}
       <Modal isOpen={isPayAllOpen} onClose={onPayAllClose} isCentered size="md">
-        <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(4px)" />
+        <ModalOverlay bg="blackAlpha.600" />
         <ModalContent bg={cardBg} borderRadius="xl">
           <form onSubmit={handlePaySelected}>
             <ModalHeader color={textColor}>Pay Selected Bills</ModalHeader>
@@ -935,7 +967,7 @@ export default function ViewLease() {
 
       {/* ===== REFUND DEPOSIT MODAL ===== */}
       <Modal isOpen={isRefundOpen} onClose={onRefundClose} isCentered size="md">
-        <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(4px)" />
+        <ModalOverlay bg="blackAlpha.600" />
         <ModalContent bg={cardBg} borderRadius="xl">
           <form onSubmit={handleRefundDeposit}>
             <ModalHeader color={textColor}>Deposit Refund</ModalHeader>
@@ -961,10 +993,10 @@ export default function ViewLease() {
       </Modal>
 
       {/* ===== EDIT LEASE MODAL ===== */}
-      <Modal isOpen={isEditOpen} onClose={onEditClose} isCentered size="5xl" scrollBehavior="inside">
-        <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(4px)" />
-        <ModalContent bg={cardBg} borderRadius="xl" maxH="90vh">
-          <form onSubmit={handleEditLease}>
+      <Modal isOpen={isEditOpen} onClose={onEditClose} size="5xl" scrollBehavior="inside" motionPreset="scale">
+        <ModalOverlay bg="blackAlpha.600" />
+        <ModalContent bg={cardBg} borderRadius="xl" maxH="85vh" my="auto" display="flex" flexDirection="column">
+          <form onSubmit={handleEditLease} style={{ display: "flex", flexDirection: "column", overflow: "hidden", flex: 1 }}>
             <ModalHeader color={textColor} fontSize="lg" fontWeight="black" textTransform="uppercase" letterSpacing="tight">
               Edit Lease Agreement
             </ModalHeader>

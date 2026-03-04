@@ -1,0 +1,131 @@
+[0m[0m
+[0m[4mD:\laragon\www\TesJulFull\room-rent-100-ui\src\component\MainPage.jsx[24m[0m
+[0m  [2m36:16[22m  [31merror[39m  Error: Calling setState synchronously within an effect can trigger cascading renders[0m
+[0m[0m
+[0mEffects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:[0m
+[0m* Update external systems with the latest state from React.[0m
+[0m* Subscribe for updates from some external system, calling setState in a callback function when external state changes.[0m
+[0m[0m
+[0mCalling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).[0m
+[0m[0m
+[0m  34 |   useEffect(() => {[0m
+[0m  35 |     const saved = localStorage.getItem("lastSidebarPath");[0m
+[0m> 36 |     if (saved) setLastSidebarPath(JSON.parse(saved));[0m
+[0m     |                ^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect[0m
+[0m  37 |   }, []);[0m
+[0m  38 |[0m
+[0m  39 |   useEffect(() => {  [2mreact-hooks/set-state-in-effect[22m[0m
+[0m[0m
+[0m[4mD:\laragon\www\TesJulFull\room-rent-100-ui\src\page\furniture\AddNewFurniture.jsx[24m[0m
+[0m  [2m1:17[22m  [31merror[39m  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  [2mno-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\laragon\www\TesJulFull\room-rent-100-ui\src\page\furniture\Furniture.jsx[24m[0m
+[0m   [2m3:10[22m  [31merror[39m  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          [2mno-unused-vars[22m[0m
+[0m  [2m55:5[22m   [31merror[39m  Error: Calling setState synchronously within an effect can trigger cascading renders[0m
+[0m[0m
+[0mEffects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:[0m
+[0m* Update external systems with the latest state from React.[0m
+[0m* Subscribe for updates from some external system, calling setState in a callback function when external state changes.[0m
+[0m[0m
+[0mCalling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).[0m
+[0m[0m
+[0m  53 |     }));[0m
+[0m  54 |[0m
+[0m> 55 |     setFurniture(normalized);[0m
+[0m     |     ^^^^^^^^^^^^ Avoid calling setState() directly within an effect[0m
+[0m  56 |     setRooms(savedRooms);[0m
+[0m  57 |     localStorage.setItem("furniture", JSON.stringify(normalized));[0m
+[0m  58 |   }, []);  [2mreact-hooks/set-state-in-effect[22m[0m
+[0m[0m
+[0m[4mD:\laragon\www\TesJulFull\room-rent-100-ui\src\page\furniture\RoomFurniture.jsx[24m[0m
+[0m  [2m1:17[22m  [31merror[39m  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u          [2mno-unused-vars[22m[0m
+[0m  [2m7:17[22m  [31merror[39m  'setItems' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  [2mno-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\laragon\www\TesJulFull\room-rent-100-ui\src\page\furniture\ViewFurniture.jsx[24m[0m
+[0m  [2m19:7[22m  [31merror[39m  Error: Calling setState synchronously within an effect can trigger cascading renders[0m
+[0m[0m
+[0mEffects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:[0m
+[0m* Update external systems with the latest state from React.[0m
+[0m* Subscribe for updates from some external system, calling setState in a callback function when external state changes.[0m
+[0m[0m
+[0mCalling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).[0m
+[0m[0m
+[0m  17 |[0m
+[0m  18 |     if (found) {[0m
+[0m> 19 |       setPhoto(found.photo || "");[0m
+[0m     |       ^^^^^^^^ Avoid calling setState() directly within an effect[0m
+[0m  20 |       setName(found.name);[0m
+[0m  21 |       setType(found.type);[0m
+[0m  22 |       setStatus(found.status || "Available");  [2mreact-hooks/set-state-in-effect[22m[0m
+[0m[0m
+[0m[4mD:\laragon\www\TesJulFull\room-rent-100-ui\src\page\lease\CreateNewLease.jsx[24m[0m
+[0m  [2m47:17[22m  [31merror[39m  'setRooms' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       [2mno-unused-vars[22m[0m
+[0m  [2m59:7[22m   [31merror[39m  Error: Calling setState synchronously within an effect can trigger cascading renders[0m
+[0m[0m
+[0mEffects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:[0m
+[0m* Update external systems with the latest state from React.[0m
+[0m* Subscribe for updates from some external system, calling setState in a callback function when external state changes.[0m
+[0m[0m
+[0mCalling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).[0m
+[0m[0m
+[0m  57 |     const today = new Date().toISOString().split("T")[0];[0m
+[0m  58 |     if (today >= startDate && today <= endDate) {[0m
+[0m> 59 |       setStatus("Active");[0m
+[0m     |       ^^^^^^^^^ Avoid calling setState() directly within an effect[0m
+[0m  60 |     } else {[0m
+[0m  61 |       setStatus("Inactive");[0m
+[0m  62 |     }  [2mreact-hooks/set-state-in-effect[22m[0m
+[0m[0m
+[0m[4mD:\laragon\www\TesJulFull\room-rent-100-ui\src\page\lease\Lease.jsx[24m[0m
+[0m    [2m1:27[22m  [31merror[39m  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  [2mno-unused-vars[22m[0m
+[0m   [2m78:5[22m   [31merror[39m  'toast' is not defined                                                            [2mno-undef[22m[0m
+[0m  [2m394:19[22m  [31merror[39m  'toast' is not defined                                                            [2mno-undef[22m[0m
+[0m[0m
+[0m[4mD:\laragon\www\TesJulFull\room-rent-100-ui\src\page\lease\ViewLease.jsx[24m[0m
+[0m   [2m1:17[22m  [31merror[39m  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                 [2mno-unused-vars[22m[0m
+[0m   [2m3:8[22m   [31merror[39m  'toast' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                     [2mno-unused-vars[22m[0m
+[0m   [2m9:17[22m  [31merror[39m  'setLease' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u         [2mno-unused-vars[22m[0m
+[0m  [2m13:24[22m  [31merror[39m  'setTransactions' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  [2mno-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\laragon\www\TesJulFull\room-rent-100-ui\src\page\room\EditRoom.jsx[24m[0m
+[0m  [2m13:24[22m  [31merror[39m  'setAllFurniture' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  [2mno-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\laragon\www\TesJulFull\room-rent-100-ui\src\page\room\ViewRoom.jsx[24m[0m
+[0m   [2m8:16[22m  [31merror[39m  'setRoom' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u           [2mno-unused-vars[22m[0m
+[0m  [2m12:25[22m  [31merror[39m  'setFurnitureList' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  [2mno-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\laragon\www\TesJulFull\room-rent-100-ui\src\page\tenant\CreateAccount.jsx[24m[0m
+[0m  [2m10:18[22m  [31merror[39m  'setTenant' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  [2mno-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\laragon\www\TesJulFull\room-rent-100-ui\src\page\tenant\ViewTenant.jsx[24m[0m
+[0m  [2m10:18[22m  [31merror[39m  'setTenant' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  [2mno-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\laragon\www\TesJulFull\room-rent-100-ui\src\page\utility\AddBill.jsx[24m[0m
+[0m    [2m1:17[22m  [31merror[39m  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u           [2mno-unused-vars[22m[0m
+[0m    [2m8:18[22m  [31merror[39m  'setLeases' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  [2mno-unused-vars[22m[0m
+[0m   [2m14:5[22m   [31merror[39m  'setForm' is not defined                                                                   [2mno-undef[22m[0m
+[0m   [2m14:18[22m  [31merror[39m  'form' is not defined                                                                      [2mno-undef[22m[0m
+[0m   [2m20:10[22m  [31merror[39m  'form' is not defined                                                                      [2mno-undef[22m[0m
+[0m   [2m20:27[22m  [31merror[39m  'form' is not defined                                                                      [2mno-undef[22m[0m
+[0m   [2m20:43[22m  [31merror[39m  'form' is not defined                                                                      [2mno-undef[22m[0m
+[0m   [2m25:9[22m   [31merror[39m  'form' is not defined                                                                      [2mno-undef[22m[0m
+[0m   [2m25:39[22m  [31merror[39m  'form' is not defined                                                                      [2mno-undef[22m[0m
+[0m   [2m31:7[22m   [31merror[39m  'form' is not defined                                                                      [2mno-undef[22m[0m
+[0m   [2m31:35[22m  [31merror[39m  'form' is not defined                                                                      [2mno-undef[22m[0m
+[0m   [2m31:52[22m  [31merror[39m  'form' is not defined                                                                      [2mno-undef[22m[0m
+[0m   [2m36:16[22m  [31merror[39m  'form' is not defined                                                                      [2mno-undef[22m[0m
+[0m   [2m38:22[22m  [31merror[39m  'form' is not defined                                                                      [2mno-undef[22m[0m
+[0m   [2m40:15[22m  [31merror[39m  'form' is not defined                                                                      [2mno-undef[22m[0m
+[0m   [2m46:27[22m  [31merror[39m  'form' is not defined                                                                      [2mno-undef[22m[0m
+[0m   [2m50:13[22m  [31merror[39m  'form' is not defined                                                                      [2mno-undef[22m[0m
+[0m   [2m54:13[22m  [31merror[39m  'form' is not defined                                                                      [2mno-undef[22m[0m
+[0m   [2m87:24[22m  [31merror[39m  'form' is not defined                                                                      [2mno-undef[22m[0m
+[0m  [2m107:24[22m  [31merror[39m  'form' is not defined                                                                      [2mno-undef[22m[0m
+[0m  [2m118:14[22m  [31merror[39m  'form' is not defined                                                                      [2mno-undef[22m[0m
+[0m  [2m126:26[22m  [31merror[39m  'form' is not defined                                                                      [2mno-undef[22m[0m
+[0m  [2m145:24[22m  [31merror[39m  'form' is not defined                                                                      [2mno-undef[22m[0m
+[0m  [2m157:24[22m  [31merror[39m  'form' is not defined                                                                      [2mno-undef[22m[0m
+[0m  [2m168:24[22m  [31merror[39m  'form' is not defined                                                                      [2mno-undef[22m[0m
+[0m[0m
+[0m[31m[1m✖ 46 problems (46 errors, 0 warnings)[22m[39m[0m
+[0m[31m[1m[22m[39m[0m
