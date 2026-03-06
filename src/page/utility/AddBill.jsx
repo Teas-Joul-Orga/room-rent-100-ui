@@ -46,8 +46,19 @@ const BILL_TYPES = [
   { value: "other", label: "Other", icon: FiFileText, color: "gray" },
 ];
 
+const fmt = (n) => {
+  const c = localStorage.getItem("currency") || "$";
+  const num = Number(n || 0);
+  if (c === "៛") {
+    const r = Number(localStorage.getItem("exchangeRate") || 4000);
+    return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
+  }
+  return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 export default function AddBill() {
   const navigate = useNavigate();
+  const curr = localStorage.getItem("currency") || "$";
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -389,7 +400,7 @@ export default function AddBill() {
                             placeholder="0" />
                         </FormControl>
                         <FormControl>
-                          <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Rate/Unit ($)</FormLabel>
+                          <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Rate/Unit ({curr})</FormLabel>
                           <Input size="md" type="number" step="0.01" bg={inputBg} value={formData.cost_per_unit}
                             onChange={(e) => setFormData({ ...formData, cost_per_unit: e.target.value })}
                             placeholder="0.00" />
@@ -411,7 +422,7 @@ export default function AddBill() {
                     </Flex>
                     <SimpleGrid columns={2} spacing={4}>
                       <FormControl isRequired>
-                        <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Total Amount ($)</FormLabel>
+                        <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Total Amount ({curr})</FormLabel>
                         <Input size="md" type="number" step="0.01" bg={inputBg}
                           fontWeight="bold"
                           value={formData.amount}

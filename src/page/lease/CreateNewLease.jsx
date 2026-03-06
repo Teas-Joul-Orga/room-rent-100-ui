@@ -43,6 +43,16 @@ const steps = [
   { title: "Details", description: "Lease Info", icon: FiCalendar },
 ];
 
+const fmt = (n) => {
+  const c = localStorage.getItem("currency") || "$";
+  const num = Number(n || 0);
+  if (c === "៛") {
+    const r = Number(localStorage.getItem("exchangeRate") || 4000);
+    return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
+  }
+  return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 export default function CreateNewLease() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -413,8 +423,8 @@ export default function CreateNewLease() {
                           <Icon as={FiHome} color={isSelected ? "blue.500" : mutedText} boxSize={5} mb={3} />
                           <Text fontWeight="black" fontSize="md" color={textColor} mb={1}>{r.name}</Text>
                           <Text fontSize="xs" color={mutedText} mb={3}>{r.size || "Standard Unit"}</Text>
-                          <Text fontSize="2xl" fontWeight="black" color={isSelected ? "blue.600" : textColor}>
-                            ${Number(r.base_rent_price || 0).toFixed(2)}
+                          <Text fontSize="xl" fontWeight="black" color={isSelected ? "blue.600" : textColor}>
+                            {fmt(r.base_rent_price || 0)}
                             <Text as="span" fontSize="xs" color={mutedText} fontWeight="normal"> /mo</Text>
                           </Text>
                           <Badge
@@ -472,12 +482,12 @@ export default function CreateNewLease() {
                       </Flex>
                       <VStack spacing={4}>
                         <FormControl isRequired>
-                          <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Monthly Rent ($)</FormLabel>
+                          <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Monthly Rent ({localStorage.getItem("currency") || "$"})</FormLabel>
                           <Input size="md" type="number" step="0.01" bg={inputBg} value={formData.rent_amount}
                             onChange={(e) => setFormData({ ...formData, rent_amount: e.target.value })} />
                         </FormControl>
                         <FormControl>
-                          <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Security Deposit ($)</FormLabel>
+                          <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Security Deposit ({localStorage.getItem("currency") || "$"})</FormLabel>
                           <Input size="md" type="number" step="0.01" bg={inputBg} value={formData.security_deposit}
                             onChange={(e) => setFormData({ ...formData, security_deposit: e.target.value })} />
                         </FormControl>

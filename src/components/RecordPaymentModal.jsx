@@ -10,6 +10,18 @@ import toast from "react-hot-toast";
 const API = "http://localhost:8000/api/v1/admin";
 
 export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initialData = {} }) {
+  const curr = localStorage.getItem("currency") || "$";
+  
+  const fmt = (n) => {
+    const c = localStorage.getItem("currency") || "$";
+    const num = Number(n || 0);
+    if (c === "៛") {
+      const r = Number(localStorage.getItem("exchangeRate") || 4000);
+      return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
+    }
+    return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   const [formData, setFormData] = useState({
     lease_id: "",
     type: "rent",
@@ -127,7 +139,7 @@ export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initial
                   >
                     {leases.map(l => (
                       <option key={l.id} value={l.id}>
-                        {l.tenant?.name} - {l.room?.name} (Balance Due: ${l.total_contract_value - (l.payments_sum_amount_paid || 0)})
+                        {l.tenant?.name || l.tenant_name} - {l.room?.name || l.room_name} (Balance Due: {fmt(Number(l.total_contract_value || 0) - Number(l.payments_sum_amount_paid || 0))})
                       </option>
                     ))}
                   </Select>
@@ -162,7 +174,7 @@ export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initial
 
               <SimpleGrid columns={2} spacing={4}>
                 <FormControl isRequired>
-                  <FormLabel fontSize="xs" fontWeight="bold">Amount Paid ($)</FormLabel>
+                  <FormLabel fontSize="xs" fontWeight="bold">Amount Paid ({curr})</FormLabel>
                   <Input 
                     type="number" step="0.01" 
                     value={formData.amount_paid}

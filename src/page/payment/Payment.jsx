@@ -9,7 +9,15 @@ import { FiArrowUp, FiArrowDown, FiTrash2, FiPrinter, FiChevronLeft, FiChevronRi
 import RecordPaymentModal from "../../components/RecordPaymentModal";
 
 const API = "http://localhost:8000/api/v1/admin";
-const fmt = (n) => `$${Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+const fmt = (n) => {
+  const c = localStorage.getItem("currency") || "$";
+  const num = Number(n || 0);
+  if (c === "៛") {
+    const r = Number(localStorage.getItem("exchangeRate") || 4000);
+    return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
+  }
+  return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
 
 export default function Payment() {
@@ -146,7 +154,7 @@ export default function Payment() {
 
   const renderPagination = () => (
     <Flex align="center" justify="space-between" px={6} py={3} borderTop="1px solid" borderColor={borderColor}>
-      <Text fontSize="xs" color={mutedText}>
+      <Text fontSize="sm" color={mutedText}>
         Showing {pagination.from || 0}–{pagination.to || 0} of {pagination.total || 0}
       </Text>
       <Flex gap={1}>
@@ -177,11 +185,11 @@ export default function Payment() {
             <Heading size="md" color={textColor} textTransform="uppercase" letterSpacing="tight">
               Payment Transactions
             </Heading>
-            <Text fontSize="xs" color={mutedText} mt={0.5}>
+            <Text fontSize="sm" color={mutedText} mt={0.5}>
               History of all rent, utility, and other financial records
             </Text>
           </Box>
-          <Button size="sm" colorScheme="blue" leftIcon={<FiPlus />} onClick={onOpen}>
+          <Button size="md" colorScheme="blue" leftIcon={<FiPlus />} onClick={onOpen}>
             Record New Payment
           </Button>
         </Flex>
@@ -189,14 +197,14 @@ export default function Payment() {
         {/* Stats Summary */}
         <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} mb={6}>
           <Box bg={cardBg} p={5} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor}>
-            <Text fontSize="9px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>Total Transactions</Text>
+            <Text fontSize="sm" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>Total Transactions</Text>
             <Heading size="lg" fontWeight="black" color={textColor}>{pagination.total || 0}</Heading>
-            <Text fontSize="xs" color={mutedText}>on record</Text>
+            <Text fontSize="sm" color={mutedText}>on record</Text>
           </Box>
           <Box bg={cardBg} p={5} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor}>
-            <Text fontSize="9px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>Current View Volume</Text>
+            <Text fontSize="sm" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>Current View Volume</Text>
             <Heading size="lg" fontWeight="black" color="green.500">{fmt(payments.reduce((s, p) => s + Number(p.amount_paid), 0))}</Heading>
-            <Text fontSize="xs" color={mutedText}>total shown in this page</Text>
+            <Text fontSize="sm" color={mutedText}>total shown in this page</Text>
           </Box>
         </SimpleGrid>
 
@@ -205,7 +213,7 @@ export default function Payment() {
           <Box position="relative" maxW="300px" flex="1">
              <Input
                 placeholder="Search tenant, room, notes..."
-                size="sm" bg={cardBg} borderColor={borderColor}
+                size="md" bg={cardBg} borderColor={borderColor}
                 value={search} onChange={e => setSearch(e.target.value)}
                 pl={8}
                 _hover={{ borderColor: "blue.400" }}
@@ -214,14 +222,14 @@ export default function Payment() {
                 <FiSearch size={12} />
               </Box>
           </Box>
-          <Select size="sm" bg={cardBg} borderColor={borderColor} maxW="160px" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
+          <Select size="md" bg={cardBg} borderColor={borderColor} maxW="160px" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
             <option value="">All Types</option>
             <option value="rent">Rent</option>
             <option value="utility">Utility</option>
             <option value="deposit">Deposit</option>
             <option value="other">Other</option>
           </Select>
-          <Select size="sm" bg={cardBg} borderColor={borderColor} maxW="160px" value={methodFilter} onChange={e => setMethodFilter(e.target.value)}>
+          <Select size="md" bg={cardBg} borderColor={borderColor} maxW="160px" value={methodFilter} onChange={e => setMethodFilter(e.target.value)}>
             <option value="">All Methods</option>
             <option value="cash">Cash</option>
             <option value="bank">Bank</option>
@@ -231,21 +239,21 @@ export default function Payment() {
         {/* Table */}
         <Box bg={cardBg} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
           <TableContainer>
-            <Table variant="simple" size="sm">
+            <Table variant="simple" size="md">
               <Thead bg={tableHBg}>
                 <Tr>
-                  <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="9px" fontWeight="black" textTransform="uppercase">Tenant / Room</Th>
-                  <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="9px" fontWeight="black" textTransform="uppercase" cursor="pointer" onClick={() => handleSort("payment_date")}>Date</Th>
-                  <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="9px" fontWeight="black" textTransform="uppercase">Type</Th>
-                  <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="9px" fontWeight="black" textTransform="uppercase">Amount</Th>
-                  <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="9px" fontWeight="black" textTransform="uppercase">Method</Th>
-                  <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="9px" fontWeight="black" textTransform="uppercase">Notes</Th>
+                  <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">Tenant / Room</Th>
+                  <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase" cursor="pointer" onClick={() => handleSort("payment_date")}>Date</Th>
+                  <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">Type</Th>
+                  <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">Amount</Th>
+                  <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">Method</Th>
+                  <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">Notes</Th>
                   <Th borderBottom="2px solid" borderColor={borderColor} textAlign="right" />
                 </Tr>
               </Thead>
               <Tbody>
                 {isLoading && payments.length === 0 ? (
-                  <Tr><Td colSpan={7} textAlign="center" py={12}><Spinner size="sm" mr={2} /> Loading payments...</Td></Tr>
+                  <Tr><Td colSpan={7} textAlign="center" py={12}><Spinner size="md" mr={2} /> Loading payments...</Td></Tr>
                 ) : payments.length === 0 ? (
                   <Tr><Td colSpan={7} textAlign="center" py={12} color={mutedText}>No payment records found.</Td></Tr>
                 ) : (
@@ -253,17 +261,17 @@ export default function Payment() {
                     <Tr key={p.id} _hover={{ bg: trHoverBg }}>
                       <Td>
                         <Text fontSize="sm" fontWeight="bold" color={textColor}>{p.lease?.tenant?.name || "—"}</Text>
-                        <Text fontSize="xs" color={mutedText}>{p.lease?.room?.name || "No Room"}</Text>
+                        <Text fontSize="sm" color={mutedText}>{p.lease?.room?.name || "No Room"}</Text>
                       </Td>
-                      <Td fontSize="xs" fontWeight="bold" color={mutedText}>{fmtDate(p.payment_date)}</Td>
+                      <Td fontSize="sm" fontWeight="bold" color={mutedText}>{fmtDate(p.payment_date)}</Td>
                       <Td>
-                        <Badge fontSize="9px" fontWeight="black" colorScheme={typeBadge(p.type)} textTransform="uppercase">
+                        <Badge fontSize="sm" fontWeight="black" colorScheme={typeBadge(p.type)} textTransform="uppercase">
                           {p.type}
                         </Badge>
                       </Td>
                       <Td fontSize="sm" fontWeight="black" color={textColor}>{fmt(p.amount_paid)}</Td>
-                      <Td fontSize="xs" color={mutedText} textTransform="uppercase">{p.payment_method}</Td>
-                      <Td fontSize="xs" color={mutedText} maxW="200px" isTruncated title={p.notes}>{p.notes || "—"}</Td>
+                      <Td fontSize="sm" color={mutedText} textTransform="uppercase">{p.payment_method}</Td>
+                      <Td fontSize="sm" color={mutedText} maxW="200px" isTruncated title={p.notes}>{p.notes || "—"}</Td>
                       <Td textAlign="right">
                         <Flex gap={1} justify="flex-end">
                           <Tooltip label="Print Receipt" hasArrow>

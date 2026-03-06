@@ -69,6 +69,12 @@ export default function Settings() {
       const result = await res.json();
       
       if (res.ok) {
+        if (settings.finance_currency) {
+          localStorage.setItem("currency", settings.finance_currency);
+        }
+        if (settings.finance_exchange_rate) {
+          localStorage.setItem("exchangeRate", settings.finance_exchange_rate);
+        }
         toast({ title: 'Settings saved successfully.', status: 'success', duration: 3000 });
       } else {
         toast({ title: 'Failed to save', description: result.error || 'Server error', status: 'error' });

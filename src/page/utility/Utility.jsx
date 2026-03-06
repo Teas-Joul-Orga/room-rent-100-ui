@@ -13,7 +13,15 @@ import { FiArrowUp, FiArrowDown, FiTrash2, FiPrinter, FiBell, FiChevronLeft, FiC
 import RecordPaymentModal from "../../components/RecordPaymentModal";
 
 const API = "http://localhost:8000/api/v1/admin";
-const fmt = (n) => `$${Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+const fmt = (n) => {
+  const c = localStorage.getItem("currency") || "$";
+  const num = Number(n || 0);
+  if (c === "៛") {
+    const r = Number(localStorage.getItem("exchangeRate") || 4000);
+    return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
+  }
+  return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
 
 export default function Utility() {
@@ -252,7 +260,7 @@ export default function Utility() {
 
   const renderPagination = () => (
     <Flex align="center" justify="space-between" px={6} py={3} borderTop="1px solid" borderColor={borderColor}>
-      <Text fontSize="xs" color={mutedText}>
+      <Text fontSize="sm" color={mutedText}>
         Showing {pagination.from || 0}–{pagination.to || 0} of {pagination.total || 0}
       </Text>
       <Flex gap={1}>
@@ -275,7 +283,7 @@ export default function Utility() {
             </Button>
           );
         })}
-        {pagination.last_page > 5 && <Text fontSize="xs" color={mutedText} px={1}>...</Text>}
+        {pagination.last_page > 5 && <Text fontSize="sm" color={mutedText} px={1}>...</Text>}
         <IconButton
           icon={<FiChevronRight />} size="xs" variant="ghost"
           isDisabled={currentPage >= pagination.last_page}
@@ -310,17 +318,17 @@ export default function Utility() {
             <Heading size="md" color={textColor} textTransform="uppercase" letterSpacing="tight">
               Utility Bills
             </Heading>
-            <Text fontSize="xs" color={mutedText} mt={0.5}>
+            <Text fontSize="sm" color={mutedText} mt={0.5}>
               Manage all electricity, water, and other utility bills
             </Text>
           </Box>
           <Flex gap={2}>
             {selectedIds.length > 0 && (
-              <Button size="sm" colorScheme="purple" variant="outline" leftIcon={<FiPrinter />} onClick={handlePrintInvoice}>
+              <Button size="md" colorScheme="purple" variant="outline" leftIcon={<FiPrinter />} onClick={handlePrintInvoice}>
                 Print Invoice ({selectedIds.length})
               </Button>
             )}
-            <Button size="sm" colorScheme="blue" leftIcon={<FiPlus />} onClick={() => navigate("/dashboard/utility/addbill")}>
+            <Button size="md" colorScheme="blue" leftIcon={<FiPlus />} onClick={() => navigate("/dashboard/utility/addbill")}>
               Add New Bill
             </Button>
           </Flex>
@@ -328,10 +336,10 @@ export default function Utility() {
 
         <Tabs variant="line" colorScheme="blue" index={activeTab} onChange={(i) => setActiveTab(i)} isLazy>
           <TabList borderBottom="1px solid" borderColor={borderColor} mb={6}>
-            <Tab fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" pb={4}>
+            <Tab fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" pb={4}>
               Utility Statements
             </Tab>
-            <Tab fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" pb={4}>
+            <Tab fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" pb={4}>
               Utility Payments Ledger
             </Tab>
           </TabList>
@@ -342,19 +350,19 @@ export default function Utility() {
               {/* KPI Cards */}
               <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} mb={6}>
                 <Box bg={cardBg} p={5} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor}>
-                  <Text fontSize="9px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>Total Unpaid Bills</Text>
+                  <Text fontSize="sm" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>Total Unpaid Bills</Text>
                   <Heading size="lg" fontWeight="black" color="red.500">{unpaidCount}</Heading>
-                  <Text fontSize="xs" color={mutedText}>{fmt(totalUnpaidAmount)} outstanding</Text>
+                  <Text fontSize="sm" color={mutedText}>{fmt(totalUnpaidAmount)} outstanding</Text>
                 </Box>
                 <Box bg={cardBg} p={5} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor}>
-                  <Text fontSize="9px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>Total Recordings</Text>
+                  <Text fontSize="sm" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>Total Recordings</Text>
                   <Heading size="lg" fontWeight="black" color={textColor}>{pagination.total || 0}</Heading>
-                  <Text fontSize="xs" color={mutedText}>bills on record</Text>
+                  <Text fontSize="sm" color={mutedText}>bills on record</Text>
                 </Box>
                 <Box bg={cardBg} p={5} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor}>
-                  <Text fontSize="9px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>Selected for Printing</Text>
+                  <Text fontSize="sm" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>Selected for Printing</Text>
                   <Heading size="lg" fontWeight="black" color="purple.500">{selectedIds.length}</Heading>
-                  <Text fontSize="xs" color={mutedText}>bills selected</Text>
+                  <Text fontSize="sm" color={mutedText}>bills selected</Text>
                 </Box>
               </SimpleGrid>
 
@@ -362,12 +370,12 @@ export default function Utility() {
               <Flex gap={3} mb={4} flexWrap="wrap" align="center">
                 <Input
                   placeholder="Search tenant, room, description..."
-                  size="sm" bg={cardBg} borderColor={borderColor} maxW="300px"
+                  size="md" bg={cardBg} borderColor={borderColor} maxW="300px"
                   value={search} onChange={e => setSearch(e.target.value)}
                   _hover={{ borderColor: "blue.400" }}
                   _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
                 />
-                <Select size="sm" bg={cardBg} borderColor={borderColor} maxW="160px" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
+                <Select size="md" bg={cardBg} borderColor={borderColor} maxW="160px" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
                   <option value="">All Types</option>
                   <option value="electricity">Electricity</option>
                   <option value="water">Water</option>
@@ -375,7 +383,7 @@ export default function Utility() {
                   <option value="internet">Internet</option>
                   <option value="other">Other</option>
                 </Select>
-                <Select size="sm" bg={cardBg} borderColor={borderColor} maxW="160px" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+                <Select size="md" bg={cardBg} borderColor={borderColor} maxW="160px" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
                   <option value="">All Status</option>
                   <option value="unpaid">Unpaid</option>
                   <option value="paid">Paid</option>
@@ -385,26 +393,26 @@ export default function Utility() {
               {/* Table */}
               <Box bg={cardBg} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
                 <TableContainer>
-                  <Table variant="simple" size="sm">
+                  <Table variant="simple" size="md">
                     <Thead>
                       <Tr bg={tableHBg}>
                         <Th w="40px" borderBottom="2px solid" borderColor={borderColor}>
                           <Checkbox onChange={(e) => toggleAll(e.target.checked)} isChecked={selectedIds.length === bills.length && bills.length > 0} />
                         </Th>
-                        <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="9px" fontWeight="black" textTransform="uppercase" letterSpacing="wider">Tenant / Room</Th>
-                        <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="9px" fontWeight="black" textTransform="uppercase" letterSpacing="wider" cursor="pointer" onClick={() => handleSort("type")}>
+                        <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider">Tenant / Room</Th>
+                        <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" cursor="pointer" onClick={() => handleSort("type")}>
                           <Flex align="center" gap={1}>Type <SortIcon field="type" /></Flex>
                         </Th>
-                        <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="9px" fontWeight="black" textTransform="uppercase" letterSpacing="wider" cursor="pointer" onClick={() => handleSort("amount")}>
+                        <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" cursor="pointer" onClick={() => handleSort("amount")}>
                           <Flex align="center" gap={1}>Amount <SortIcon field="amount" /></Flex>
                         </Th>
-                        <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="9px" fontWeight="black" textTransform="uppercase" letterSpacing="wider" cursor="pointer" onClick={() => handleSort("due_date")}>
+                        <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" cursor="pointer" onClick={() => handleSort("due_date")}>
                           <Flex align="center" gap={1}>Due Date <SortIcon field="due_date" /></Flex>
                         </Th>
-                        <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="9px" fontWeight="black" textTransform="uppercase" letterSpacing="wider" cursor="pointer" onClick={() => handleSort("status")}>
+                        <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" cursor="pointer" onClick={() => handleSort("status")}>
                           <Flex align="center" gap={1}>Status <SortIcon field="status" /></Flex>
                         </Th>
-                        <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="9px" fontWeight="black" textTransform="uppercase" letterSpacing="wider">Description</Th>
+                        <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider">Description</Th>
                         <Th borderBottom="2px solid" borderColor={borderColor} textAlign="right" />
                       </Tr>
                     </Thead>
@@ -421,23 +429,23 @@ export default function Utility() {
                               <Text fontSize="sm" fontWeight="bold" color={textColor}>
                                 {bill.lease?.tenant?.name || "—"}
                               </Text>
-                              <Text fontSize="xs" color={mutedText}>
+                              <Text fontSize="sm" color={mutedText}>
                                 {bill.lease?.room?.name || bill.room?.name || "—"}
                               </Text>
                             </Td>
                             <Td>
-                              <Badge fontSize="9px" fontWeight="black" textTransform="uppercase" colorScheme={typeBadge(bill.type)}>
+                              <Badge fontSize="sm" fontWeight="black" textTransform="uppercase" colorScheme={typeBadge(bill.type)}>
                                 {bill.type}
                               </Badge>
                             </Td>
                             <Td fontWeight="black" color={textColor}>{fmt(bill.amount)}</Td>
-                            <Td fontSize="xs" fontWeight="bold" color={mutedText}>{fmtDate(bill.due_date)}</Td>
+                            <Td fontSize="sm" fontWeight="bold" color={mutedText}>{fmtDate(bill.due_date)}</Td>
                             <Td>
-                              <Badge fontSize="9px" fontWeight="black" textTransform="uppercase" colorScheme={statusBadge(bill.status)}>
+                              <Badge fontSize="sm" fontWeight="black" textTransform="uppercase" colorScheme={statusBadge(bill.status)}>
                                 {bill.status}
                               </Badge>
                             </Td>
-                            <Td fontSize="xs" color={mutedText} maxW="200px" isTruncated>{bill.description || "—"}</Td>
+                            <Td fontSize="sm" color={mutedText} maxW="200px" isTruncated>{bill.description || "—"}</Td>
                             <Td textAlign="right">
                               <Flex gap={1} justify="flex-end">
                                 {bill.status === "unpaid" && (
@@ -484,14 +492,14 @@ export default function Utility() {
             <TabPanel p={0}>
               <Box bg={cardBg} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
                 <TableContainer>
-                  <Table variant="simple" size="sm">
+                  <Table variant="simple" size="md">
                     <Thead bg={tableHBg}>
                       <Tr>
-                        <Th color={thColor} fontSize="9px" fontWeight="black" textTransform="uppercase">Tenant / Room</Th>
-                        <Th color={thColor} fontSize="9px" fontWeight="black" textTransform="uppercase">Date</Th>
-                        <Th color={thColor} fontSize="9px" fontWeight="black" textTransform="uppercase">Amount Paid</Th>
-                        <Th color={thColor} fontSize="9px" fontWeight="black" textTransform="uppercase">Method</Th>
-                        <Th color={thColor} fontSize="9px" fontWeight="black" textTransform="uppercase">Notes</Th>
+                        <Th color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">Tenant / Room</Th>
+                        <Th color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">Date</Th>
+                        <Th color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">Amount Paid</Th>
+                        <Th color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">Method</Th>
+                        <Th color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">Notes</Th>
                         <Th textAlign="right"></Th>
                       </Tr>
                     </Thead>
@@ -503,12 +511,12 @@ export default function Utility() {
                           <Tr key={p.id} _hover={{ bg: trHoverBg }}>
                             <Td>
                               <Text fontSize="sm" fontWeight="bold" color={textColor}>{p.lease?.tenant?.name}</Text>
-                              <Text fontSize="xs" color={mutedText}>{p.lease?.room?.name}</Text>
+                              <Text fontSize="sm" color={mutedText}>{p.lease?.room?.name}</Text>
                             </Td>
-                            <Td fontSize="xs" fontWeight="black" color={mutedText}>{fmtDate(p.payment_date)}</Td>
+                            <Td fontSize="sm" fontWeight="black" color={mutedText}>{fmtDate(p.payment_date)}</Td>
                             <Td fontWeight="black" color={textColor}>{fmt(p.amount_paid)}</Td>
-                            <Td fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase">{p.payment_method}</Td>
-                            <Td fontSize="xs" color={mutedText}>{p.notes || "—"}</Td>
+                            <Td fontSize="sm" fontWeight="bold" color={mutedText} textTransform="uppercase">{p.payment_method}</Td>
+                            <Td fontSize="sm" color={mutedText}>{p.notes || "—"}</Td>
                             <Td textAlign="right">
                               <Tooltip label="View Print" hasArrow>
                                 <IconButton icon={<FiPrinter />} size="xs" variant="ghost" colorScheme="blue" onClick={() => window.open(`${API}/payments/print-receipt?payment_ids[]=${p.id}`, '_blank')} aria-label="Print" />
@@ -542,7 +550,7 @@ export default function Utility() {
               <Box mb={6}>
                 <Flex align="center" justify="space-between" mb={2}>
                   <Text fontSize="sm" fontWeight="bold" color={textColor}>1. Select Room</Text>
-                  <Text fontSize="xs" color={mutedText}>Only active lease rooms show up here</Text>
+                  <Text fontSize="sm" color={mutedText}>Only active lease rooms show up here</Text>
                 </Flex>
                 <SimpleGrid columns={{ base: 2, md: 4, lg: 5 }} spacing={3}>
                   {rooms.map(room => {
@@ -561,8 +569,8 @@ export default function Utility() {
                         onClick={() => setAddForm({ ...addForm, room_id: room.id })}
                         textAlign="center"
                       >
-                        <Text fontWeight="bold" fontSize="xs" color={textColor}>{room.name}</Text>
-                        <Text fontSize="9px" fontWeight="bold" color={isOccupied ? "green.500" : "gray.400"} mt={1}>
+                        <Text fontWeight="bold" fontSize="sm" color={textColor}>{room.name}</Text>
+                        <Text fontSize="sm" fontWeight="bold" color={isOccupied ? "green.500" : "gray.400"} mt={1}>
                           {isOccupied ? "Occupied" : "Vacant"}
                         </Text>
                       </Box>
@@ -578,8 +586,8 @@ export default function Utility() {
                 <Box>
                   <Text fontSize="sm" fontWeight="bold" color={textColor} mb={3}>2. Bill Type & Pricing</Text>
                   <FormControl isRequired mb={4}>
-                    <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Utility Type</FormLabel>
-                    <Select size="sm" value={addForm.type} onChange={e => setAddForm({ ...addForm, type: e.target.value })}>
+                    <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Utility Type</FormLabel>
+                    <Select size="md" value={addForm.type} onChange={e => setAddForm({ ...addForm, type: e.target.value })}>
                       <option value="electricity">Electricity</option>
                       <option value="water">Water</option>
                       <option value="trash">Trash (Fixed)</option>
@@ -592,19 +600,19 @@ export default function Utility() {
                     <Box bg={bg} p={4} borderRadius="lg" border="1px solid" borderColor={borderColor} mb={4}>
                       <SimpleGrid columns={2} spacing={4}>
                         <FormControl>
-                          <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Previous Reading</FormLabel>
+                          <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Previous Reading</FormLabel>
                           <Input size="sm" bg="gray.100" type="number" step="0.01" value={addForm.previous_reading} isReadOnly />
                         </FormControl>
                         <FormControl isRequired>
-                          <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Current Reading</FormLabel>
+                          <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Current Reading</FormLabel>
                           <Input size="sm" bg="white" type="number" step="0.01" value={addForm.current_reading} onChange={e => setAddForm({ ...addForm, current_reading: e.target.value })} />
                         </FormControl>
                         <FormControl isRequired>
-                          <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Rate per Unit ($)</FormLabel>
+                          <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Rate per Unit ({localStorage.getItem("currency") || "$"})</FormLabel>
                           <Input size="sm" bg="white" type="number" step="0.01" value={addForm.cost_per_unit} onChange={e => setAddForm({ ...addForm, cost_per_unit: e.target.value })} placeholder="e.g. 0.25" />
                         </FormControl>
                         <Box display="flex" flexDirection="column" justifyContent="center">
-                          <Text fontSize="9px" fontWeight="black" color="gray.400" textTransform="uppercase">Usage</Text>
+                          <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase">Usage</Text>
                           <Text fontWeight="black" fontSize="sm" color="blue.600">{usage.toFixed(2)} units</Text>
                         </Box>
                       </SimpleGrid>
@@ -613,11 +621,11 @@ export default function Utility() {
 
                   <SimpleGrid columns={2} spacing={4}>
                     <FormControl isRequired>
-                      <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Total Amount ($)</FormLabel>
+                      <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Total Amount ({localStorage.getItem("currency") || "$"})</FormLabel>
                       <Input size="sm" type="number" step="0.01" value={addForm.amount} onChange={e => setAddForm({ ...addForm, amount: e.target.value })} bg="yellow.50" fontWeight="bold" />
                     </FormControl>
                     <FormControl isRequired>
-                      <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Due Date</FormLabel>
+                      <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Due Date</FormLabel>
                       <Input size="sm" type="date" value={addForm.due_date} onChange={e => setAddForm({ ...addForm, due_date: e.target.value })} />
                     </FormControl>
                   </SimpleGrid>
@@ -627,14 +635,14 @@ export default function Utility() {
                 <Box>
                   <Text fontSize="sm" fontWeight="bold" color={textColor} mb={3}>3. Status & Remarks</Text>
                   <FormControl mb={4}>
-                    <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Initial Status</FormLabel>
+                    <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Initial Status</FormLabel>
                     <Select size="sm" value={addForm.status} onChange={e => setAddForm({ ...addForm, status: e.target.value })}>
                       <option value="unpaid">Unpaid</option>
                       <option value="paid">Paid (Auto-record payment)</option>
                     </Select>
                   </FormControl>
                   <FormControl>
-                    <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Description (Optional)</FormLabel>
+                    <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Description (Optional)</FormLabel>
                     <Textarea size="sm" rows={4} placeholder="e.g. September Usage for Room 101" value={addForm.description} onChange={e => setAddForm({ ...addForm, description: e.target.value })} />
                   </FormControl>
                 </Box>

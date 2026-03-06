@@ -10,7 +10,15 @@ import { toast } from "react-hot-toast";
 import dayjs from "dayjs";
 
 const API = "http://localhost:8000/api/v1";
-const fmt = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num || 0);
+const fmt = (n) => {
+  const c = localStorage.getItem("currency") || "$";
+  const num = Number(n || 0);
+  if (c === "៛") {
+    const r = Number(localStorage.getItem("exchangeRate") || 4000);
+    return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
+  }
+  return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
 
 function Expense() {
   const [expenses, setExpenses] = useState([]);
@@ -275,8 +283,8 @@ function Expense() {
                 </FormControl>
 
                 <FormControl isRequired>
-                  <FormLabel fontSize="sm" color={mutedText}>Amount</FormLabel>
-                  <InputGroup size="sm">
+                  <FormLabel fontSize="sm" color={mutedText}>Amount ({localStorage.getItem("currency") || "$"})</FormLabel>
+                  <InputGroup size="md">
                     <InputLeftElement pointerEvents="none"><FiDollarSign color="gray.400" /></InputLeftElement>
                     <Input type="number" step="0.01" min="0" bg={bg} value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} />
                   </InputGroup>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Flex, Box, useColorModeValue } from "@chakra-ui/react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
@@ -9,6 +9,26 @@ import useGlobalNotifications from "../hooks/useGlobalNotifications.jsx";
 
 const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // Fetch global settings and save the currency globally
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      fetch("http://localhost:8000/api/v1/admin/settings", {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(r => r.json())
+      .then(d => {
+        if (d?.finance_currency?.value) {
+           localStorage.setItem("currency", d.finance_currency.value);
+        }
+        if (d?.finance_exchange_rate?.value) {
+           localStorage.setItem("exchangeRate", d.finance_exchange_rate.value);
+        }
+      })
+      .catch(e => console.error("Could not fetch global currency settings."));
+    }
+  }, []);
   
   // Get current user for notifications
   let userDetails = { id: null };

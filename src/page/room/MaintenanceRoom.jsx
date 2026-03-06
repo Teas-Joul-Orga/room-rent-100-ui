@@ -17,7 +17,15 @@ window.Pusher = Pusher;
 
 dayjs.extend(relativeTime);
 const API = "http://localhost:8000/api/v1";
-const fmt = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num || 0);
+const fmt = (n) => {
+  const c = localStorage.getItem("currency") || "$";
+  const num = Number(n || 0);
+  if (c === "៛") {
+    const r = Number(localStorage.getItem("exchangeRate") || 4000);
+    return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
+  }
+  return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
 
 function MaintenanceRoom() {
   const [role] = useState(localStorage.getItem('role') || 'tenant');
@@ -308,8 +316,8 @@ function MaintenanceRoom() {
                 <Box bg="red.50" p={4} borderRadius="md" border="1px dashed" borderColor="red.200">
                   <Text fontSize="xs" fontWeight="bold" color="red.600" mb={3}>Attach Repair Expense (Optional)</Text>
                   <FormControl mb={3}>
-                    <FormLabel fontSize="xs" color="gray.600">Cost Amount ($)</FormLabel>
-                    <Input size="sm" type="number" step="0.01" bg="white" value={updateForm.expense_amount} onChange={e => setUpdateForm({ ...updateForm, expense_amount: e.target.value })} />
+                    <FormLabel fontSize="sm" color="gray.600">Cost Amount ({localStorage.getItem("currency") || "$"})</FormLabel>
+                    <Input size="md" type="number" step="0.01" bg="white" value={updateForm.expense_amount} onChange={e => setUpdateForm({ ...updateForm, expense_amount: e.target.value })} />
                   </FormControl>
                   <FormControl>
                     <FormLabel fontSize="xs" color="gray.600">Expense Note</FormLabel>

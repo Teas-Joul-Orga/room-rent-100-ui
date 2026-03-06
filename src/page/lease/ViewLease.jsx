@@ -16,7 +16,15 @@ import {
 
 const API = "http://localhost:8000/api/v1/admin";
 
-const fmt = (n) => `$${Number(n || 0).toFixed(2)}`;
+const fmt = (n) => {
+  const c = localStorage.getItem("currency") || "$";
+  const num = Number(n || 0);
+  if (c === "៛") {
+    const r = Number(localStorage.getItem("exchangeRate") || 4000);
+    return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
+  }
+  return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "—";
 
 export default function ViewLease() {
@@ -784,8 +792,8 @@ export default function ViewLease() {
                   </Select>
                 </FormControl>
                 <FormControl isRequired>
-                  <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Amount ($)</FormLabel>
-                  <Input size="sm" type="number" step="0.01" value={payForm.amount_paid} onChange={e => setPayForm({ ...payForm, amount_paid: e.target.value })} />
+                  <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Amount ({localStorage.getItem("currency") || "$"})</FormLabel>
+                  <Input size="md" type="number" step="0.01" value={payForm.amount_paid} onChange={e => setPayForm({ ...payForm, amount_paid: e.target.value })} />
                 </FormControl>
                 <FormControl isRequired>
                   <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Payment Method</FormLabel>
@@ -856,8 +864,8 @@ export default function ViewLease() {
                         <Input size="sm" type="number" step="0.01" value={billForm.current_reading} onChange={e => setBillForm({ ...billForm, current_reading: e.target.value })} />
                       </FormControl>
                       <FormControl>
-                        <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Rate per Unit ($)</FormLabel>
-                        <Input size="sm" type="number" step="0.01" value={billForm.cost_per_unit} onChange={e => setBillForm({ ...billForm, cost_per_unit: e.target.value })} />
+                        <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Rate per Unit ({localStorage.getItem("currency") || "$"})</FormLabel>
+                        <Input size="md" type="number" step="0.01" value={billForm.cost_per_unit} onChange={e => setBillForm({ ...billForm, cost_per_unit: e.target.value })} />
                       </FormControl>
                     </SimpleGrid>
                     <Text fontSize="sm" fontWeight="bold" color="gray.600" textAlign="right" mt={2}>
@@ -868,8 +876,8 @@ export default function ViewLease() {
 
                 {/* Total Amount */}
                 <FormControl isRequired>
-                  <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Total Amount ($)</FormLabel>
-                  <Input size="sm" type="number" step="0.01" bg={isMetered ? "yellow.50" : undefined} fontWeight="bold" value={billForm.amount} onChange={e => setBillForm({ ...billForm, amount: e.target.value })} />
+                  <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Total Amount ({localStorage.getItem("currency") || "$"})</FormLabel>
+                  <Input size="md" type="number" step="0.01" bg={isMetered ? "yellow.50" : undefined} fontWeight="bold" value={billForm.amount} onChange={e => setBillForm({ ...billForm, amount: e.target.value })} />
                   {isMetered && <Text fontSize="xs" color="gray.500" mt={1}>Auto-calculated, but you can override.</Text>}
                 </FormControl>
 
@@ -975,8 +983,8 @@ export default function ViewLease() {
             <ModalBody pb={6}>
               <SimpleGrid columns={1} spacing={4}>
                 <FormControl isRequired>
-                  <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Amount to Refund ($)</FormLabel>
-                  <Input size="sm" type="number" step="0.01" max={lease.security_deposit} value={refundForm.amount} onChange={e => setRefundForm({ ...refundForm, amount: e.target.value })} />
+                  <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Amount to Refund ({localStorage.getItem("currency") || "$"})</FormLabel>
+                  <Input size="md" type="number" step="0.01" max={lease.security_deposit} value={refundForm.amount} onChange={e => setRefundForm({ ...refundForm, amount: e.target.value })} />
                 </FormControl>
                 <FormControl>
                   <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Settlement Notes</FormLabel>
@@ -1115,13 +1123,13 @@ export default function ViewLease() {
                     <Input size="sm" type="date" value={editForm.end_date} onChange={e => setEditForm({ ...editForm, end_date: e.target.value })} />
                   </FormControl>
                   <FormControl isRequired flex={1}>
-                    <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Agreed Monthly Rent ($)</FormLabel>
-                    <Input size="sm" type="number" step="0.01" value={editForm.rent_amount} onChange={e => setEditForm({ ...editForm, rent_amount: e.target.value })} borderColor="blue.400" />
+                    <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Agreed Monthly Rent ({localStorage.getItem("currency") || "$"})</FormLabel>
+                    <Input size="md" type="number" step="0.01" value={editForm.rent_amount} onChange={e => setEditForm({ ...editForm, rent_amount: e.target.value })} borderColor="blue.400" />
                   </FormControl>
                 </Flex>
                 <FormControl mb={4}>
-                  <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Security Deposit ($)</FormLabel>
-                  <Input size="sm" type="number" step="0.01" value={editForm.security_deposit} onChange={e => setEditForm({ ...editForm, security_deposit: e.target.value })} />
+                  <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Security Deposit ({localStorage.getItem("currency") || "$"})</FormLabel>
+                  <Input size="md" type="number" step="0.01" value={editForm.security_deposit} onChange={e => setEditForm({ ...editForm, security_deposit: e.target.value })} />
                 </FormControl>
 
                 {/* Lease Status */}

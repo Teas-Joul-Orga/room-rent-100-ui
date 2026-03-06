@@ -13,7 +13,15 @@ import { toast } from "react-hot-toast";
 import dayjs from "dayjs";
 
 const API = "http://localhost:8000/api/v1";
-const fmt = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num || 0);
+const fmt = (n) => {
+  const c = localStorage.getItem("currency") || "$";
+  const num = Number(n || 0);
+  if (c === "៛") {
+    const r = Number(localStorage.getItem("exchangeRate") || 4000);
+    return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
+  }
+  return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+};
 
 const COLORS = ['#3182CE', '#38A169', '#E53E3E', '#D69E2E', '#805AD5'];
 
@@ -120,7 +128,7 @@ function Dashboard() {
             <StatLabel fontSize="sm" fontWeight="bold" color={mutedText} textTransform="uppercase">Gross Revenue</StatLabel>
           </Flex>
           <StatNumber fontSize="3xl" fontWeight="black" color={textColor}>{fmt(financials.revenueCollected)}</StatNumber>
-          <StatHelpText m={0} mt={1} fontSize="xs" fontWeight="bold" color="green.500">
+          <StatHelpText m={0} mt={1} fontSize="sm" fontWeight="bold" color="green.500">
             Collected this year
           </StatHelpText>
         </Stat>
@@ -133,7 +141,7 @@ function Dashboard() {
             <StatLabel fontSize="sm" fontWeight="bold" color={mutedText} textTransform="uppercase">Total Expenses</StatLabel>
           </Flex>
           <StatNumber fontSize="3xl" fontWeight="black" color={textColor}>{fmt(financials.totalExpenses)}</StatNumber>
-          <StatHelpText m={0} mt={1} fontSize="xs" fontWeight="bold" color="red.500">
+          <StatHelpText m={0} mt={1} fontSize="sm" fontWeight="bold" color="red.500">
             {financials.revenueCollected > 0 ? ((financials.totalExpenses / financials.revenueCollected) * 100).toFixed(1) : 0}% of revenue
           </StatHelpText>
         </Stat>
@@ -146,7 +154,7 @@ function Dashboard() {
             <StatLabel fontSize="sm" fontWeight="bold" color={mutedText} textTransform="uppercase">Net Profit</StatLabel>
           </Flex>
           <StatNumber fontSize="3xl" fontWeight="black" color={textColor}>{fmt(financials.netProfit)}</StatNumber>
-          <StatHelpText m={0} mt={1} fontSize="xs" fontWeight="bold" color="gray.500">
+          <StatHelpText m={0} mt={1} fontSize="sm" fontWeight="bold" color="gray.500">
             Profit margin: {financials.revenueCollected > 0 ? ((financials.netProfit / financials.revenueCollected) * 100).toFixed(1) : 0}%
           </StatHelpText>
         </Stat>
@@ -159,7 +167,7 @@ function Dashboard() {
             <StatLabel fontSize="sm" fontWeight="bold" color={mutedText} textTransform="uppercase">Occupancy Rate</StatLabel>
           </Flex>
           <StatNumber fontSize="3xl" fontWeight="black" color={textColor}>{occupancy.occupancyRate.toFixed(1)}%</StatNumber>
-          <StatHelpText m={0} mt={1} fontSize="xs" fontWeight="bold" color="gray.500">
+          <StatHelpText m={0} mt={1} fontSize="sm" fontWeight="bold" color="gray.500">
             {occupancy.occupiedRooms} / {occupancy.totalRooms} Units Occupied
           </StatHelpText>
         </Stat>
@@ -175,7 +183,20 @@ function Dashboard() {
               <BarChart data={trendData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={borderColor} />
                 <XAxis dataKey="month" tick={{ fontSize: 12, fill: mutedText }} axisLine={false} tickLine={false} />
-                <YAxis tickFormatter={(value) => `$${value/1000}k`} tick={{ fontSize: 12, fill: mutedText }} axisLine={false} tickLine={false} />
+                <YAxis 
+                  tickFormatter={(value) => {
+                    const c = localStorage.getItem('currency') || '$';
+                    if (c === '៛') {
+                      const r = Number(localStorage.getItem('exchangeRate') || 4000);
+                      const converted = value * r;
+                      return '៛' + (converted >= 1000000 ? (converted/1000000).toFixed(1) + 'M' : (converted/1000).toFixed(0) + 'k');
+                    }
+                    return '$' + (value/1000).toFixed(0) + 'k';
+                  }} 
+                  tick={{ fontSize: 12, fill: mutedText }} 
+                  axisLine={false} 
+                  tickLine={false} 
+                />
                 <Tooltip 
                   formatter={(value, name) => [fmt(value), name.toUpperCase()]}
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
@@ -234,7 +255,7 @@ function Dashboard() {
               <Badge colorScheme="orange">{maintenance?.totalRequests || 0} Requests this year</Badge>
             </Flex>
             <TableContainer>
-              <Table size="sm" variant="simple">
+              <Table size="md" variant="simple">
                 <Thead>
                   <Tr>
                     <Th>Unit Name</Th>
@@ -266,7 +287,7 @@ function Dashboard() {
               <Badge colorScheme="red">{occupancy?.expiringSoon?.length || 0} Expiring Soon</Badge>
             </Flex>
             <TableContainer>
-              <Table size="sm" variant="simple">
+              <Table size="md" variant="simple">
                 <Thead>
                   <Tr>
                     <Th>Tenant</Th>
@@ -279,8 +300,8 @@ function Dashboard() {
                     occupancy.expiringSoon.map((lease) => (
                       <Tr key={lease.id}>
                         <Td fontSize="sm" fontWeight="bold" color={textColor}>{lease.tenant?.first_name} {lease.tenant?.last_name}</Td>
-                        <Td fontSize="xs" fontWeight="bold" color="blue.500">{lease.room?.name}</Td>
-                        <Td isNumeric fontSize="xs" fontWeight="bold" color="red.500">{dayjs(lease.end_date).format('MMM D, YYYY')}</Td>
+                        <Td fontSize="sm" fontWeight="bold" color="blue.500">{lease.room?.name}</Td>
+                        <Td isNumeric fontSize="sm" fontWeight="bold" color="red.500">{dayjs(lease.end_date).format('MMM D, YYYY')}</Td>
                       </Tr>
                     ))
                   ) : (
