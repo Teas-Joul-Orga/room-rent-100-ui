@@ -66,6 +66,26 @@ export default function AllTenants() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+
+  useEffect(() => {
+    const calculatePerPage = () => {
+      // 100vh - 560px approx for extra summary cards row + toolbar + pagination
+      const availableHeight = window.innerHeight - 560;
+      let calculated = Math.floor(availableHeight / 60);
+      if (calculated < 3) calculated = 3;
+      setRowsPerPage(calculated);
+    };
+    calculatePerPage();
+
+    let timeoutId;
+    const handleResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(calculatePerPage, 150);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const [selectedIds, setSelectedIds] = useState([]);
   const [selectedTenant, setSelectedTenant] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -264,9 +284,9 @@ export default function AllTenants() {
   const hoverBg = useColorModeValue("sky.50", "gray.700");
 
   return (
-    <Box p={6} bg={bg} h="full">
+    <Box p={6} bg={bg} h={{ base: "auto", lg: "calc(100vh - 140px)" }} overflow="hidden" display="flex" flexDirection="column">
       {/* ===== HEADER ===== */}
-      <Flex direction={{ base: "column", sm: "row" }} align={{ sm: "center" }} justify="space-between" gap={4} mb={6}>
+      <Flex direction={{ base: "column", sm: "row" }} align={{ sm: "center" }} justify="space-between" gap={4} mb={6} flexShrink={0}>
         <Heading size="lg" color={useColorModeValue("sky.900", "white")}>
           Tenants Management
         </Heading>
@@ -305,7 +325,7 @@ export default function AllTenants() {
         </Flex>
       ) : (
       <>
-        <SimpleGrid columns={{ base: 1, sm: 3 }} spacing={4} mb={6}>
+        <SimpleGrid columns={{ base: 1, sm: 3 }} spacing={4} mb={6} flexShrink={0}>
         <Flex bg={cardBg} borderRadius="xl" shadow="sm" p={5} align="center" justify="space-between">
           <Box>
             <Text fontSize="sm" color={mutedText}>Total Tenants</Text>
@@ -338,7 +358,7 @@ export default function AllTenants() {
       </SimpleGrid>
 
       {/* ===== SEARCH ===== */}
-      <Box bg={cardBg} p={4} borderRadius="xl" shadow="sm" mb={6}>
+      <Box bg={cardBg} p={4} borderRadius="xl" shadow="sm" mb={6} flexShrink={0}>
         <Input
           placeholder="Search tenant name..."
           value={search}
@@ -353,10 +373,11 @@ export default function AllTenants() {
       </Box>
 
       {/* ===== TABLE ===== */}
-      <TableContainer bg={cardBg} borderRadius="xl" shadow="sm" mb={4}>
-        <Table variant="simple">
-          <Thead bg={tableHeaderBg}>
-            <Tr>
+      <TableContainer bg={cardBg} borderRadius="xl" shadow="sm" mb={4} display="flex" flexDirection="column" flex={1} minH={0} overflow="hidden">
+        <Box overflow="hidden" flex={1}>
+          <Table variant="simple">
+            <Thead bg={tableHeaderBg} position="sticky" top={0} zIndex={2}>
+              <Tr>
               <Th w="50px">
                 <Checkbox
                   isChecked={
@@ -520,10 +541,11 @@ export default function AllTenants() {
             )}
           </Tbody>
         </Table>
+        </Box>
 
         {/* Bulk Delete */}
         {selectedIds.length > 0 && (
-          <Box p={4} borderTop="1px solid" borderColor={borderColor}>
+          <Box p={4} borderTop="1px solid" borderColor={borderColor} flexShrink={0}>
             <Button
               colorScheme="red"
               onClick={deleteSelected}
@@ -535,22 +557,9 @@ export default function AllTenants() {
         )}
       </TableContainer>
       {/* ===== PAGINATION ===== */}
-      <Flex direction={{ base: "column", sm: "row" }} justify="space-between" align="center" gap={4}>
+      <Flex direction={{ base: "column", sm: "row" }} justify="space-between" align="center" gap={4} flexShrink={0}>
         <Flex align="center" gap={2} fontSize="sm" color={textColor}>
-          <Text>Show</Text>
-          <Select
-            size="sm"
-            w="auto"
-            value={rowsPerPage}
-            onChange={(e) => {
-              setRowsPerPage(Number(e.target.value));
-              setCurrentPage(1);
-            }}
-          >
-            <option value={5}>5</option>
-            <option value={10}>10</option>
-          </Select>
-          <Text>entries</Text>
+          <Text>Total {totalPages} Pages</Text>
         </Flex>
 
         <Flex align="center" gap={2}>

@@ -152,6 +152,7 @@ function App() {
               <Route path="active" element={<ActiveLease />} />
               <Route path="expired" element={<ExpiredLease />} />
               <Route path="edit/:id" element={<CreateNewLease />} />
+              <Route path="renew/:id" element={<CreateNewLease />} />
               <Route path="view/:id" element={<ViewLease />} />
             </Route>
 

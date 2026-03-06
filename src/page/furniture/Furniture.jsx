@@ -47,9 +47,28 @@ export default function Furniture() {
   const [formData, setFormData] = useState({ uid: null, name: "", condition: "Good" });
   const [isSaving, setIsSaving] = useState(false);
 
-  // Pagination (Frontend mock for now, API can supply limit=100)
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10); 
+
+  useEffect(() => {
+    const calculatePerPage = () => {
+      // 100vh - 350px approx for extra header + search + padding + pagination
+      const availableHeight = window.innerHeight - 350;
+      let calculated = Math.floor(availableHeight / 60);
+      if (calculated < 3) calculated = 3;
+      setRowsPerPage(calculated);
+    };
+    calculatePerPage();
+
+    let timeoutId;
+    const handleResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(calculatePerPage, 150);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []); 
 
   const bg = useColorModeValue("sky.50", "gray.900");
   const cardBg = useColorModeValue("white", "gray.800");
@@ -196,10 +215,9 @@ export default function Furniture() {
   };
 
   return (
-    <Box p={6} bg={bg} minH="100vh">
+    <Box p={6} bg={bg} h={{ base: "auto", lg: "calc(100vh - 140px)" }} overflow="hidden" display="flex" flexDirection="column">
       <Toaster position="top-right" />
-      <Box maxW="full" mx="auto">
-        <Flex direction={{ base: "column", sm: "row" }} align={{ sm: "center" }} justify="space-between" gap={4} mb={6}>
+      <Flex direction={{ base: "column", sm: "row" }} align={{ sm: "center" }} justify="space-between" gap={4} mb={6} flexShrink={0}>
           <Heading size="lg" color={useColorModeValue("sky.900", "white")}>
             Furniture Inventory
           </Heading>
@@ -214,7 +232,7 @@ export default function Furniture() {
         </Flex>
 
         {/* ===== SEARCH ===== */}
-        <Box bg={cardBg} p={4} borderRadius="xl" shadow="sm" mb={6}>
+        <Box bg={cardBg} p={4} borderRadius="xl" shadow="sm" mb={6} flexShrink={0}>
           <Input
             placeholder="Search furniture by name..."
             value={search}
@@ -229,19 +247,20 @@ export default function Furniture() {
         </Box>
 
         {/* ===== TABLE ===== */}
-        <TableContainer bg={cardBg} borderRadius="xl" shadow="sm" mb={4}>
-          <Table variant="simple">
-            <Thead bg={tableHeaderBg}>
-              <Tr>
-                <Th>Name</Th>
-                <Th>Condition</Th>
-                <Th>In Rooms</Th>
-                <Th>Active</Th>
-                <Th textAlign="center">Action</Th>
-              </Tr>
-            </Thead>
+        <TableContainer bg={cardBg} borderRadius="xl" shadow="sm" mb={4} display="flex" flexDirection="column" flex={1} minH={0} overflow="hidden">
+          <Box overflow="hidden" flex={1}>
+            <Table variant="simple">
+              <Thead bg={tableHeaderBg} position="sticky" top={0} zIndex={2}>
+                <Tr>
+                  <Th>Name</Th>
+                  <Th>Condition</Th>
+                  <Th>In Rooms</Th>
+                  <Th>Active</Th>
+                  <Th textAlign="center">Action</Th>
+                </Tr>
+              </Thead>
 
-            <Tbody>
+              <Tbody>
               {isLoading ? (
                 <Tr>
                   <Td colSpan={5} textAlign="center" py={10}>
@@ -331,11 +350,12 @@ export default function Furniture() {
               )}
             </Tbody>
           </Table>
+          </Box>
         </TableContainer>
 
         {/* ===== PAGINATION ===== */}
         {totalPages > 1 && (
-          <Flex justify="space-between" align="center" mt={4}>
+          <Flex justify="space-between" align="center" mt={4} flexShrink={0}>
             <Text fontSize="sm" color={mutedText}>
               Showing {firstIndex + 1} to {Math.min(lastIndex, filtered.length)} of {filtered.length} entries
             </Text>
@@ -368,7 +388,6 @@ export default function Furniture() {
             </Flex>
           </Flex>
         )}
-      </Box>
 
       {/* ===== ADD/EDIT MODAL ===== */}
       <Modal isOpen={isOpen} onClose={onClose} isCentered motionPreset="scale">

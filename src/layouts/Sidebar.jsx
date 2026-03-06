@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, VStack, Text, useColorModeValue, Flex, Icon, Tooltip, Drawer, DrawerOverlay, DrawerContent, DrawerCloseButton } from "@chakra-ui/react";
+import { Box, VStack, Text, useColorModeValue, Flex, Icon, Tooltip, Drawer, DrawerOverlay, DrawerContent, DrawerCloseButton, Collapse } from "@chakra-ui/react";
 import { NavLink, useLocation } from "react-router-dom";
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
@@ -62,7 +62,24 @@ const getSidebarGroups = (role) => {
     {
       title: "Insights",
       links: [
-        { label: "Reports", path: "/dashboard/report", exact: false, pathD: ["M4 19V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14", "M8 17V9m4 8V7m4 10v-5"] },
+        { 
+          label: "Reports", 
+          path: "/dashboard/report", 
+          exact: false, 
+          pathD: ["M4 19V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14", "M8 17V9m4 8V7m4 10v-5"],
+          subLinks: [
+            { label: 'Financial Summary', path: '/dashboard/report?tab=financial' },
+            { label: 'Annual Trend', path: '/dashboard/report?tab=p_and_l' },
+            { label: 'Aging (A/R)', path: '/dashboard/report?tab=aging' },
+            { label: 'Unit Drill-down', path: '/dashboard/report?tab=unit_analysis' },
+            { label: 'Occupancy', path: '/dashboard/report?tab=occupancy' },
+            { label: 'Lease Tracking', path: '/dashboard/report?tab=lease_tracking' },
+            { label: 'Maintenance Analytics', path: '/dashboard/report?tab=maintenance_analytics' },
+            { label: 'Tenant Performance', path: '/dashboard/report?tab=tenant_performance' },
+            { label: 'Utility Trends', path: '/dashboard/report?tab=utility_trends' },
+            { label: 'Deposit Ledger', path: '/dashboard/report?tab=deposit_ledger' }
+          ]
+        },
         { label: "Recycle Bin", path: "/dashboard/recyclebin", exact: false, pathD: ["M4 7h16", "M6 7l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14", "M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"] },
         { label: "Announcements", path: "/dashboard/announcements", exact: false, pathD: ["M4 11v2a1 1 0 0 0 1 1h2l5 5V6L7 11H5a1 1 0 0 0-1 1Z", "M15 9a4 4 0 0 1 0 6", "M17 7a7 7 0 0 1 0 10"] },
       ]
@@ -74,6 +91,118 @@ const getSidebarGroups = (role) => {
       ]
     }
   ];
+};
+
+const SidebarLinkItem = ({ link, location, linkColor, hoverBg, onClose, pendingMaintenanceCount, userRole, useColorModeValue }) => {
+  const isDropdown = !!link.subLinks;
+  
+  const isAnySubActive = isDropdown && link.subLinks.some(s => {
+      const isPathEqual = location.pathname + location.search === s.path;
+      const isDefaultFinancial = location.search === '' && s.path.includes('?tab=financial') && location.pathname === '/dashboard/report';
+      return isPathEqual || isDefaultFinancial;
+  });
+
+  const isActive = (link.exact ? location.pathname === link.path : location.pathname.startsWith(link.path));
+
+  const [isOpen, setIsOpen] = React.useState(isAnySubActive && isDropdown);
+
+  React.useEffect(() => {
+    if (isAnySubActive && !isOpen) {
+      setIsOpen(true);
+    }
+  }, [location.pathname, location.search, isAnySubActive]);
+
+  const handleClick = (e) => {
+    if (isDropdown) {
+      e.preventDefault();
+      setIsOpen(!isOpen);
+    } else {
+      if (onClose) onClose();
+    }
+  };
+
+  return (
+    <Box>
+      <Flex
+        as={NavLink}
+        to={link.path}
+        align="center"
+        justify="space-between"
+        px={3}
+        py={2}
+        borderRadius="xl"
+        fontSize="sm"
+        fontWeight="semibold"
+        transition="all 0.2s"
+        color={isActive && !isDropdown ? "white" : linkColor}
+        bg={isActive && !isDropdown ? "blue.600" : "transparent"}
+        boxShadow={isActive && !isDropdown ? "sm" : "none"}
+        _hover={{
+          bg: !isDropdown && isActive ? "blue.600" : hoverBg,
+          color: !isDropdown && isActive ? "white" : linkColor
+        }}
+        role="group"
+        onClick={handleClick}
+        cursor={isDropdown ? "pointer" : "inherit"}
+      >
+        <Flex align="center" gap={3}>
+          <SvgIcon 
+            pathD={link.pathD} 
+            boxSize={5} 
+            flexShrink={0}
+            color={isActive && !isDropdown ? "white" : (isDropdown && isActive ? "blue.500" : linkColor)}
+          />
+          <Text isTruncated color={isDropdown && isActive ? "blue.500" : (isActive && !isDropdown ? "white" : "inherit")}>{link.label}</Text>
+        </Flex>
+        {link.label === "Maintenance" && pendingMaintenanceCount > 0 && userRole === 'admin' && (
+          <Box
+            bg="red.500"
+            color="white"
+            fontSize="10px"
+            fontWeight="bold"
+            px={2}
+            py={0.5}
+            borderRadius="full"
+            ml="auto"
+          >
+            {pendingMaintenanceCount}
+          </Box>
+        )}
+        {isDropdown && (
+          <Icon viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" boxSize={4} transform={isOpen ? "rotate(180deg)" : ""} transition="transform 0.2s" color={isActive ? "blue.500" : "inherit"}>
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </Icon>
+        )}
+      </Flex>
+      {isDropdown && (
+        <Collapse in={isOpen} animateOpacity>
+          <VStack align="stretch" spacing={1} mt={1} pl={10} pr={2}>
+            {link.subLinks.map(sub => {
+              const isSubActive = location.pathname + location.search === sub.path || (location.search === '' && sub.path.includes('?tab=financial') && location.pathname === '/dashboard/report');
+              return (
+                <Flex
+                  as={NavLink}
+                  to={sub.path}
+                  key={sub.path}
+                  py={1.5}
+                  px={3}
+                  borderRadius="md"
+                  fontSize="xs"
+                  fontWeight="medium"
+                  color={isSubActive ? "blue.500" : "gray.500"}
+                  bg={isSubActive ? useColorModeValue("blue.50", "blue.900") : "transparent"}
+                  _hover={{ color: "blue.600", bg: hoverBg }}
+                  onClick={() => { if (onClose) onClose(); }}
+                >
+                  {sub.label}
+                </Flex>
+              )
+            })}
+          </VStack>
+        </Collapse>
+      )}
+    </Box>
+  );
 };
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -154,58 +283,19 @@ const Sidebar = ({ isOpen, onClose }) => {
             </Text>
             
             <VStack spacing={1} align="stretch">
-              {group.links.map((link) => {
-                const isActive = isLinkActive(link.path, link.exact);
-
-                return (
-                  <Flex
-                    as={NavLink}
-                    key={link.path}
-                    to={link.path}
-                    align="center"
-                    gap={3}
-                    px={3}
-                    py={2}
-                    borderRadius="xl"
-                    fontSize="sm"
-                    fontWeight="semibold"
-                    transition="all 0.2s"
-                    color={isActive ? "white" : linkColor}
-                    bg={isActive ? "blue.600" : "transparent"}
-                    boxShadow={isActive ? "sm" : "none"}
-                    _hover={{
-                      bg: isActive ? "blue.600" : hoverBg,
-                      color: isActive ? "white" : linkColor,
-                    }}
-                    role="group"
-                    onClick={() => { if (onClose) onClose(); }}
-                  >
-                    <Flex align="center" gap={3}>
-                      <SvgIcon 
-                        pathD={link.pathD} 
-                        boxSize={5} 
-                        flexShrink={0}
-                        color={isActive ? "white" : linkColor}
-                      />
-                      <Text isTruncated>{link.label}</Text>
-                    </Flex>
-                    {link.label === "Maintenance" && pendingMaintenanceCount > 0 && userRole === 'admin' && (
-                      <Box
-                        bg="red.500"
-                        color="white"
-                        fontSize="10px"
-                        fontWeight="bold"
-                        px={2}
-                        py={0.5}
-                        borderRadius="full"
-                        ml="auto"
-                      >
-                        {pendingMaintenanceCount}
-                      </Box>
-                    )}
-                  </Flex>
-                );
-              })}
+              {group.links.map((link) => (
+                <SidebarLinkItem 
+                  key={link.path} 
+                  link={link} 
+                  location={location} 
+                  linkColor={linkColor} 
+                  hoverBg={hoverBg} 
+                  onClose={onClose} 
+                  pendingMaintenanceCount={pendingMaintenanceCount} 
+                  userRole={userRole} 
+                  useColorModeValue={useColorModeValue}
+                />
+              ))}
             </VStack>
           </Box>
         ))}

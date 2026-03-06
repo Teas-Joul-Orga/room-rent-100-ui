@@ -50,6 +50,28 @@ export default function AllUsers() {
   const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
+  const [perPage, setPerPage] = useState(8);
+
+  useEffect(() => {
+    const calculatePerPage = () => {
+      // 56(navbar) + 48(padding) + 40(heading) + 24(mb) + 80(toolbar) + 40(thead) + 65(footer) = ~353px
+      // 100vh - 420px = conservative available space for rows
+      // each row is ~60px
+      const availableHeight = window.innerHeight - 420;
+      let calculated = Math.floor(availableHeight / 60);
+      if (calculated < 3) calculated = 3;
+      setPerPage(calculated);
+    };
+    calculatePerPage();
+
+    let timeoutId;
+    const handleResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(calculatePerPage, 150);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
   
   // Colors
   const bgMain = useColorModeValue("gray.50", "gray.900");
@@ -77,12 +99,12 @@ export default function AllUsers() {
     fetchUsers();
     fetchTenants(); // Needed for dropdown linking a user to a tenant
     // eslint-disable-next-line
-  }, [pagination.current_page, searchTerm, roleFilter]);
+  }, [pagination.current_page, searchTerm, roleFilter, perPage]);
 
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/admin/users?page=${pagination.current_page}&search=${searchTerm}&role=${roleFilter}`, {
+      const res = await fetch(`http://localhost:8000/api/v1/admin/users?page=${pagination.current_page}&search=${searchTerm}&role=${roleFilter}&per_page=${perPage}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
@@ -253,8 +275,8 @@ export default function AllUsers() {
   };
 
   return (
-    <Box p={6} bg={bgMain} minH="calc(100vh - 56px)">
-      <Flex justify="space-between" align="center" mb={6}>
+    <Box p={6} bg={bgMain} h={{ base: "auto", lg: "calc(100vh - 140px)" }} overflow="hidden" display="flex" flexDirection="column">
+      <Flex justify="space-between" align="center" mb={6} flexShrink={0}>
         <Box>
           <Heading size="lg" color={textColor} fontWeight="extrabold" letterSpacing="tight">
             System Users
@@ -276,9 +298,9 @@ export default function AllUsers() {
         </Button>
       </Flex>
 
-      <Box bg={cardBg} borderRadius="2xl" shadow="sm" borderWidth="1px" borderColor={borderColor}>
+      <Box bg={cardBg} borderRadius="2xl" shadow="sm" borderWidth="1px" borderColor={borderColor} display="flex" flexDirection="column" flex={1} minH={0}>
         {/* Toolbar */}
-        <Flex p={4} borderBottomWidth="1px" borderColor={borderColor} gap={4} flexWrap="wrap">
+        <Flex p={4} borderBottomWidth="1px" borderColor={borderColor} gap={4} flexWrap="wrap" flexShrink={0}>
           <InputGroup maxW="320px">
             <InputLeftElement pointerEvents="none"><Icon as={FiSearch} color="gray.400" /></InputLeftElement>
             <Input 
@@ -304,9 +326,9 @@ export default function AllUsers() {
         </Flex>
 
         {/* Table */}
-        <Box overflowX="auto">
+        <Box overflow="hidden" flex={1}>
           <Table variant="simple" size="md">
-            <Thead bg={useColorModeValue("gray.50", "gray.700")} position="relative" zIndex={1} boxShadow="sm">
+            <Thead bg={useColorModeValue("gray.50", "gray.700")} position="sticky" top={0} zIndex={2} boxShadow="sm">
               <Tr>
                 <Th w="20px"></Th>
                 <Th color={thColor}>User Details</Th>
@@ -406,7 +428,7 @@ export default function AllUsers() {
         
         {/* Pagination Footer */}
         {users.length > 0 && (
-          <Flex p={4} borderTopWidth="1px" borderColor={borderColor} justify="space-between" align="center">
+          <Flex p={4} borderTopWidth="1px" borderColor={borderColor} justify="space-between" align="center" flexShrink={0}>
             <Text fontSize="sm" color={mutedTextColor}>
               Total {pagination.total} users
             </Text>

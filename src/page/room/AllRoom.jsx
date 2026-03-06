@@ -35,6 +35,25 @@ export default function AllRoom() {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [totalPages, setTotalPages] = useState(1);
+
+  useEffect(() => {
+    const calculatePerPage = () => {
+      // similar to AllUsers
+      const availableHeight = window.innerHeight - 420;
+      let calculated = Math.floor(availableHeight / 60);
+      if (calculated < 3) calculated = 3;
+      setRowsPerPage(calculated);
+    };
+    calculatePerPage();
+
+    let timeoutId;
+    const handleResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(calculatePerPage, 150);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [showBulkDelete, setShowBulkDelete] = useState(false);
@@ -138,11 +157,11 @@ export default function AllRoom() {
   };
 
   return (
-    <Box p={6} bg={bg} minH="100vh">
+    <Box p={6} bg={bg} h={{ base: "auto", lg: "calc(100vh - 140px)" }} overflow="hidden" display="flex" flexDirection="column">
       <Toaster position="top-right" />
 
       {/* ===== HEADER ===== */}
-      <Flex direction={{ base: "column", sm: "row" }} align={{ sm: "center" }} justify="space-between" gap={4} mb={6}>
+      <Flex direction={{ base: "column", sm: "row" }} align={{ sm: "center" }} justify="space-between" gap={4} mb={6} flexShrink={0}>
         <Heading size="lg" color={useColorModeValue("sky.900", "white")}>
           All Rooms
         </Heading>
@@ -174,7 +193,7 @@ export default function AllRoom() {
       </Flex>
 
       {/* ===== SEARCH ===== */}
-      <Box bg={cardBg} p={4} borderRadius="xl" shadow="sm" mb={6}>
+      <Box bg={cardBg} p={4} borderRadius="xl" shadow="sm" mb={6} flexShrink={0}>
         <Input
           placeholder="Search room..."
           value={search}
@@ -189,10 +208,11 @@ export default function AllRoom() {
       </Box>
 
       {/* ===== TABLE ===== */}
-      <TableContainer bg={cardBg} borderRadius="xl" shadow="sm" mb={4}>
-        <Table variant="simple">
-          <Thead bg={tableHeaderBg}>
-            <Tr>
+      <TableContainer bg={cardBg} borderRadius="xl" shadow="sm" mb={4} display="flex" flexDirection="column" flex={1} minH={0} overflow="hidden">
+        <Box overflow="hidden" flex={1}>
+          <Table variant="simple">
+            <Thead bg={tableHeaderBg} position="sticky" top={0} zIndex={2}>
+              <Tr>
               <Th w="50px">Check Box</Th>
               <Th>Photo</Th>
               <Th>Room</Th>
@@ -323,10 +343,11 @@ export default function AllRoom() {
             )}
           </Tbody>
         </Table>
+        </Box>
 
         {/* Bulk Disable */}
         {selectedIds.length > 0 && (
-          <Box p={4} borderTop="1px solid" borderColor={borderColor}>
+          <Box p={4} borderTop="1px solid" borderColor={borderColor} flexShrink={0}>
             <Button
               colorScheme="red"
               onClick={() => setShowBulkDelete(true)}
@@ -339,22 +360,9 @@ export default function AllRoom() {
       </TableContainer>
 
       {/* ===== PAGINATION ===== */}
-      <Flex direction={{ base: "column", sm: "row" }} justify="space-between" align="center" gap={4}>
+      <Flex direction={{ base: "column", sm: "row" }} justify="space-between" align="center" gap={4} flexShrink={0}>
         <Flex align="center" gap={2} fontSize="sm" color={textColor}>
-          <Text>Show</Text>
-          <Select
-            size="sm"
-            w="auto"
-            value={rowsPerPage}
-            onChange={(e) => {
-              setRowsPerPage(Number(e.target.value));
-              setCurrentPage(1);
-            }}
-          >
-            <option value={5}>5</option>
-            <option value={10}>10</option>
-          </Select>
-          <Text>entries</Text>
+          <Text>Total {totalPages} Pages</Text>
         </Flex>
 
         <Flex align="center" gap={2}>

@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import {
-  Box, Flex, Grid, GridItem, Text, useColorModeValue, Spinner, Select, Button,
+  Box, Flex, Text, useColorModeValue, Spinner, Select, Button,
   Icon, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Badge, SimpleGrid,
   Input
 } from "@chakra-ui/react";
 import { toast } from "react-hot-toast";
 import dayjs from "dayjs";
-import { 
-  FiDollarSign, FiTrendingUp, FiClock, FiHome, FiPieChart, 
-  FiCalendar, FiTool, FiUsers, FiActivity, FiShield 
-} from "react-icons/fi";
 
 const API = "http://localhost:8000/api/v1";
 const fmt = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num || 0);
 
 export default function Report() {
-  const [activeTab, setActiveTab] = useState('financial');
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const activeTab = queryParams.get("tab") || 'financial';
+
   const [filterType, setFilterType] = useState('yearly');
   const [filterDate, setFilterDate] = useState(dayjs().format('YYYY-MM-DD'));
   const [filterMonth, setFilterMonth] = useState(dayjs().format('YYYY-MM'));
@@ -52,7 +52,6 @@ export default function Report() {
     setLoading(true);
     try {
       const params = new URLSearchParams({
-        type: activeTab,
         filter_type: filterType,
         room_id: roomId,
         date: filterDate,
@@ -60,7 +59,7 @@ export default function Report() {
         year: filterYear
       });
 
-      const res = await fetch(`${API}/admin/reports?${params.toString()}`, { headers: headers() });
+      const res = await fetch(`${API}/admin/reports/${activeTab}?${params.toString()}`, { headers: headers() });
       if (res.ok) {
         setData(await res.json());
       } else {
@@ -80,23 +79,6 @@ export default function Report() {
   useEffect(() => {
     fetchData();
   }, [activeTab, filterType, filterDate, filterMonth, filterYear, roomId]);
-
-  const navItems = [
-    { section: 'Financials', items: [
-      { id: 'financial', label: 'Financial Summary', icon: FiDollarSign },
-      { id: 'p_and_l', label: 'Annual Trend', icon: FiTrendingUp },
-      { id: 'aging', label: 'Aging (A/R)', icon: FiClock }
-    ]},
-    { section: 'Operations', items: [
-      { id: 'unit_analysis', label: 'Unit Drill-down', icon: FiHome },
-      { id: 'occupancy', label: 'Occupancy', icon: FiPieChart },
-      { id: 'lease_tracking', label: 'Lease Tracking', icon: FiCalendar },
-      { id: 'maintenance_analytics', label: 'Maintenance Analytics', icon: FiTool },
-      { id: 'tenant_performance', label: 'Tenant Performance', icon: FiUsers },
-      { id: 'utility_trends', label: 'Utility Trends', icon: FiActivity },
-      { id: 'deposit_ledger', label: 'Deposit Ledger', icon: FiShield }
-    ]}
-  ];
 
   const handleExport = () => {
     toast.success("Export functionality not fully implemented on React frontend yet.");
@@ -132,41 +114,7 @@ export default function Report() {
         </Flex>
       </Flex>
 
-      <Grid templateColumns={{ base: "1fr", lg: "250px 1fr" }} gap={8} pos="relative">
-        {/* Sidebar Nav */}
-        <GridItem>
-          <Box position="sticky" top="20px">
-            {navItems.map((group, i) => (
-              <Box key={group.section} mb={6} pt={i > 0 ? 6 : 0} borderTop={i > 0 ? "1px solid" : "none"} borderColor={borderColor}>
-                <Text fontSize="10px" fontWeight="black" textTransform="uppercase" letterSpacing="0.2em" color={mutedText} mb={4} px={4}>
-                  {group.section}
-                </Text>
-                {group.items.map(item => (
-                  <Button
-                    key={item.id}
-                    w="100%"
-                    justifyContent="flex-start"
-                    variant="ghost"
-                    size="md"
-                    py={6}
-                    px={4}
-                    borderRadius="xl"
-                    color={activeTab === item.id ? "blue.500" : mutedText}
-                    bg={activeTab === item.id ? activeBg : "transparent"}
-                    _hover={{ bg: activeTab === item.id ? activeBg : hoverBg, color: activeTab === item.id ? "blue.500" : textColor }}
-                    onClick={() => setActiveTab(item.id)}
-                    leftIcon={<Icon as={item.icon} boxSize={5} mr={2} />}
-                  >
-                    {item.label}
-                  </Button>
-                ))}
-              </Box>
-            ))}
-          </Box>
-        </GridItem>
-
-        {/* Main Content Area */}
-        <GridItem minH="500px" pos="relative">
+      <Box minH="500px" pos="relative">
           {loading && (
             <Flex pos="absolute" zIndex={10} top={0} left={0} right={0} bottom={0} bg={useColorModeValue("whiteAlpha.700", "blackAlpha.600")} backdropFilter="blur(5px)" align="center" justify="center" borderRadius="3xl">
               <Spinner size="xl" color="blue.500" thickness="4px" />
@@ -441,8 +389,7 @@ export default function Report() {
              </Box>
           )}
           
-        </GridItem>
-      </Grid>
+      </Box>
     </Box>
   );
 }

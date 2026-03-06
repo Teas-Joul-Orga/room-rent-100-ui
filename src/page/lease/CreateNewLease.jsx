@@ -89,31 +89,48 @@ export default function CreateNewLease() {
       const headers = { Authorization: `Bearer ${token}`, Accept: "application/json" };
 
       try {
-        const [roomRes, tenantRes] = await Promise.all([
+        const fetches = [
           fetch(`http://localhost:8000/api/v1/admin/rooms?per_page=all`, { headers }),
           fetch(`http://localhost:8000/api/v1/admin/tenants?per_page=all`, { headers }),
-        ]);
-
-        if (roomRes.ok) { const d = await roomRes.json(); setRooms(d.data || d); }
-        if (tenantRes.ok) { const d = await tenantRes.json(); setTenants(d.data || d); }
+        ];
 
         if (isEdit) {
-          const leaseRes = await fetch(`http://localhost:8000/api/v1/admin/leases?per_page=all`, { headers });
-          if (leaseRes.ok) {
-            const leaseData = await leaseRes.json();
-            const found = (leaseData.data || leaseData).find((l) => String(l.uid) === String(id));
-            if (found) {
-              setFormData({
-                tenant_id: found.tenant?.id || "",
-                room_id: found.room?.id || "",
-                start_date: found.start_date ? found.start_date.split("T")[0] : "",
-                end_date: found.end_date ? found.end_date.split("T")[0] : "",
-                rent_amount: found.rent_amount || "",
-                security_deposit: found.security_deposit || 0,
-                status: found.status || "active",
-              });
-              if (found.tenant) setTenantSearch(found.tenant.name);
+          fetches.push(fetch(`http://localhost:8000/api/v1/admin/leases/${id}`, { headers }));
+        }
+
+        const responses = await Promise.all(fetches);
+        const [roomRes, tenantRes, leaseRes] = responses;
+
+        let roomsList = [];
+        if (roomRes.ok) { const d = await roomRes.json(); roomsList = d.data || d; setRooms(roomsList); }
+        if (tenantRes.ok) { const d = await tenantRes.json(); setTenants(d.data || d); }
+
+        if (isEdit && leaseRes && leaseRes.ok) {
+          const found = await leaseRes.json();
+          // The API resource might wrap in 'data'
+          const l = found.data || found;
+          if (l) {
+            let initialRoomId = l.room?.id || "";
+            const isRenew = window.location.pathname.includes('/renew');
+
+            if (isRenew && initialRoomId) {
+              const rObj = roomsList.find(r => String(r.id) === String(initialRoomId));
+              if (rObj && rObj.status?.toLowerCase() !== "available" && l.status !== "active") {
+                toast.error("The previous room is currently occupied. Please select an available room.", { duration: 5000 });
+                initialRoomId = "";
+              }
             }
+
+            setFormData({
+              tenant_id: l.tenant?.id || "",
+              room_id: initialRoomId,
+              start_date: l.start_date ? l.start_date.split("T")[0] : "",
+              end_date: l.end_date ? l.end_date.split("T")[0] : "",
+              rent_amount: l.rent_amount || "",
+              security_deposit: l.security_deposit || 0,
+              status: isRenew ? "active" : (l.status || "active"),
+            });
+            if (l.tenant) setTenantSearch(l.tenant.name);
           }
         }
       } catch (error) {
@@ -144,6 +161,9 @@ export default function CreateNewLease() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Prevent accidental submission if not on the last step
+    if (activeStep < steps.length - 1) return;
+
     if (!formData.tenant_id || !formData.room_id || !formData.start_date || !formData.end_date || formData.rent_amount === "") {
       return toast.error("Please fill all required fields");
     }
@@ -491,11 +511,25 @@ export default function CreateNewLease() {
                           <Text fontWeight="black" fontSize="sm" color={textColor}>Lease Status</Text>
                         </Flex>
                         <FormControl isRequired>
-                          <Select size="md" bg={inputBg} value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
-                            <option value="active">Active</option>
-                            <option value="expired">Expired</option>
-                            <option value="terminated">Terminated</option>
-                          </Select>
+                          <SimpleGrid columns={3} spacing={2}>
+                            {["active", "expired", "terminated"].map((s) => (
+                              <Button
+                                key={s}
+                                type="button"
+                                size="md"
+                                variant={formData.status === s ? "solid" : "outline"}
+                                colorScheme={formData.status === s ? (s === "active" ? "green" : s === "expired" ? "orange" : "gray") : "gray"}
+                                onClick={() => setFormData({ ...formData, status: s })}
+                                textTransform="uppercase"
+                                fontWeight="black"
+                                fontSize="10px"
+                                letterSpacing="wider"
+                                py={6}
+                              >
+                                {s}
+                              </Button>
+                            ))}
+                          </SimpleGrid>
                         </FormControl>
                       </Box>
                     </VStack>
@@ -509,22 +543,36 @@ export default function CreateNewLease() {
               <Flex justify="space-between" align="center">
                 {/* Left: Cancel / Back */}
                 {activeStep === 0 ? (
-                  <Button variant="ghost" color={mutedText} onClick={() => navigate("/dashboard/lease")} isDisabled={isSaving}>
+                  <Button type="button" variant="ghost" color={mutedText} onClick={() => navigate("/dashboard/lease")} isDisabled={isSaving}>
                     Cancel
                   </Button>
                 ) : (
-                  <Button leftIcon={<FiArrowLeft />} variant="outline" onClick={handlePrev} isDisabled={isSaving}>
+                  <Button type="button" leftIcon={<FiArrowLeft />} variant="outline" onClick={handlePrev} isDisabled={isSaving}>
                     Back
                   </Button>
                 )}
 
                 {/* Right: Next / Save */}
                 {activeStep < steps.length - 1 ? (
-                  <Button colorScheme="blue" rightIcon={<FiArrowRight />} px={8} onClick={handleNext}>
+                  <Button
+                    key="btn-next"
+                    type="button"
+                    colorScheme="blue"
+                    rightIcon={<FiArrowRight />}
+                    px={8}
+                    onClick={handleNext}
+                  >
                     Next Step
                   </Button>
                 ) : (
-                  <Button colorScheme="blue" leftIcon={<FiCheck />} px={10} type="submit" isLoading={isSaving}>
+                  <Button
+                    key="btn-save"
+                    colorScheme="blue"
+                    leftIcon={<FiCheck />}
+                    px={10}
+                    type="submit"
+                    isLoading={isSaving}
+                  >
                     {isEdit ? "Update Lease" : "Confirm & Save"}
                   </Button>
                 )}

@@ -47,10 +47,10 @@ function Dashboard() {
       const qs = new URLSearchParams({ filter_type: 'yearly', year: yearFilter }).toString();
       
       const [resFin, resOcc, resTrend, resMaint] = await Promise.all([
-        fetch(`${API}/admin/reports?type=financial&${qs}`, { headers: headers() }),
-        fetch(`${API}/admin/reports?type=occupancy`, { headers: headers() }),
-        fetch(`${API}/admin/reports?type=p_and_l&${qs}`, { headers: headers() }),
-        fetch(`${API}/admin/reports?type=maintenance_analytics&${qs}`, { headers: headers() })
+        fetch(`${API}/admin/reports/financial?${qs}`, { headers: headers() }),
+        fetch(`${API}/admin/reports/occupancy`, { headers: headers() }),
+        fetch(`${API}/admin/reports/p_and_l?${qs}`, { headers: headers() }),
+        fetch(`${API}/admin/reports/maintenance_analytics?${qs}`, { headers: headers() })
       ]);
 
       if (resFin.ok) setFinancials(await resFin.json());

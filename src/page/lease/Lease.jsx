@@ -23,9 +23,18 @@ import {
   Checkbox,
   Icon,
   IconButton,
-  Tooltip
+  Tooltip,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+  useDisclosure,
+  VStack,
 } from "@chakra-ui/react";
-import { FiArrowUp, FiArrowDown, FiPlus, FiEye, FiEdit2, FiTrash2 } from "react-icons/fi";
+import { FiArrowUp, FiArrowDown, FiPlus, FiEye, FiEdit2, FiTrash2, FiCalendar } from "react-icons/fi";
 
 export default function Leases() {
   const navigate = useNavigate();
@@ -52,6 +61,30 @@ export default function Leases() {
   // Pagination bounds
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
+  
+  // Bulk Renew Modal
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [bulkDates, setBulkDates] = useState({});
+  const [isBulkRenewing, setIsBulkRenewing] = useState(false);
+
+  useEffect(() => {
+    const calculatePerPage = () => {
+      // 100vh - 430px approx for extra header + search filters + padding + pagination
+      const availableHeight = window.innerHeight - 430;
+      let calculated = Math.floor(availableHeight / 72);
+      if (calculated < 3) calculated = 3;
+      setRowsPerPage(calculated);
+    };
+    calculatePerPage();
+
+    let timeoutId;
+    const handleResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(calculatePerPage, 150);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const bg = useColorModeValue("gray.50", "gray.900");
   const cardBg = useColorModeValue("white", "gray.800");
@@ -120,7 +153,8 @@ export default function Leases() {
         // Clear selection if the deleted item was selected
         setSelectedIds(prev => prev.filter(id => id !== l.uid));
       } else {
-        toast.error("Failed to delete lease");
+        const errData = await res.json().catch(() => ({}));
+        toast.error(errData.error || "Failed to delete lease");
       }
     } catch (e) {
       console.error(e);
@@ -130,18 +164,128 @@ export default function Leases() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} leases?`)) return;
+
+    const token = localStorage.getItem("token");
+    setIsLoading(true);
+    try {
+      // Typically there should be a bulk discard endpoint in API, or we execute individual queries
+      // Here we will do sequential requests or single request if backend supports it.
+      // Assuming sequential deletes based on typical patterns in this codebase:
+      const results = await Promise.all(
+        selectedIds.map(async (id) => {
+          const r = await fetch(`http://localhost:8000/api/v1/admin/leases/${id}`, {
+            method: "DELETE",
+            headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+          });
+          if (!r.ok) {
+            const errData = await r.json().catch(() => ({}));
+            throw new Error(errData.error || "Failed");
+          }
+          return r;
+        })
+      );
+      toast.success(`${selectedIds.length} leases deleted successfully`);
+      setSelectedIds([]);
+    } catch (e) {
+      console.error(e);
+      toast.error(e.message || "Partial Network Error updating leases");
+    } finally {
+      fetchData();
+    }
+  };
+
   // --- NAVIGATION HANDLERS ---
   const handleRenew = () => {
-    if (selectedIds.length !== 1) {
-      toast.error("Please select exactly one lease to renew.");
+    if (selectedIds.length === 0) {
+      toast.error("Please select at least one lease to renew.");
       return;
     }
-    // Navigate to a dedicated renew route, or pass state to your form component
-    navigate(`/dashboard/lease/renew/${selectedIds[0]}`);
+    
+    // Check for active leases in selection
+    const hasActive = selectedIds.some((id) => {
+      const l = leases.find((lease) => String(lease.uid) === String(id));
+      return l && l.status === 'active';
+    });
+
+    if (hasActive) {
+      toast.error("Active leases cannot be renewed. Please select only expired leases.");
+      return;
+    }
+
+    if (selectedIds.length === 1) {
+      // Proceed with normal single lease edit renew layout
+      navigate(`/dashboard/lease/renew/${selectedIds[0]}`);
+    } else {
+      // Open bulk renew modal directly
+      const initialDates = {};
+      selectedIds.forEach((id) => {
+        initialDates[id] = { startDate: "", endDate: "" };
+      });
+      setBulkDates(initialDates);
+      onOpen();
+    }
+  };
+
+  const submitBulkRenew = async () => {
+    const missingDates = selectedIds.some((id) => !bulkDates[id]?.startDate || !bulkDates[id]?.endDate);
+    if (missingDates) {
+      toast.error("Both Start Date and End Date are required for all leases.");
+      return;
+    }
+
+    const invalidDates = selectedIds.some((id) => new Date(bulkDates[id]?.startDate) > new Date(bulkDates[id]?.endDate));
+    if (invalidDates) {
+      toast.error("Start Date cannot be after End Date inside your selection.");
+      return;
+    }
+
+    setIsBulkRenewing(true);
+    const token = localStorage.getItem("token");
+
+    try {
+      // Map requests
+      const promises = selectedIds.map(async (id) => {
+        const l = leases.find((lease) => String(lease.uid) === String(id));
+        if (!l) return null;
+
+        return fetch(`http://localhost:8000/api/v1/admin/leases/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            tenant_id: l.tenant?.id || l.tenant_id,
+            room_id: l.room?.id || l.room_id,
+            rent_amount: l.rent_amount,
+            security_deposit: l.security_deposit || 0,
+            start_date: bulkDates[id].startDate,
+            end_date: bulkDates[id].endDate,
+            status: "active"
+          }),
+        });
+      });
+
+      const results = await Promise.all(promises);
+      const allSuccess = results.every((res) => res && res.ok);
+
+      if (allSuccess) {
+        toast.success(`Successfully renewed ${selectedIds.length} leases.`);
+        setSelectedIds([]);
+        onClose();
+        fetchData();
+      } else {
+        toast.error("Some lease renewals failed. Please verify them individually.");
+        fetchData();
+      }
+    } catch (e) {
+      toast.error("Network Error occurred processing renewals.");
+    } finally {
+      setIsBulkRenewing(false);
+    }
   };
 
   const isExpiringSoon = (lease) => {
-    if (lease.status !== 'active' || !lease.end_date) return false;
+    if ((lease.status !== 'active' && lease.status !== 'expired') || !lease.end_date) return false;
     const endDate = new Date(lease.end_date);
     const in30Days = new Date();
     in30Days.setDate(in30Days.getDate() + 30);
@@ -239,9 +383,9 @@ export default function Leases() {
   const isIndeterminate = selectedIds.length > 0 && selectedIds.length < paginated.length;
 
   return (
-    <Box p={6} bg={bg} minH="100vh">
+    <>
+    <Box p={6} bg={bg} h={{ base: "auto", lg: "calc(100vh - 140px)" }} overflow="hidden" display="flex" flexDirection="column">
       <Toaster position="top-right" />
-      <Box maxW="full" mx="auto">
         
         {/* Top Filter Bar */}
         <Flex 
@@ -256,6 +400,7 @@ export default function Leases() {
           direction={{ base: "column", md: "row" }}
           gap={3}
           align="flex-end"
+          flexShrink={0}
           wrap="wrap"
         >
           <FormControl flex="2" minW="200px">
@@ -307,9 +452,14 @@ export default function Leases() {
 
           {/* Action Buttons */}
           <Flex gap={2} flexShrink={0} align="flex-end" pb="1px">
-            {selectedIds.length === 1 && (
+            {selectedIds.length > 0 && (
               <Button size="sm" colorScheme="purple" borderRadius="md" onClick={handleRenew}>
-                Renew
+                Renew {selectedIds.length > 1 ? `(${selectedIds.length})` : ""}
+              </Button>
+            )}
+            {selectedIds.length >= 2 && (
+              <Button size="sm" colorScheme="red" borderRadius="md" leftIcon={<FiTrash2 />} onClick={handleBulkDelete}>
+                Delete
               </Button>
             )}
             <Button size="sm" colorScheme="green" borderRadius="md" px={5} onClick={() => alert("Export functionality not implemented yet.")}>
@@ -328,9 +478,15 @@ export default function Leases() {
           shadow="sm" 
           border="1px solid" 
           borderColor={borderColor}
+          display="flex"
+          flexDirection="column"
+          flex={1}
+          minH={0}
+          overflow="hidden"
         >
+          <Box overflow="hidden" flex={1}>
           <Table variant="simple" size="md">
-            <Thead borderBottom="1px solid" borderColor={borderColor}>
+            <Thead borderBottom="1px solid" borderColor={borderColor} position="sticky" top={0} zIndex={2} bg={cardBg}>
               <Tr>
                 <Th w="40px" textAlign="center">
                   <Checkbox 
@@ -515,11 +671,12 @@ export default function Leases() {
               )}
             </Tbody>
           </Table>
+          </Box>
         </TableContainer>
 
         {/* PAGINATION */}
         {totalPages > 1 && (
-          <Flex justify="space-between" align="center" mt={4} px={2}>
+          <Flex justify="space-between" align="center" mt={4} px={2} flexShrink={0}>
             <Text fontSize="sm" color={mutedText}>
               Showing {firstIndex + 1} to {Math.min(lastIndex, processed.length)} of {processed.length} entries
             </Text>
@@ -535,6 +692,67 @@ export default function Leases() {
           </Flex>
         )}
       </Box>
-    </Box>
+
+      {/* Bulk Renew Modal */}
+      <Modal isOpen={isOpen} onClose={onClose} size="3xl" isCentered motionPreset="scale">
+        <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(5px)" />
+        <ModalContent bg={cardBg} borderRadius="xl" shadow="2xl">
+          <ModalHeader color={textColor}>Bulk Renew Leases</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <Text fontSize="sm" color={mutedText} mb={4}>
+              You are about to renew <strong>{selectedIds.length}</strong> leases simultaneously. Please choose the new lease period for each selection. Rents and room allocations will remain unchanged from their prior values.
+            </Text>
+
+            <Flex align="center" gap={2} mb={3}>
+              <Icon as={FiCalendar} color={mutedText} />
+              <Text fontWeight="black" fontSize="sm" color={textColor}>Set Durations</Text>
+            </Flex>
+
+            <VStack spacing={4} maxH="400px" overflowY="auto" w="full" pr={2}>
+              {selectedIds.map((id) => {
+                const l = leases.find((lease) => String(lease.uid) === String(id));
+                if (!l) return null;
+                return (
+                  <Box key={id} p={4} border="1px solid" borderColor={borderColor} borderRadius="lg" w="full" bg={useColorModeValue("white", "whiteAlpha.50")}>
+                    <Text fontWeight="bold" fontSize="sm">{l.tenant?.name || "Unknown Tenant"} - Room {l.room?.name || "?"}</Text>
+                    <Flex gap={4} mt={3}>
+                      <FormControl colSpan={1} isRequired>
+                        <FormLabel fontSize="xs" color={textColor}>Start Date</FormLabel>
+                        <Input
+                          size="sm"
+                          type="date"
+                          value={bulkDates[id]?.startDate || ''}
+                          borderColor={borderColor}
+                          onChange={(e) => setBulkDates({ ...bulkDates, [id]: { ...bulkDates[id], startDate: e.target.value } })}
+                        />
+                      </FormControl>
+                      <FormControl colSpan={1} isRequired>
+                        <FormLabel fontSize="xs" color={textColor}>End Date</FormLabel>
+                        <Input
+                          size="sm"
+                          type="date"
+                          value={bulkDates[id]?.endDate || ''}
+                          borderColor={borderColor}
+                          onChange={(e) => setBulkDates({ ...bulkDates, [id]: { ...bulkDates[id], endDate: e.target.value } })}
+                        />
+                      </FormControl>
+                    </Flex>
+                  </Box>
+                )
+              })}
+            </VStack>
+          </ModalBody>
+          <ModalFooter bg={useColorModeValue("gray.50", "whiteAlpha.100")} borderBottomRadius="xl">
+            <Button onClick={onClose} variant="ghost" mr={3} isDisabled={isBulkRenewing}>
+              Cancel
+            </Button>
+            <Button colorScheme="purple" onClick={submitBulkRenew} isLoading={isBulkRenewing}>
+              Confirm Renew
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </>
   );
 }

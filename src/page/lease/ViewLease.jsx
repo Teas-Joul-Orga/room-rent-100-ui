@@ -1005,7 +1005,7 @@ export default function ViewLease() {
 
               {/* 1. Select Tenant */}
               <Box mb={6}>
-                <Text fontSize="sm" fontWeight="bold" color={textColor} mb={2}>Select Tenant</Text>
+                <Text fontSize="sm" fontWeight="bold" color={textColor} mb={2}>1. Select Tenant</Text>
                 <Box position="relative">
                   {/* Selected tenant display */}
                   <Box
@@ -1065,7 +1065,7 @@ export default function ViewLease() {
 
               {/* 2. Select Room */}
               <Box mb={6}>
-                <Text fontSize="sm" fontWeight="bold" color={textColor} mb={2}>1. Select Property / Room</Text>
+                <Text fontSize="sm" fontWeight="bold" color={textColor} mb={2}>2. Select Property / Room</Text>
                 <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} spacing={3}>
                   {allRooms.map(room => {
                     const isSelected = editForm.room_id === room.id;
@@ -1104,7 +1104,7 @@ export default function ViewLease() {
 
               {/* 3. Lease Details & Financials */}
               <Box mb={6}>
-                <Text fontSize="sm" fontWeight="bold" color={textColor} mb={3}>2. Lease Details & Financials</Text>
+                <Text fontSize="sm" fontWeight="bold" color={textColor} mb={3}>3. Lease Details & Financials</Text>
                 <Flex gap={4} mb={4} direction={{ base: "column", md: "row" }}>
                   <FormControl isRequired flex={1}>
                     <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Start Date</FormLabel>
@@ -1130,7 +1130,7 @@ export default function ViewLease() {
                   <SimpleGrid columns={3} spacing={2}>
                     {["active", "expired", "ended"].map(s => (
                       <Button
-                        key={s} size="sm" variant={editForm.status === s ? "solid" : "outline"}
+                        key={s} type="button" size="sm" variant={editForm.status === s ? "solid" : "outline"}
                         colorScheme={editForm.status === s ? (s === "active" ? "green" : s === "expired" ? "orange" : "gray") : "gray"}
                         onClick={() => setEditForm({ ...editForm, status: s })}
                         textTransform="uppercase" fontWeight="black" fontSize="10px" letterSpacing="wider"
@@ -1147,7 +1147,7 @@ export default function ViewLease() {
                   <SimpleGrid columns={{ base: 2, md: 4 }} spacing={2}>
                     {["unpaid", "held", "refunded", "forfeited"].map(s => (
                       <Button
-                        key={s} size="sm" variant={editForm.deposit_status === s ? "solid" : "outline"}
+                        key={s} type="button" size="sm" variant={editForm.deposit_status === s ? "solid" : "outline"}
                         colorScheme={editForm.deposit_status === s ? (s === "held" ? "green" : s === "refunded" ? "blue" : s === "forfeited" ? "red" : "gray") : "gray"}
                         onClick={() => setEditForm({ ...editForm, deposit_status: s })}
                         textTransform="capitalize" fontWeight="bold" fontSize="xs"
