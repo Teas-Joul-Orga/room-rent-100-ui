@@ -117,11 +117,13 @@ export default function AllTenants() {
         setSelectedTenant(null);
       } else {
         const errorData = await res.json();
-        toast.error(errorData.error || "Failed to delete tenant");
+        // Display the specific error message from the backend if available
+        toast.error(errorData.error || errorData.message || "Failed to delete tenant. They might have active dependencies.");
+        setShowModal(false);
       }
     } catch (err) {
       console.error(err);
-      toast.error("An error occurred while deleting");
+      toast.error("An error occurred while deleting. Please check your network connection.");
     }
   };
 
@@ -150,21 +152,39 @@ export default function AllTenants() {
     if (selectedIds.length === 0) return;
     // Note: Laravel backend doesn't have a bulk delete route by default in this controller,
     // so we'll delete them one by one for now, or you can implement a bulk delete route later.
-    const promises = selectedIds.map(uid =>
-      fetch(`http://localhost:8000/api/v1/admin/tenants/${uid}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
-      })
-    );
-
     try {
-      await Promise.all(promises);
-      toast.success("Selected tenants deleted");
+      const results = await Promise.all(
+        selectedIds.map(async (uid) => {
+          const res = await fetch(`http://localhost:8000/api/v1/admin/tenants/${uid}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+          });
+          if (!res.ok) {
+            const data = await res.json();
+            return { uid, success: false, error: data.error || data.message };
+          }
+          return { uid, success: true };
+        })
+      );
+
+      const failed = results.filter(r => !r.success);
+      const succeeded = results.filter(r => r.success);
+
+      if (succeeded.length > 0) {
+        toast.success(`${succeeded.length} tenant(s) deleted`);
+      }
+
+      if (failed.length > 0) {
+        failed.forEach(f => {
+          toast.error(`Failed to delete tenant: ${f.error}`, { duration: 5000 });
+        });
+      }
+
       fetchTenants();
       setSelectedIds([]);
     } catch (err) {
       console.error(err);
-      toast.error("Failed to delete some tenants");
+      toast.error("An unexpected error occurred during bulk deletion");
     }
   };
 
@@ -608,7 +628,7 @@ export default function AllTenants() {
             </Heading>
 
             <Image
-              src={selectedTenant.photo}
+              src={selectedTenant.photo_path ? `http://localhost:8000/storage/${selectedTenant.photo_path}` : "/avatar.png"}
               fallbackSrc="/avatar.png"
               alt="avatar"
               boxSize="80px"

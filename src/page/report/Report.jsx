@@ -89,7 +89,19 @@ export default function Report() {
   }, [activeTab, filterType, filterDate, filterMonth, filterYear, roomId]);
 
   const handleExport = () => {
-    toast.success("Export functionality not fully implemented on React frontend yet.");
+    const params = new URLSearchParams({
+      tab: activeTab,
+      filter_type: filterType,
+      room_id: roomId,
+      date: filterDate,
+      month: filterMonth,
+      year: filterYear
+    });
+    
+    // Redirect to backend export endpoint
+    // Note: This relies on session or cookie-based auth if directly redirected, 
+    // or we could use fetch with headers if needed. But standard practice for downloads is a direct link.
+    window.location.href = `http://localhost:8000/admin/reports/export?${params.toString()}`;
   };
 
   return (
@@ -385,16 +397,213 @@ export default function Report() {
             </Box>
           )}
 
-          {/* 6. LEASE TRACKING (Example Placeholder) */}
-          {(activeTab !== 'financial' && activeTab !== 'p_and_l' && activeTab !== 'aging' && activeTab !== 'unit_analysis' && activeTab !== 'occupancy') && (
-             <Box>
-                <Box bg={bg} p={8} borderRadius="3xl" shadow="sm" border="1px solid" borderColor={borderColor}>
-                   <Text fontSize="xl" fontWeight="black" color={textColor} textTransform="uppercase" mb={2}>Data Visualizer: {activeTab.replace('_', ' ')}</Text>
-                   <Text fontSize="sm" color={mutedText}>
-                     This specific operation view has been mocked for brevity in this full refactor. Data payload exists and handles exactly as the above 5 tabs. 
-                   </Text>
+          {/* 6. LEASE TRACKING */}
+          {activeTab === 'lease_tracking' && (
+            <Box>
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={8}>
+                <Box bg={bg} p={6} borderRadius="2xl" shadow="sm" border="1px solid" borderColor={borderColor}>
+                  <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={1}>Expiring Next 30 Days</Text>
+                  <Text fontSize="3xl" fontWeight="black" color="orange.500">{data.expiringNext30 || 0}</Text>
                 </Box>
-             </Box>
+                <Box bg={bg} p={6} borderRadius="2xl" shadow="sm" border="1px solid" borderColor={borderColor}>
+                  <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={1}>Already Expired</Text>
+                  <Text fontSize="3xl" fontWeight="black" color="red.500">{data.expired || 0}</Text>
+                </Box>
+              </SimpleGrid>
+              <Box bg={bg} borderRadius="3xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
+                <TableContainer>
+                  <Table size="md">
+                    <Thead bg={hoverBg}>
+                      <Tr>
+                        <Th>Tenant</Th>
+                        <Th>Room</Th>
+                        <Th>End Date</Th>
+                        <Th>Status</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {data.leases?.map(lease => (
+                        <Tr key={lease.id} _hover={{ bg: hoverBg }}>
+                          <Td fontSize="sm" fontWeight="bold" color={textColor}>{lease.tenant?.first_name} {lease.tenant?.last_name}</Td>
+                          <Td fontSize="xs" fontWeight="bold" color={mutedText}>{lease.room?.name}</Td>
+                          <Td fontSize="xs" fontWeight="bold" color={textColor}>{dayjs(lease.end_date).format('MMM D, YYYY')}</Td>
+                          <Td>
+                             <Badge colorScheme={dayjs(lease.end_date).isBefore(dayjs().add(30, 'day')) ? 'orange' : 'green'}>
+                               {dayjs(lease.end_date).isBefore(dayjs().add(30, 'day')) ? 'Expiring' : 'Active'}
+                             </Badge>
+                          </Td>
+                        </Tr>
+                      ))}
+                      {(!data.leases || data.leases.length === 0) && (
+                        <Tr><Td colSpan={4} textAlign="center" py={10} color={mutedText} fontSize="sm" fontStyle="italic">No active leases found.</Td></Tr>
+                      )}
+                    </Tbody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            </Box>
+          )}
+
+          {/* 7. MAINTENANCE ANALYTICS */}
+          {activeTab === 'maintenance_analytics' && (
+            <Box>
+              <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mb={8}>
+                <Box bg={bg} p={6} borderRadius="2xl" shadow="sm" border="1px solid" borderColor={borderColor}>
+                  <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={1}>Total Requests</Text>
+                  <Text fontSize="3xl" fontWeight="black" color={textColor}>{data.totalRequests || 0}</Text>
+                </Box>
+                <Box bg={bg} p={6} borderRadius="2xl" shadow="sm" border="1px solid" borderColor={borderColor}>
+                  <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={1}>Pending Actions</Text>
+                  <Text fontSize="3xl" fontWeight="black" color="orange.500">{data.pendingRequests || 0}</Text>
+                </Box>
+                <Box bg={bg} p={6} borderRadius="2xl" shadow="sm" border="1px solid" borderColor={borderColor}>
+                  <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={1}>Total Cost</Text>
+                  <Text fontSize="3xl" fontWeight="black" color="red.500">{fmt(data.totalCost || 0)}</Text>
+                </Box>
+              </SimpleGrid>
+              <Box bg={bg} borderRadius="3xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
+                <Flex p={6} borderBottom="1px solid" borderColor={borderColor} bg={hoverBg}>
+                  <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>Recent Requests</Text>
+                </Flex>
+                <TableContainer>
+                  <Table size="md">
+                    <Thead bg={hoverBg}>
+                      <Tr>
+                        <Th>Date</Th>
+                        <Th>Issue</Th>
+                        <Th isNumeric>Cost</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {data.requests?.slice(0, 10).map(req => (
+                        <Tr key={req.id} _hover={{ bg: hoverBg }}>
+                          <Td fontSize="xs" fontWeight="bold" color={mutedText}>{dayjs(req.created_at).format('MMM D, YYYY')}</Td>
+                          <Td fontSize="sm" fontWeight="bold" color={textColor}>{req.title}</Td>
+                          <Td isNumeric fontSize="sm" fontWeight="black" color="red.500">
+                            {fmt(req.expenses?.reduce((a, b) => a + Number(b.amount), 0) || 0)}
+                          </Td>
+                        </Tr>
+                      ))}
+                      {(!data.requests || data.requests.length === 0) && (
+                        <Tr><Td colSpan={3} textAlign="center" py={10} color={mutedText} fontSize="sm" fontStyle="italic">No maintenance records.</Td></Tr>
+                      )}
+                    </Tbody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            </Box>
+          )}
+
+          {/* 8. TENANT PERFORMANCE */}
+          {activeTab === 'tenant_performance' && (
+            <Box bg={bg} borderRadius="3xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
+              <TableContainer>
+                <Table size="md">
+                  <Thead bg={hoverBg}>
+                    <Tr>
+                      <Th>Tenant</Th>
+                      <Th isNumeric>Total Paid</Th>
+                      <Th textAlign="center">Late Incidents</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {data.tenants?.map(t => (
+                      <Tr key={t.id} _hover={{ bg: hoverBg }}>
+                        <Td fontSize="sm" fontWeight="black" color={textColor} textTransform="uppercase">{t.first_name} {t.last_name}</Td>
+                        <Td isNumeric fontSize="sm" fontWeight="black" color="green.500">{fmt(t.total_paid || 0)}</Td>
+                        <Td textAlign="center">
+                          <Badge colorScheme={t.late_incidents > 0 ? 'red' : 'gray'} borderRadius="full" px={3} py={1}>
+                            {t.late_incidents || 0}
+                          </Badge>
+                        </Td>
+                      </Tr>
+                    ))}
+                    {(!data.tenants || data.tenants.length === 0) && (
+                      <Tr><Td colSpan={3} textAlign="center" py={10} color={mutedText} fontSize="sm" fontStyle="italic">No tenant data available.</Td></Tr>
+                    )}
+                  </Tbody>
+                </Table>
+              </TableContainer>
+            </Box>
+          )}
+
+          {/* 9. UTILITY TRENDS */}
+          {activeTab === 'utility_trends' && (
+            <Box bg={bg} borderRadius="3xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
+              <Flex p={6} borderBottom="1px solid" borderColor={borderColor} bg={hoverBg}>
+                <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>Utility Consumption ({data.year})</Text>
+              </Flex>
+              <TableContainer>
+                <Table size="md">
+                  <Thead bg={hoverBg}>
+                    <Tr>
+                      <Th>Month</Th>
+                      <Th isNumeric>Electricity (kWh)</Th>
+                      <Th isNumeric>Water (m³)</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {data.monthlyStats && Object.entries(data.monthlyStats).map(([month, stats]) => (
+                      <Tr key={month} _hover={{ bg: hoverBg }}>
+                        <Td fontSize="sm" fontWeight="bold" color={textColor}>{dayjs().month(month - 1).format('MMMM')}</Td>
+                        <Td isNumeric fontSize="sm" fontWeight="bold" color="blue.500">{Math.round(stats.electricity)}</Td>
+                        <Td isNumeric fontSize="sm" fontWeight="bold" color="blue.300">{Math.round(stats.water)}</Td>
+                      </Tr>
+                    ))}
+                    {(!data.monthlyStats || Object.keys(data.monthlyStats).length === 0) && (
+                      <Tr><Td colSpan={3} textAlign="center" py={10} color={mutedText} fontSize="sm" fontStyle="italic">No consumption data for this period.</Td></Tr>
+                    )}
+                  </Tbody>
+                </Table>
+              </TableContainer>
+            </Box>
+          )}
+
+          {/* 10. DEPOSIT LEDGER */}
+          {activeTab === 'deposit_ledger' && (
+            <Box>
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={8}>
+                <Box bg={bg} p={6} borderRadius="2xl" shadow="sm" border="1px solid" borderColor={borderColor}>
+                  <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={1}>Total Held</Text>
+                  <Text fontSize="3xl" fontWeight="black" color="blue.500">{fmt(data.totalHeld || 0)}</Text>
+                </Box>
+                <Box bg={bg} p={6} borderRadius="2xl" shadow="sm" border="1px solid" borderColor={borderColor}>
+                  <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={1}>Total Refunded</Text>
+                  <Text fontSize="3xl" fontWeight="black" color={mutedText}>{fmt(data.totalRefunded || 0)}</Text>
+                </Box>
+              </SimpleGrid>
+              <Box bg={bg} borderRadius="3xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
+                <TableContainer>
+                  <Table size="md">
+                    <Thead bg={hoverBg}>
+                      <Tr>
+                        <Th>Tenant</Th>
+                        <Th>Room</Th>
+                        <Th isNumeric>Deposit</Th>
+                        <Th textAlign="center">Status</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {data.leases?.map(lease => (
+                        <Tr key={lease.id} _hover={{ bg: hoverBg }}>
+                          <Td fontSize="sm" fontWeight="bold" color={textColor}>{lease.tenant?.first_name} {lease.tenant?.last_name}</Td>
+                          <Td fontSize="xs" fontWeight="bold" color={mutedText}>{lease.room?.name}</Td>
+                          <Td isNumeric fontSize="sm" fontWeight="black" color={textColor}>{fmt(lease.security_deposit || 0)}</Td>
+                          <Td textAlign="center">
+                            <Badge colorScheme={lease.deposit_status === 'paid' ? 'green' : 'gray'} borderRadius="full" px={3} py={1}>
+                              {lease.deposit_status || 'Unpaid'}
+                            </Badge>
+                          </Td>
+                        </Tr>
+                      ))}
+                      {(!data.leases || data.leases.length === 0) && (
+                        <Tr><Td colSpan={4} textAlign="center" py={10} color={mutedText} fontSize="sm" fontStyle="italic">No deposit records found.</Td></Tr>
+                      )}
+                    </Tbody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            </Box>
           )}
           
       </Box>

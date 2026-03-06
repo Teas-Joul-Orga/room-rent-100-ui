@@ -542,6 +542,34 @@ export default function ViewLease() {
           </Flex>
         </Box>
 
+        {/* Detailed Balance Summary */}
+        <Box bg={useColorModeValue("blue.50", "whiteAlpha.100")} p={5} borderRadius="xl" border="1px dashed" borderColor="blue.200" mb={6} shadow="sm">
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+            <Flex align="center" gap={4}>
+              <Box bg={useColorModeValue("blue.100", "blue.900")} p={3} borderRadius="lg">
+                <FiDollarSign size={20} color={useColorModeValue("#3182CE", "#63B3ED")} />
+              </Box>
+              <Box>
+                <Text fontSize="xs" fontWeight="black" color="blue.400" textTransform="uppercase" letterSpacing="wider">Outstanding Rent</Text>
+                <Heading size="md" fontWeight="black" color="blue.600">
+                  {fmt(Math.max(0, Number(lease.total_contract_value || 0) - Number(lease.payments_sum_amount_paid || 0)))}
+                </Heading>
+              </Box>
+            </Flex>
+            <Flex align="center" gap={4}>
+              <Box bg={useColorModeValue("green.100", "green.900")} p={3} borderRadius="lg">
+                <FiDollarSign size={20} color={useColorModeValue("#38A169", "#68D391")} />
+              </Box>
+              <Box>
+                <Text fontSize="xs" fontWeight="black" color="green.400" textTransform="uppercase" letterSpacing="wider">Unpaid Utilities</Text>
+                <Heading size="md" fontWeight="black" color="green.600">
+                  {fmt(lease.unpaid_utilities_sum || 0)}
+                </Heading>
+              </Box>
+            </Flex>
+          </SimpleGrid>
+        </Box>
+
         {/* KPI Cards */}
         <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mb={6}>
           {/* Monthly Rent */}

@@ -4,7 +4,7 @@ import toast, { Toaster } from "react-hot-toast";
 import {
   Box, Flex, Button, Input, Table, Thead, Tbody, Tr, Th, Td,
   TableContainer, Badge, Select, useColorModeValue, Spinner, Text,
-  SimpleGrid, Checkbox, IconButton, Tooltip, Heading,
+  SimpleGrid, Checkbox, IconButton, Tooltip, Heading, Icon,
   Tabs, TabList, TabPanels, Tab, TabPanel, Divider,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton,
   ModalBody, ModalFooter, useDisclosure, FormControl, FormLabel, Textarea
@@ -58,6 +58,11 @@ export default function Utility() {
   // Sorting
   const [sortField, setSortField] = useState(null);
   const [sortOrder, setSortOrder] = useState("asc");
+
+  // Delete Modal
+  const { isOpen: isDelOpen, onOpen: onDelOpen, onClose: onDelClose } = useDisclosure();
+  const [selectedBill, setSelectedBill] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -185,13 +190,27 @@ export default function Utility() {
     return () => clearTimeout(handler);
   }, [search, typeFilter, statusFilter, sortField, sortOrder, activeTab, currentPage]);
 
-  const handleDelete = async (bill) => {
-    if (!window.confirm(`Delete this ${bill.type} bill of ${fmt(bill.amount)}?`)) return;
+  const confirmDelete = async () => {
+    if (!selectedBill) return;
+    setIsDeleting(true);
     try {
-      const res = await fetch(`${API}/utility-bills/${bill.id}`, { method: "DELETE", headers: headers() });
-      if (res.ok) { toast.success("Bill deleted"); fetchBills(); }
-      else toast.error("Failed to delete bill");
-    } catch (e) { toast.error("Network error"); }
+      const res = await fetch(`${API}/utility-bills/${selectedBill.id}`, { 
+        method: "DELETE", 
+        headers: headers() 
+      });
+      if (res.ok) { 
+        toast.success("Bill deleted successfully"); 
+        onDelClose();
+        fetchBills(); 
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Failed to delete bill");
+      }
+    } catch (e) { 
+      toast.error("Network error"); 
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handlePrintInvoice = async () => {
@@ -473,7 +492,15 @@ export default function Utility() {
                                   </>
                                 )}
                                 <Tooltip label="Delete" hasArrow>
-                                  <IconButton icon={<FiTrash2 />} size="xs" colorScheme="red" variant="ghost" onClick={() => handleDelete(bill)} aria-label="Delete" />
+                                  <IconButton 
+                                    icon={<FiTrash2 />} 
+                                    size="xs" colorScheme="red" variant="ghost" 
+                                    onClick={() => {
+                                      setSelectedBill(bill);
+                                      onDelOpen();
+                                    }} 
+                                    aria-label="Delete" 
+                                  />
                                 </Tooltip>
                               </Flex>
                             </Td>
@@ -663,6 +690,86 @@ export default function Utility() {
         onSuccess={() => fetchBills()} 
         initialData={payTarget} 
       />
+
+      {/* ===== DELETE CONFIRMATION MODAL ===== */}
+      <Modal isOpen={isDelOpen} onClose={onDelClose} isCentered size="md">
+        <ModalOverlay bg="blackAlpha.700" backdropFilter="blur(5px)" />
+        <ModalContent bg={cardBg} borderRadius="3xl" shadow="2xl" border="1px solid" borderColor={borderColor} overflow="hidden">
+          <ModalBody pt={10} pb={8} px={8}>
+            <Flex direction="column" align="center" mb={6}>
+              <Flex 
+                w="20" h="20" mb={4} align="center" justify="center" 
+                borderRadius="full" bg="red.50" color="red.500"
+                shadow="inner"
+              >
+                <Icon as={FiTrash2} boxSize={10} />
+              </Flex>
+              <Heading size="lg" color={textColor} mb={1} fontWeight="black" textTransform="uppercase" letterSpacing="tight">
+                Confirm Deletion
+              </Heading>
+              <Text color={mutedText} fontSize="sm" fontWeight="medium">
+                This action is permanent and cannot be reversed.
+              </Text>
+            </Flex>
+
+            <Box 
+              bg={useColorModeValue("gray.50", "whiteAlpha.50")} 
+              p={6} 
+              borderRadius="2xl" 
+              border="1px solid" 
+              borderColor={borderColor}
+              position="relative"
+            >
+              <SimpleGrid columns={2} spacing={4}>
+                <Box>
+                  <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase">Bill Type</Text>
+                  <Badge colorScheme={typeBadge(selectedBill?.type)} variant="solid" px={2} borderRadius="md" mt={1}>
+                    {selectedBill?.type}
+                  </Badge>
+                </Box>
+                <Box>
+                  <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase">Amount</Text>
+                  <Text fontWeight="black" color="red.500" fontSize="lg">{fmt(selectedBill?.amount)}</Text>
+                </Box>
+                <Box colSpan={2} mt={2}>
+                  <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase">Target Occupant</Text>
+                  <Text fontWeight="bold" color={textColor}>{selectedBill?.lease?.tenant?.name || "No tenant"}</Text>
+                  <Text fontSize="xs" color={mutedText} fontWeight="bold">ROOM: {selectedBill?.lease?.room?.name || selectedBill?.room?.name || "N/A"}</Text>
+                </Box>
+                <Box colSpan={2} mt={2}>
+                  <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase">Scheduled Due Date</Text>
+                  <Text fontWeight="bold" color={textColor} fontSize="sm">{fmtDate(selectedBill?.due_date)}</Text>
+                </Box>
+                {selectedBill?.description && (
+                  <Box colSpan={2} mt={2}>
+                    <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase">Remarks</Text>
+                    <Text fontSize="xs" color={mutedText} fontStyle="italic">"{selectedBill.description}"</Text>
+                  </Box>
+                )}
+              </SimpleGrid>
+            </Box>
+
+            <Text fontSize="xs" color="red.500" mt={6} textAlign="center" fontWeight="black" textTransform="uppercase" letterSpacing="widest">
+              Please verify details before proceeding
+            </Text>
+          </ModalBody>
+          <ModalFooter bg={tableHBg} py={5} px={8} gap={3} justify="center">
+            <Button variant="ghost" size="md" onClick={onDelClose} fontWeight="bold" color={mutedText} borderRadius="xl" px={6}>
+              Back
+            </Button>
+            <Button 
+              colorScheme="red" size="md" px={10} fontWeight="black" 
+              isLoading={isDeleting} onClick={confirmDelete}
+              borderRadius="xl"
+              shadow="0 8px 20px -5px rgba(229, 62, 62, 0.4)"
+              _hover={{ transform: "translateY(-1px)", shadow: "0 10px 25px -5px rgba(229, 62, 62, 0.5)" }}
+              _active={{ transform: "translateY(0)" }}
+            >
+              PERMANENTLY DELETE
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 }

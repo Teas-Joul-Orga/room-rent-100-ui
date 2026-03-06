@@ -35,7 +35,9 @@ export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initial
   });
 
   const [leases, setLeases] = useState([]);
+  const [utilityBills, setUtilityBills] = useState([]);
   const [isLoadingLeases, setIsLoadingLeases] = useState(false);
+  const [isLoadingBills, setIsLoadingBills] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const borderColor = useColorModeValue("gray.200", "gray.700");
@@ -73,6 +75,52 @@ export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initial
       console.error(e);
     } finally {
       setIsLoadingLeases(false);
+    }
+  };
+
+  const fetchUtilityBills = async (leaseId) => {
+    if (!leaseId) { setUtilityBills([]); return; }
+    setIsLoadingBills(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API}/utility-bills?lease_id=${leaseId}&status=unpaid`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUtilityBills(data.data || data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoadingBills(false);
+    }
+  };
+
+  useEffect(() => {
+    if (formData.lease_id && formData.type === "utility") {
+      fetchUtilityBills(formData.lease_id);
+    } else {
+      setUtilityBills([]);
+      // If we switch away from utility, clear the bill_id
+      if (formData.type !== "utility" && formData.bill_id) {
+        setFormData(prev => ({ ...prev, bill_id: "" }));
+      }
+    }
+  }, [formData.lease_id, formData.type]);
+
+  const handleBillSelect = (billId) => {
+    const bill = utilityBills.find(b => b.id.toString() === billId.toString());
+    if (bill) {
+      const remaining = Number(bill.amount) - Number(bill.payments_sum_amount_paid || 0);
+      setFormData(prev => ({ 
+        ...prev, 
+        bill_id: billId, 
+        amount_paid: remaining > 0 ? remaining : 0,
+        notes: `Payment for ${bill.type} bill (Due: ${fmtDate(bill.due_date)})`
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, bill_id: "" }));
     }
   };
 
@@ -116,9 +164,9 @@ export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initial
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl">
-      <ModalOverlay bg="blackAlpha.600" />
-      <ModalContent bg={modalBg} borderRadius="xl" overflow="hidden">
+    <Modal isOpen={isOpen} onClose={onClose} size="2xl">
+      <ModalOverlay bg="blackAlpha.700" backdropFilter="blur(5px)" />
+      <ModalContent bg={modalBg} borderRadius="2xl" overflow="hidden" shadow="2xl" border="1px solid" borderColor={borderColor}>
         <form onSubmit={handleSubmit}>
           <ModalHeader borderBottom="1px solid" borderColor={borderColor}>
             <Text fontSize="lg" fontWeight="black" textTransform="uppercase">Record Payment</Text>
@@ -137,14 +185,50 @@ export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initial
                     value={formData.lease_id}
                     onChange={(e) => setFormData({ ...formData, lease_id: e.target.value })}
                   >
-                    {leases.map(l => (
-                      <option key={l.id} value={l.id}>
-                        {l.tenant?.name || l.tenant_name} - {l.room?.name || l.room_name} (Balance Due: {fmt(Number(l.total_contract_value || 0) - Number(l.payments_sum_amount_paid || 0))})
-                      </option>
-                    ))}
+                    {leases.map(l => {
+                      const rentPaid = Number(l.payments_sum_amount_paid || 0);
+                      const rentTotal = Number(l.total_contract_value || 0);
+                      const rentDue = Math.max(0, rentTotal - rentPaid);
+                      const utilDue = Number(l.unpaid_utilities_sum || 0);
+                      
+                      return (
+                        <option key={l.id} value={l.id}>
+                          {l.tenant?.name || l.tenant_name} - {l.room?.name || l.room_name} 
+                          (Rent: {fmt(rentDue)} | Util: {fmt(utilDue)})
+                        </option>
+                      );
+                    })}
                   </Select>
                 )}
               </FormControl>
+
+              {formData.lease_id && (
+                <Box bg="blue.50" p={4} borderRadius="xl" border="1px dashed" borderColor="blue.200">
+                  <SimpleGrid columns={2} spacing={2}>
+                    <Box>
+                      <Text fontSize="xs" fontWeight="black" color="blue.400" textTransform="uppercase">Outstanding Rent</Text>
+                      <Text fontSize="md" fontWeight="black" color="blue.600">
+                        {(() => {
+                          const l = leases.find(item => item.id.toString() === formData.lease_id.toString());
+                          if (!l) return fmt(0);
+                          const total = Number(l.total_contract_value || 0);
+                          const paid = Number(l.payments_sum_amount_paid || 0);
+                          return fmt(Math.max(0, total - paid));
+                        })()}
+                      </Text>
+                    </Box>
+                    <Box>
+                      <Text fontSize="xs" fontWeight="black" color="green.400" textTransform="uppercase">Unpaid Utilities</Text>
+                      <Text fontSize="md" fontWeight="black" color="green.600">
+                        {(() => {
+                          const l = leases.find(item => item.id.toString() === formData.lease_id.toString());
+                          return l ? fmt(l.unpaid_utilities_sum || 0) : fmt(0);
+                        })()}
+                      </Text>
+                    </Box>
+                  </SimpleGrid>
+                </Box>
+              )}
 
               <SimpleGrid columns={2} spacing={4}>
                 <FormControl isRequired>
@@ -159,6 +243,39 @@ export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initial
                     <option value="other">Other</option>
                   </Select>
                 </FormControl>
+
+                {formData.type === "utility" && (
+                  <FormControl isRequired>
+                    <FormLabel fontSize="xs" fontWeight="bold">Link to Bill</FormLabel>
+                    {isLoadingBills ? (
+                      <Flex align="center" gap={2}><Spinner size="xs" /> <Text fontSize="xs">Finding bills...</Text></Flex>
+                    ) : (
+                      <>
+                        <Select 
+                          placeholder={utilityBills.length === 0 ? "⚠️ No unpaid bills found" : "Select Unpaid Bill"}
+                          value={formData.bill_id}
+                          onChange={(e) => handleBillSelect(e.target.value)}
+                          borderColor={utilityBills.length === 0 ? "orange.300" : "green.400"}
+                          _hover={{ borderColor: utilityBills.length === 0 ? "orange.400" : "green.500" }}
+                        >
+                          {utilityBills.map(b => {
+                            const remaining = Number(b.amount) - Number(b.payments_sum_amount_paid || 0);
+                            return (
+                              <option key={b.id} value={b.id}>
+                                {b.type.toUpperCase()} - {fmt(remaining)} Remaining (Due: {fmtDate(b.due_date)})
+                              </option>
+                            );
+                          })}
+                        </Select>
+                        {utilityBills.length === 0 && formData.lease_id && (
+                          <Text fontSize="10px" color="orange.600" mt={1} fontWeight="bold">
+                            This tenant has no outstanding utility bills. Need to add one? Go to "Utilities" page.
+                          </Text>
+                        )}
+                      </>
+                    )}
+                  </FormControl>
+                )}
 
                 <FormControl isRequired>
                   <FormLabel fontSize="xs" fontWeight="bold">Payment Method</FormLabel>
