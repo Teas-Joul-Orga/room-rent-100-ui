@@ -147,13 +147,13 @@ export default function AddNewRoom() {
   };
 
   // Colors
-  const bg = useColorModeValue("sky.50", "gray.900");
-  const cardBg = useColorModeValue("white", "gray.800");
+  const bg = useColorModeValue("sky.50", "#0d1117");
+  const cardBg = useColorModeValue("white", "#161b22");
   const textColor = useColorModeValue("gray.800", "white");
   const mutedText = useColorModeValue("gray.500", "gray.400");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const borderColor = useColorModeValue("gray.200", "#30363d");
   const headerTextColor = useColorModeValue("sky.900", "white");
-  const furnitureBg = useColorModeValue("sky.50", "gray.700");
+  const furnitureBg = useColorModeValue("sky.50", "#30363d");
   const furnitureBorder = useColorModeValue("sky.100", "gray.600");
 
   return (
@@ -319,11 +319,11 @@ export default function AddNewRoom() {
                       borderRadius="xl"
                       border="1px solid"
                       borderColor={checked ? "blue.400" : borderColor}
-                      bg={checked ? useColorModeValue("white", "gray.800") : "transparent"}
+                      bg={checked ? useColorModeValue("white", "#161b22") : "transparent"}
                       shadow={checked ? "sm" : "none"}
                       cursor="pointer"
                       transition="all 0.2s"
-                      _hover={{ borderColor: "blue.300", bg: useColorModeValue("white", "gray.800") }}
+                      _hover={{ borderColor: "blue.300", bg: useColorModeValue("white", "#161b22") }}
                     >
                       <Checkbox
                         isChecked={checked}

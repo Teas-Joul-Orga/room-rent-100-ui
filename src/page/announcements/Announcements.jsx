@@ -22,9 +22,9 @@ export default function Announcements() {
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const toast = useToast();
-  const bg = useColorModeValue("white", "gray.800");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
-  const hoverBg = useColorModeValue("gray.50", "gray.700");
+  const bg = useColorModeValue("white", "#161b22");
+  const borderColor = useColorModeValue("gray.200", "#30363d");
+  const hoverBg = useColorModeValue("gray.50", "#1c2333");
   const textColor = useColorModeValue("gray.800", "white");
   const mutedText = useColorModeValue("gray.500", "gray.400");
 
@@ -112,7 +112,7 @@ export default function Announcements() {
                            {a.photo_path ? (
                              <Image src={`${IMAGE_URL}/${a.photo_path}`} alt="Announcement" boxSize="50px" objectFit="cover" borderRadius="md" />
                            ) : (
-                             <Box boxSize="50px" bg={useColorModeValue("gray.100", "gray.700")} borderRadius="md" display="flex" alignItems="center" justify="center">
+                             <Box boxSize="50px" bg={useColorModeValue("gray.100", "#30363d")} borderRadius="md" display="flex" alignItems="center" justify="center">
                                <Text fontSize="xs" color="gray.400">No Image</Text>
                              </Box>
                            )}

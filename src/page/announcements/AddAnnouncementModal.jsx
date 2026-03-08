@@ -20,7 +20,7 @@ export default function AddAnnouncementModal({ isOpen, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
   
   const toast = useToast();
-  const bg = useColorModeValue("white", "gray.800");
+  const bg = useColorModeValue("white", "#161b22");
 
   const handleSubmit = async (e) => {
     e.preventDefault();

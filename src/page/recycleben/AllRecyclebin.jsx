@@ -23,11 +23,11 @@ export default function AllRecyclebin() {
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const toast = useToast();
-  const bg = useColorModeValue("white", "gray.800");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const bg = useColorModeValue("white", "#161b22");
+  const borderColor = useColorModeValue("gray.200", "#30363d");
   const textColor = useColorModeValue("gray.800", "white");
   const mutedText = useColorModeValue("gray.500", "gray.400");
-  const hoverBg = useColorModeValue("gray.50", "gray.700");
+  const hoverBg = useColorModeValue("gray.50", "#1c2333");
 
   const fetchTrash = async () => {
     setLoading(true);
@@ -175,7 +175,7 @@ export default function AllRecyclebin() {
                      columns={['Name', 'Email', 'Phone']} 
                      rowRender={(t) => (
                        <>
-                         <Td fontSize="sm" fontWeight="bold" color={textColor}>{t.first_name} {t.last_name}</Td>
+                         <Td fontSize="sm" fontWeight="bold" color={textColor}>{t.name}</Td>
                          <Td fontSize="sm" color={mutedText}>{t.email}</Td>
                          <Td fontSize="sm" color={mutedText}>{t.phone}</Td>
                        </>
@@ -223,7 +223,7 @@ export default function AllRecyclebin() {
                       columns={['Tenant', 'Room', 'Duration']} 
                       rowRender={(l) => (
                         <>
-                          <Td fontSize="sm" fontWeight="bold" color={textColor}>{l.tenant?.first_name} {l.tenant?.last_name}</Td>
+                          <Td fontSize="sm" fontWeight="bold" color={textColor}>{l.tenant?.name}</Td>
                           <Td fontSize="sm" color="blue.500" fontWeight="bold">{l.room?.name}</Td>
                           <Td fontSize="sm" color={mutedText}>{dayjs(l.start_date).format('MMM D, YY')} - {dayjs(l.end_date).format('MMM D, YY')}</Td>
                         </>

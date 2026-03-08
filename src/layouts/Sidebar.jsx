@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, VStack, Text, useColorModeValue, Flex, Icon, Tooltip, Drawer, DrawerOverlay, DrawerContent, DrawerCloseButton, Collapse } from "@chakra-ui/react";
 import { NavLink, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 
@@ -19,12 +20,12 @@ const SvgIcon = ({ pathD, ...props }) => (
 
 const API = "http://localhost:8000/api/v1";
 
-const getSidebarGroups = (role) => {
+const getSidebarGroups = (role, t) => {
   const generalGroup = {
-    title: "General",
+    title: t("sidebar.general"),
     links: [
-      { label: "Dashboard", path: "/dashboard", exact: true, pathD: "M3 10.5 12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z" },
-      { label: "Notifications", path: "/dashboard/notifications", exact: false, pathD: "M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6.002 6.002 0 0 0-4-5.659V5a2 2 0 1 0-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9" },
+      { label: t("sidebar.dashboard"), path: "/dashboard", exact: true, pathD: "M3 10.5 12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z" },
+      { label: t("sidebar.notifications"), path: "/dashboard/notifications", exact: false, pathD: "M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6.002 6.002 0 0 0-4-5.659V5a2 2 0 1 0-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9" },
     ]
   };
 
@@ -32,11 +33,11 @@ const getSidebarGroups = (role) => {
     return [
       generalGroup,
       {
-        title: "Tenant",
+        title: t("sidebar.tenant"),
         links: [
-          { label: "My Billing", path: "/dashboard/utility", exact: false, pathD: ["M7 3h10v18H7z", "M9 7h6M9 11h6M9 15h4"] },
-          { label: "Maintenance", path: "/dashboard/maintenance", exact: false, pathD: ["M14.7 6.3a4 4 0 0 0-5.7 5.7l-6.3 6.3 2 2 6.3-6.3a4 4 0 0 0 5.7-5.7Z", "M16 8l4-4"] },
-          { label: "Community", path: "/dashboard/notifications", exact: false, pathD: ["M4 11v2a1 1 0 0 0 1 1h2l5 5V6L7 11H5a1 1 0 0 0-1 1Z", "M15 9a4 4 0 0 1 0 6"] },
+          { label: t("sidebar.my_billing"), path: "/dashboard/utility", exact: false, pathD: ["M7 3h10v18H7z", "M9 7h6M9 11h6M9 15h4"] },
+          { label: t("sidebar.maintenance"), path: "/dashboard/maintenance", exact: false, pathD: ["M14.7 6.3a4 4 0 0 0-5.7 5.7l-6.3 6.3 2 2 6.3-6.3a4 4 0 0 0 5.7-5.7Z", "M16 8l4-4"] },
+          { label: t("sidebar.community"), path: "/dashboard/notifications", exact: false, pathD: ["M4 11v2a1 1 0 0 0 1 1h2l5 5V6L7 11H5a1 1 0 0 0-1 1Z", "M15 9a4 4 0 0 1 0 6"] },
         ]
       }
     ];
@@ -46,48 +47,48 @@ const getSidebarGroups = (role) => {
   return [
     generalGroup,
     {
-      title: "Management",
+      title: t("sidebar.management"),
       links: [
-        { label: "Tenants", path: "/dashboard/tenants", exact: false, pathD: ["M20 21a8 8 0 1 0-16 0", "M12 13a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z"] },
-        { label: "System Users", path: "/dashboard/users", exact: false, pathD: ["M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"] },
-        { label: "Rooms", path: "/dashboard/rooms", exact: false, pathD: "M3 11 12 3l9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z" },
-        { label: "Furniture", path: "/dashboard/furniture", exact: false, pathD: ["M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"] },
-        { label: "Leases", path: "/dashboard/lease", exact: false, pathD: ["M7 3h8l4 4v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z", "M9 13h6M9 17h6M9 9h3"] },
-        { label: "Utilities", path: "/dashboard/utility", exact: false, pathD: ["M12 2v4", "M7 8h10", "M8 22h8", "M9 12h6v6H9z"] },
-        { label: "Payments", path: "/dashboard/payments", exact: false, pathD: ["M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"] },
-        { label: "Maintenance", path: "/dashboard/maintenance", exact: false, pathD: ["M14.7 6.3a4 4 0 0 0-5.7 5.7l-6.3 6.3 2 2 6.3-6.3a4 4 0 0 0 5.7-5.7Z", "M16 8l4-4"] },
-        { label: "Expenses", path: "/dashboard/expenses", exact: false, pathD: ["M12 2v20", "M17 7H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H7"] },
+        { label: t("sidebar.tenants"), path: "/dashboard/tenants", exact: false, pathD: ["M20 21a8 8 0 1 0-16 0", "M12 13a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z"] },
+        { label: t("sidebar.system_users"), path: "/dashboard/users", exact: false, pathD: ["M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"] },
+        { label: t("sidebar.rooms"), path: "/dashboard/rooms", exact: false, pathD: "M3 11 12 3l9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z" },
+        { label: t("sidebar.furniture"), path: "/dashboard/furniture", exact: false, pathD: ["M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"] },
+        { label: t("sidebar.leases"), path: "/dashboard/lease", exact: false, pathD: ["M7 3h8l4 4v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z", "M9 13h6M9 17h6M9 9h3"] },
+        { label: t("sidebar.utilities"), path: "/dashboard/utility", exact: false, pathD: ["M12 2v4", "M7 8h10", "M8 22h8", "M9 12h6v6H9z"] },
+        { label: t("sidebar.payments"), path: "/dashboard/payments", exact: false, pathD: ["M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"] },
+        { label: t("sidebar.maintenance"), path: "/dashboard/maintenance", exact: false, pathD: ["M14.7 6.3a4 4 0 0 0-5.7 5.7l-6.3 6.3 2 2 6.3-6.3a4 4 0 0 0 5.7-5.7Z", "M16 8l4-4"] },
+        { label: t("sidebar.expenses"), path: "/dashboard/expenses", exact: false, pathD: ["M12 2v20", "M17 7H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H7"] },
       ]
     },
     {
-      title: "Insights",
+      title: t("sidebar.insights"),
       links: [
         { 
-          label: "Reports", 
+          label: t("sidebar.reports"), 
           path: "/dashboard/report", 
           exact: false, 
           pathD: ["M4 19V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14", "M8 17V9m4 8V7m4 10v-5"],
           subLinks: [
-            { label: 'Financial Summary', path: '/dashboard/report?tab=financial', pathD: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" },
-            { label: 'Annual Trend', path: '/dashboard/report?tab=p_and_l', pathD: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" },
-            { label: 'Aging (A/R)', path: '/dashboard/report?tab=aging', pathD: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
-            { label: 'Unit Drill-down', path: '/dashboard/report?tab=unit_analysis', pathD: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" },
-            { label: 'Occupancy', path: '/dashboard/report?tab=occupancy', pathD: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" },
-            { label: 'Lease Tracking', path: '/dashboard/report?tab=lease_tracking', pathD: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
-            { label: 'Maintenance Analytics', path: '/dashboard/report?tab=maintenance_analytics', pathD: "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" },
-            { label: 'Tenant Performance', path: '/dashboard/report?tab=tenant_performance', pathD: "M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.175 0l-3.976 2.888c-.783.57-1.838-.197-1.539-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" },
-            { label: 'Utility Trends', path: '/dashboard/report?tab=utility_trends', pathD: "M13 10V3L4 14h7v7l9-11h-7z" },
-            { label: 'Deposit Ledger', path: '/dashboard/report?tab=deposit_ledger', pathD: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" }
+            { label: t("sidebar.financial_summary"), path: '/dashboard/report?tab=financial', pathD: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" },
+            { label: t("sidebar.annual_trend"), path: '/dashboard/report?tab=p_and_l', pathD: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" },
+            { label: t("sidebar.aging_ar"), path: '/dashboard/report?tab=aging', pathD: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
+            { label: t("sidebar.unit_drilldown"), path: '/dashboard/report?tab=unit_analysis', pathD: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" },
+            { label: t("sidebar.occupancy"), path: '/dashboard/report?tab=occupancy', pathD: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" },
+            { label: t("sidebar.lease_tracking"), path: '/dashboard/report?tab=lease_tracking', pathD: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
+            { label: t("sidebar.maintenance_analytics"), path: '/dashboard/report?tab=maintenance_analytics', pathD: "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" },
+            { label: t("sidebar.tenant_performance"), path: '/dashboard/report?tab=tenant_performance', pathD: "M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.175 0l-3.976 2.888c-.783.57-1.838-.197-1.539-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" },
+            { label: t("sidebar.utility_trends"), path: '/dashboard/report?tab=utility_trends', pathD: "M13 10V3L4 14h7v7l9-11h-7z" },
+            { label: t("sidebar.deposit_ledger"), path: '/dashboard/report?tab=deposit_ledger', pathD: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" }
           ]
         },
-        { label: "Recycle Bin", path: "/dashboard/recyclebin", exact: false, pathD: ["M4 7h16", "M6 7l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14", "M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"] },
-        { label: "Announcements", path: "/dashboard/announcements", exact: false, pathD: ["M4 11v2a1 1 0 0 0 1 1h2l5 5V6L7 11H5a1 1 0 0 0-1 1Z", "M15 9a4 4 0 0 1 0 6", "M17 7a7 7 0 0 1 0 10"] },
+        { label: t("sidebar.recycle_bin"), path: "/dashboard/recyclebin", exact: false, pathD: ["M4 7h16", "M6 7l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14", "M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"] },
+        { label: t("sidebar.announcements"), path: "/dashboard/announcements", exact: false, pathD: ["M4 11v2a1 1 0 0 0 1 1h2l5 5V6L7 11H5a1 1 0 0 0-1 1Z", "M15 9a4 4 0 0 1 0 6", "M17 7a7 7 0 0 1 0 10"] },
       ]
     },
     {
-      title: "System",
+      title: t("sidebar.system"),
       links: [
-        { label: "Settings", path: "/dashboard/settings", exact: false, pathD: ["M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z", "M15 12a3 3 0 11-6 0 3 3 0 016 0z"] },
+        { label: t("sidebar.settings"), path: "/dashboard/settings", exact: false, pathD: ["M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z", "M15 12a3 3 0 11-6 0 3 3 0 016 0z"] },
       ]
     }
   ];
@@ -218,12 +219,13 @@ const SidebarLinkItem = ({ link, location, linkColor, hoverBg, onClose, pendingM
 };
 
 const Sidebar = ({ isOpen, onClose }) => {
-  const bg = useColorModeValue("white", "gray.800");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
-  const groupTitleColor = useColorModeValue("gray.400", "gray.400");
+  const bg = useColorModeValue("white", "#0d1117");
+  const borderColor = useColorModeValue("gray.200", "#30363d");
+  const groupTitleColor = useColorModeValue("gray.400", "gray.500");
   const linkColor = useColorModeValue("gray.700", "gray.300");
-  const hoverBg = useColorModeValue("gray.100", "gray.700");
+  const hoverBg = useColorModeValue("gray.100", "#1c2333");
   const location = useLocation();
+  const { t } = useTranslation();
 
   const isLinkActive = (path, exact) => {
     if (exact) {
@@ -280,7 +282,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const sidebarContent = (
       <VStack spacing={6} align="stretch" p={3} pb={20}>
-        {getSidebarGroups(localStorage.getItem('role')).map((group, index) => (
+        {getSidebarGroups(localStorage.getItem('role'), t).map((group, index) => (
           <Box key={index}>
             <Text
               px={3}
@@ -336,11 +338,11 @@ const Sidebar = ({ isOpen, onClose }) => {
             width: '6px',
           },
           '&::-webkit-scrollbar-thumb': {
-            background: useColorModeValue('rgba(0,0,0,0.05)', 'rgba(255,255,255,0.05)'),
+            background: useColorModeValue('rgba(0,0,0,0.05)', '#30363d'),
             borderRadius: '24px',
           },
           '&:hover::-webkit-scrollbar-thumb': {
-            background: useColorModeValue('rgba(0,0,0,0.1)', 'rgba(255,255,255,0.1)'),
+            background: useColorModeValue('rgba(0,0,0,0.1)', '#484f58'),
           }
         }}
       >

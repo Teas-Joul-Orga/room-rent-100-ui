@@ -5,8 +5,10 @@ import {
   InputLeftElement, SimpleGrid, Icon, Spinner, Modal, ModalOverlay, ModalContent,
   ModalHeader, ModalBody, ModalFooter, ModalCloseButton, FormLabel, FormControl, Textarea, Tooltip
 } from "@chakra-ui/react";
-import { FiSearch, FiCheckCircle, FiTool, FiXCircle, FiClock, FiImage } from "react-icons/fi";
+import { FiSearch, FiCheckCircle, FiTool, FiXCircle, FiClock, FiImage, FiDownload } from "react-icons/fi";
+import { exportToExcel } from "../../utils/exportExcel";
 import { toast } from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/en";
@@ -28,6 +30,7 @@ const fmt = (n) => {
 };
 
 function MaintenanceRoom() {
+  const { t } = useTranslation();
   const [role] = useState(localStorage.getItem('role') || 'tenant');
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,12 +46,12 @@ function MaintenanceRoom() {
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [reportForm, setReportForm] = useState({ title: "", description: "", priority: "normal", photo: null });
 
-  const bg = useColorModeValue("white", "gray.800");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const bg = useColorModeValue("white", "#161b22");
+  const borderColor = useColorModeValue("gray.200", "#30363d");
   const textColor = useColorModeValue("gray.800", "white");
   const mutedText = useColorModeValue("gray.500", "gray.400");
-  const thBg = useColorModeValue("gray.50", "gray.700");
-  const trHoverBg = useColorModeValue("gray.50", "gray.700");
+  const thBg = useColorModeValue("gray.50", "#1c2333");
+  const trHoverBg = useColorModeValue("gray.50", "#1c2333");
 
   const headers = () => {
     const token = localStorage.getItem("token");
@@ -156,10 +159,10 @@ function MaintenanceRoom() {
       <Flex justify="space-between" align="center" mb={6} flexWrap="wrap" gap={4}>
         <Box>
           <Text fontSize="2xl" fontWeight="black" letterSpacing="tight" color={textColor}>
-            Maintenance Requests
+            {t("maintenance.title")}
           </Text>
           <Text fontSize="sm" color={mutedText}>
-            {role === 'admin' ? 'Manage and resolve property issues.' : 'Report and track issues in your room.'}
+            {role === 'admin' ? t("maintenance.subtitle_admin") : t("maintenance.subtitle_tenant")}
           </Text>
         </Box>
         
@@ -167,19 +170,39 @@ function MaintenanceRoom() {
           <HStack spacing={3}>
             <InputGroup size="sm" w="250px">
               <InputLeftElement pointerEvents="none"><FiSearch color="gray.300" /></InputLeftElement>
-              <Input placeholder="Search requests..." value={search} onChange={e => setSearch(e.target.value)} bg={bg} borderRadius="md" />
+              <Input placeholder={t("maintenance.search")} value={search} onChange={e => setSearch(e.target.value)} bg={bg} borderRadius="md" />
             </InputGroup>
+            <Button
+              size="sm"
+              colorScheme="green"
+              variant="outline"
+              leftIcon={<FiDownload />}
+              onClick={() => {
+                const dataToExport = requests.map(r => ({
+                  "Tenant": r.tenant?.name || "Unknown",
+                  "Room": r.room?.name || "Unknown",
+                  "Title": r.title,
+                  "Priority": r.priority,
+                  "Status": r.status,
+                  "Cost": r.status === 'resolved' && r.expenses?.length > 0 ? Number(r.expenses[0].amount) : 0,
+                  "Reported At": new Date(r.created_at).toLocaleString()
+                }));
+                exportToExcel(dataToExport, "Maintenance_Requests_" + new Date().toISOString().split('T')[0]);
+              }}
+            >
+              Export Excel
+            </Button>
             <Select size="sm" w="150px" bg={bg} borderRadius="md" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-              <option value="">All Statuses</option>
-              <option value="pending">Pending</option>
-              <option value="in_progress">In Progress</option>
-              <option value="resolved">Resolved</option>
-              <option value="cancelled">Cancelled</option>
+              <option value="">{t("maintenance.all_statuses")}</option>
+              <option value="pending">{t("maintenance.pending")}</option>
+              <option value="in_progress">{t("maintenance.in_progress")}</option>
+              <option value="resolved">{t("maintenance.resolved")}</option>
+              <option value="cancelled">{t("maintenance.cancelled")}</option>
             </Select>
           </HStack>
         ) : (
           <Button size="sm" colorScheme="blue" leftIcon={<FiTool />} onClick={() => setIsReportOpen(true)}>
-            Report Issue
+            {t("maintenance.report_issue")}
           </Button>
         )}
       </Flex>
@@ -196,19 +219,19 @@ function MaintenanceRoom() {
               <Thead bg={thBg}>
                 <Tr>
                   <Th w="60px"></Th>
-                  {role === 'admin' && <Th>Tenant & Room</Th>}
-                  <Th>Issue</Th>
-                  <Th>Priority</Th>
-                  <Th>Status</Th>
-                  {role === 'admin' && <Th>Expense / Costs</Th>}
-                  <Th>Reported</Th>
-                  {role === 'admin' && <Th textAlign="right">Actions</Th>}
+                  {role === 'admin' && <Th>{t("maintenance.tenant_room")}</Th>}
+                  <Th>{t("maintenance.issue")}</Th>
+                  <Th>{t("maintenance.priority")}</Th>
+                  <Th>{t("maintenance.status")}</Th>
+                  {role === 'admin' && <Th>{t("maintenance.expense_costs")}</Th>}
+                  <Th>{t("maintenance.reported")}</Th>
+                  {role === 'admin' && <Th textAlign="right">{t("maintenance.actions")}</Th>}
                 </Tr>
               </Thead>
               <Tbody>
                 {requests.length === 0 ? (
                   <Tr>
-                    <Td colSpan={8} textAlign="center" py={12} color={mutedText}>No maintenance requests found.</Td>
+                    <Td colSpan={8} textAlign="center" py={12} color={mutedText}>{t("maintenance.no_data")}</Td>
                   </Tr>
                 ) : (
                   requests.map((r) => (
@@ -228,8 +251,8 @@ function MaintenanceRoom() {
                       </Td>
                       {role === 'admin' && (
                         <Td>
-                          <Text fontSize="sm" fontWeight="bold" color={textColor}>{r.tenant?.name || 'Unknown'}</Text>
-                          <Text fontSize="xs" color={mutedText}>{r.room?.name || 'Unknown Room'}</Text>
+                          <Text fontSize="sm" fontWeight="bold" color={textColor}>{r.tenant?.name || t("maintenance.unknown")}</Text>
+                          <Text fontSize="xs" color={mutedText}>{r.room?.name || t("maintenance.unknown_room")}</Text>
                         </Td>
                       )}
                       <Td maxW="250px">
@@ -276,10 +299,10 @@ function MaintenanceRoom() {
                                 setIsUpdateOpen(true);
                               }}
                             >
-                              Update
+                              {t("maintenance.update")}
                             </Button>
                           ) : (
-                            <Text fontSize="xs" fontWeight="bold" color="green.500">Completed</Text>
+                            <Text fontSize="xs" fontWeight="bold" color="green.500">{t("maintenance.completed")}</Text>
                           )}
                         </Td>
                       )}
@@ -297,37 +320,37 @@ function MaintenanceRoom() {
         <ModalOverlay bg="blackAlpha.600" />
         <ModalContent bg={bg}>
           <form onSubmit={handleUpdateSubmit}>
-            <ModalHeader>Update Request</ModalHeader>
+            <ModalHeader>{t("maintenance.update_request")}</ModalHeader>
             <ModalCloseButton />
             <ModalBody>
-              <Text fontSize="sm" fontWeight="bold" mb={4}>Ticket: {selectedReq?.title}</Text>
+              <Text fontSize="sm" fontWeight="bold" mb={4}>{t("maintenance.ticket")}: {selectedReq?.title}</Text>
               
               <FormControl isRequired mb={4}>
-                <FormLabel fontSize="sm" color={mutedText}>Set Status</FormLabel>
+                <FormLabel fontSize="sm" color={mutedText}>{t("maintenance.set_status")}</FormLabel>
                 <Select size="sm" value={updateForm.status} onChange={e => setUpdateForm({ ...updateForm, status: e.target.value })}>
-                  <option value="pending">Pending</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="resolved">Resolved</option>
-                  <option value="cancelled">Cancelled</option>
+                  <option value="pending">{t("maintenance.pending")}</option>
+                  <option value="in_progress">{t("maintenance.in_progress")}</option>
+                  <option value="resolved">{t("maintenance.resolved")}</option>
+                  <option value="cancelled">{t("maintenance.cancelled")}</option>
                 </Select>
               </FormControl>
 
               {updateForm.status === "resolved" && (
                 <Box bg="red.50" p={4} borderRadius="md" border="1px dashed" borderColor="red.200">
-                  <Text fontSize="xs" fontWeight="bold" color="red.600" mb={3}>Attach Repair Expense (Optional)</Text>
+                  <Text fontSize="xs" fontWeight="bold" color="red.600" mb={3}>{t("maintenance.attach_expense")}</Text>
                   <FormControl mb={3}>
-                    <FormLabel fontSize="sm" color="gray.600">Cost Amount ({localStorage.getItem("currency") || "$"})</FormLabel>
+                    <FormLabel fontSize="sm" color="gray.600">{t("maintenance.cost_amount")} ({localStorage.getItem("currency") || "$"})</FormLabel>
                     <Input size="md" type="number" step="0.01" bg="white" value={updateForm.expense_amount} onChange={e => setUpdateForm({ ...updateForm, expense_amount: e.target.value })} />
                   </FormControl>
                   <FormControl>
-                    <FormLabel fontSize="xs" color="gray.600">Expense Note</FormLabel>
-                    <Input size="sm" bg="white" placeholder="e.g. Plumber labor cost" value={updateForm.expense_description} onChange={e => setUpdateForm({ ...updateForm, expense_description: e.target.value })} />
+                    <FormLabel fontSize="xs" color="gray.600">{t("maintenance.expense_note")}</FormLabel>
+                    <Input size="sm" bg="white" placeholder={t("maintenance.expense_placeholder")} value={updateForm.expense_description} onChange={e => setUpdateForm({ ...updateForm, expense_description: e.target.value })} />
                   </FormControl>
                 </Box>
               )}
             </ModalBody>
             <ModalFooter>
-              <Button size="sm" colorScheme="blue" type="submit">Save Update</Button>
+              <Button size="sm" colorScheme="blue" type="submit">{t("maintenance.save_update")}</Button>
             </ModalFooter>
           </form>
         </ModalContent>
@@ -338,32 +361,32 @@ function MaintenanceRoom() {
         <ModalOverlay bg="blackAlpha.600" />
         <ModalContent bg={bg}>
           <form onSubmit={handleReportSubmit}>
-            <ModalHeader>Report Maintenance Issue</ModalHeader>
+            <ModalHeader>{t("maintenance.report_title")}</ModalHeader>
             <ModalCloseButton />
             <ModalBody>
               <FormControl isRequired mb={4}>
-                <FormLabel fontSize="sm" color={mutedText}>Issue Title</FormLabel>
-                <Input size="sm" bg={bg} placeholder="e.g. Leaking faucet" value={reportForm.title} onChange={e => setReportForm({ ...reportForm, title: e.target.value })} />
+                <FormLabel fontSize="sm" color={mutedText}>{t("maintenance.issue_title")}</FormLabel>
+                <Input size="sm" bg={bg} placeholder={t("maintenance.issue_placeholder")} value={reportForm.title} onChange={e => setReportForm({ ...reportForm, title: e.target.value })} />
               </FormControl>
               <FormControl isRequired mb={4}>
-                <FormLabel fontSize="sm" color={mutedText}>Priority</FormLabel>
+                <FormLabel fontSize="sm" color={mutedText}>{t("maintenance.priority")}</FormLabel>
                 <Select size="sm" bg={bg} value={reportForm.priority} onChange={e => setReportForm({ ...reportForm, priority: e.target.value })}>
-                  <option value="normal">Normal</option>
-                  <option value="urgent">Urgent</option>
-                  <option value="emergency">Emergency (Immediate)</option>
+                  <option value="normal">{t("maintenance.normal")}</option>
+                  <option value="urgent">{t("maintenance.urgent")}</option>
+                  <option value="emergency">{t("maintenance.emergency")}</option>
                 </Select>
               </FormControl>
               <FormControl isRequired mb={4}>
-                <FormLabel fontSize="sm" color={mutedText}>Description</FormLabel>
-                <Textarea size="sm" bg={bg} rows={3} placeholder="Describe the problem in detail..." value={reportForm.description} onChange={e => setReportForm({ ...reportForm, description: e.target.value })} />
+                <FormLabel fontSize="sm" color={mutedText}>{t("maintenance.description")}</FormLabel>
+                <Textarea size="sm" bg={bg} rows={3} placeholder={t("maintenance.desc_placeholder")} value={reportForm.description} onChange={e => setReportForm({ ...reportForm, description: e.target.value })} />
               </FormControl>
               <FormControl mb={4}>
-                <FormLabel fontSize="sm" color={mutedText}>Attach Photo (Required for urgent)</FormLabel>
+                <FormLabel fontSize="sm" color={mutedText}>{t("maintenance.attach_photo")}</FormLabel>
                 <Input type="file" size="sm" accept="image/*" onChange={e => setReportForm({ ...reportForm, photo: e.target.files[0] })} sx={{ '::file-selector-button': { height: '8', padding: '0 4', background: 'gray.100', border: 'none', borderRadius: 'md', fontSize: 'sm', cursor: 'pointer' } }} />
               </FormControl>
             </ModalBody>
             <ModalFooter>
-              <Button size="sm" colorScheme="blue" type="submit">Submit Request</Button>
+              <Button size="sm" colorScheme="blue" type="submit">{t("maintenance.submit")}</Button>
             </ModalFooter>
           </form>
         </ModalContent>

@@ -32,20 +32,20 @@ export default function Chat() {
   const messagesEndRef = useRef(null);
   const toast = useToast();
 
-  const bg = useColorModeValue("white", "gray.800");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
-  const hoverBg = useColorModeValue("gray.50", "gray.700");
+  const bg = useColorModeValue("white", "#161b22");
+  const borderColor = useColorModeValue("gray.200", "#30363d");
+  const hoverBg = useColorModeValue("gray.50", "#1c2333");
   const myMessageBg = useColorModeValue("blue.500", "blue.400");
-  const otherMessageBg = useColorModeValue("gray.100", "gray.700");
+  const otherMessageBg = useColorModeValue("gray.100", "#30363d");
   const textColor = useColorModeValue("gray.800", "white");
   const otherMessageTextColor = useColorModeValue("gray.800", "gray.100");
   
   // The following variables were causing React Rules of Hooks ordering errors because they
   // used to be called conditionally inside the `{selectedContact ? (...) : (...)}` JSX render tree block.
-  const threadHeaderBg = useColorModeValue("gray.50", "gray.800");
-  const stickyDateBadgeBg = useColorModeValue("white", "gray.800");
+  const threadHeaderBg = useColorModeValue("gray.50", "#161b22");
+  const stickyDateBadgeBg = useColorModeValue("white", "#161b22");
   const noMessagesColor = useColorModeValue("gray.400", "gray.500");
-  const inputBg = useColorModeValue("gray.100", "gray.700");
+  const inputBg = useColorModeValue("gray.100", "#30363d");
 
   const token = localStorage.getItem('token');
   const role = localStorage.getItem('role');
@@ -298,8 +298,8 @@ export default function Chat() {
                   gap={3} 
                   borderRadius="xl"
                   cursor="pointer"
-                  bg={selectedContact?.id === contact.id ? 'blue.50' : 'transparent'}
-                  _hover={{ bg: selectedContact?.id === contact.id ? 'blue.50' : hoverBg }}
+                  bg={selectedContact?.id === contact.id ? (useColorModeValue('blue.50', '#1c2333')) : 'transparent'}
+                  _hover={{ bg: selectedContact?.id === contact.id ? (useColorModeValue('blue.50', '#1c2333')) : hoverBg }}
                   onClick={() => setSelectedContact(contact)}
                   transition="all 0.2s"
                 >

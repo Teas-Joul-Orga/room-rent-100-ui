@@ -5,8 +5,10 @@ import {
   InputLeftElement, Spinner, Modal, ModalOverlay, ModalContent,
   ModalHeader, ModalBody, ModalFooter, ModalCloseButton, FormLabel, FormControl, IconButton, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, Badge, SimpleGrid, Icon
 } from "@chakra-ui/react";
-import { FiSearch, FiPlus, FiTrash2, FiCalendar, FiDollarSign } from "react-icons/fi";
+import { FiSearch, FiPlus, FiTrash2, FiCalendar, FiDollarSign, FiDownload } from "react-icons/fi";
+import { exportToExcel } from "../../utils/exportExcel";
 import { toast } from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
 
 const API = "http://localhost:8000/api/v1";
@@ -21,6 +23,7 @@ const fmt = (n) => {
 };
 
 function Expense() {
+  const { t } = useTranslation();
   const [expenses, setExpenses] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -40,12 +43,12 @@ function Expense() {
   const [deleteId, setDeleteId] = useState(null);
   const cancelRef = React.useRef();
 
-  const bg = useColorModeValue("white", "gray.800");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const bg = useColorModeValue("white", "#161b22");
+  const borderColor = useColorModeValue("gray.200", "#30363d");
   const textColor = useColorModeValue("gray.800", "white");
   const mutedText = useColorModeValue("gray.500", "gray.400");
-  const thBg = useColorModeValue("gray.50", "gray.700");
-  const trHoverBg = useColorModeValue("gray.50", "gray.700");
+  const thBg = useColorModeValue("gray.50", "#1c2333");
+  const trHoverBg = useColorModeValue("gray.50", "#1c2333");
 
   const headers = () => {
     const token = localStorage.getItem("token");
@@ -147,31 +150,50 @@ function Expense() {
       <Flex justify="space-between" align="center" mb={6} flexWrap="wrap" gap={4}>
         <Box>
           <Text fontSize="2xl" fontWeight="black" letterSpacing="tight" color={textColor}>
-            Expense Management
+            {t("expense.title")}
           </Text>
           <Text fontSize="sm" color={mutedText}>
-            Track and record property costs and repairs.
+            {t("expense.subtitle")}
           </Text>
         </Box>
         
         <HStack spacing={3} wrap="wrap">
           <InputGroup size="sm" w="200px">
             <InputLeftElement pointerEvents="none"><FiSearch color="gray.300" /></InputLeftElement>
-            <Input placeholder="Search expenses..." value={search} onChange={e => setSearch(e.target.value)} bg={bg} borderRadius="md" />
+            <Input placeholder={t("expense.search")} value={search} onChange={e => setSearch(e.target.value)} bg={bg} borderRadius="md" />
           </InputGroup>
           
           <Select size="sm" w="150px" bg={bg} borderRadius="md" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
-            <option value="">All Categories</option>
+            <option value="">{t("expense.all_categories")}</option>
             {categories.map(c => <option key={c} value={c}>{c}</option>)}
           </Select>
 
           <Select size="sm" w="150px" bg={bg} borderRadius="md" value={roomFilter} onChange={e => setRoomFilter(e.target.value)}>
-            <option value="">All Units</option>
+            <option value="">{t("expense.all_units")}</option>
             {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
           </Select>
 
+          <Button
+            size="sm"
+            colorScheme="green"
+            variant="outline"
+            leftIcon={<FiDownload />}
+            onClick={() => {
+              const dataToExport = expenses.map(e => ({
+                "Date": e.expense_date,
+                "Item": e.title,
+                "Unit": e.room?.name || 'General Building',
+                "Category": e.category,
+                "Amount": Number(e.amount),
+                "Created At": new Date(e.created_at).toLocaleDateString()
+              }));
+              exportToExcel(dataToExport, "All_Expenses_" + new Date().toISOString().split('T')[0]);
+            }}
+          >
+            Export Excel
+          </Button>
           <Button size="sm" colorScheme="blue" leftIcon={<FiPlus />} onClick={() => setIsOpen(true)}>
-            Add Expense
+            {t("expense.add")}
           </Button>
         </HStack>
       </Flex>
@@ -187,16 +209,16 @@ function Expense() {
               <Thead bg={thBg}>
                 <Tr>
                   <Th cursor="pointer" onClick={() => handleSort('expense_date')}>
-                    <Flex align="center" gap={1}>Date {sortField === 'expense_date' && (sortDir === 'asc' ? '↑' : '↓')}</Flex>
+                    <Flex align="center" gap={1}>{t("expense.date")} {sortField === 'expense_date' && (sortDir === 'asc' ? '↑' : '↓')}</Flex>
                   </Th>
                   <Th cursor="pointer" onClick={() => handleSort('title')}>
-                    <Flex align="center" gap={1}>Item & Unit {sortField === 'title' && (sortDir === 'asc' ? '↑' : '↓')}</Flex>
+                    <Flex align="center" gap={1}>{t("expense.item_unit")} {sortField === 'title' && (sortDir === 'asc' ? '↑' : '↓')}</Flex>
                   </Th>
                   <Th cursor="pointer" onClick={() => handleSort('category')}>
-                    <Flex align="center" gap={1}>Category {sortField === 'category' && (sortDir === 'asc' ? '↑' : '↓')}</Flex>
+                    <Flex align="center" gap={1}>{t("expense.category")} {sortField === 'category' && (sortDir === 'asc' ? '↑' : '↓')}</Flex>
                   </Th>
                   <Th isNumeric cursor="pointer" onClick={() => handleSort('amount')}>
-                    <Flex justify="flex-end" align="center" gap={1}>Amount {sortField === 'amount' && (sortDir === 'asc' ? '↑' : '↓')}</Flex>
+                    <Flex justify="flex-end" align="center" gap={1}>{t("expense.amount")} {sortField === 'amount' && (sortDir === 'asc' ? '↑' : '↓')}</Flex>
                   </Th>
                   <Th w="50px"></Th>
                 </Tr>
@@ -204,7 +226,7 @@ function Expense() {
               <Tbody>
                 {expenses.length === 0 ? (
                   <Tr>
-                    <Td colSpan={5} textAlign="center" py={12} color={mutedText}>No expenses recorded yet.</Td>
+                    <Td colSpan={5} textAlign="center" py={12} color={mutedText}>{t("expense.no_data")}</Td>
                   </Tr>
                 ) : (
                   expenses.map((expense) => (
@@ -257,33 +279,33 @@ function Expense() {
         <ModalOverlay bg="blackAlpha.600" />
         <ModalContent bg={bg}>
           <form onSubmit={handleSubmit}>
-            <ModalHeader>Record New Expense</ModalHeader>
+            <ModalHeader>{t("expense.record_new")}</ModalHeader>
             <ModalCloseButton />
             <ModalBody>
               <FormControl isRequired mb={4}>
-                <FormLabel fontSize="sm" color={mutedText}>Title / Item Name</FormLabel>
+                <FormLabel fontSize="sm" color={mutedText}>{t("expense.item_unit")}</FormLabel>
                 <Input size="sm" bg={bg} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} autoFocus />
               </FormControl>
               
               <SimpleGrid columns={2} spacing={4} mb={4}>
                 <FormControl isRequired>
-                  <FormLabel fontSize="sm" color={mutedText}>Category</FormLabel>
+                  <FormLabel fontSize="sm" color={mutedText}>{t("expense.category")}</FormLabel>
                   <Select size="sm" bg={bg} value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
-                    <option value="">Select Category</option>
+                    <option value="">{t("expense.select_cat")}</option>
                     {categories.map(c => <option key={c} value={c}>{c}</option>)}
                   </Select>
                 </FormControl>
                 
                 <FormControl>
-                  <FormLabel fontSize="sm" color={mutedText}>Target Unit (Optional)</FormLabel>
+                  <FormLabel fontSize="sm" color={mutedText}>{t("expense.target_unit")}</FormLabel>
                   <Select size="sm" bg={bg} value={form.room_id} onChange={e => setForm({ ...form, room_id: e.target.value })}>
-                    <option value="">General Building</option>
+                    <option value="">{t("expense.general")}</option>
                     {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                   </Select>
                 </FormControl>
 
                 <FormControl isRequired>
-                  <FormLabel fontSize="sm" color={mutedText}>Amount ({localStorage.getItem("currency") || "$"})</FormLabel>
+                  <FormLabel fontSize="sm" color={mutedText}>{t("expense.amount")} ({localStorage.getItem("currency") || "$"})</FormLabel>
                   <InputGroup size="md">
                     <InputLeftElement pointerEvents="none"><FiDollarSign color="gray.400" /></InputLeftElement>
                     <Input type="number" step="0.01" min="0" bg={bg} value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} />
@@ -291,20 +313,20 @@ function Expense() {
                 </FormControl>
                 
                 <FormControl isRequired>
-                  <FormLabel fontSize="sm" color={mutedText}>Date</FormLabel>
+                  <FormLabel fontSize="sm" color={mutedText}>{t("expense.date")}</FormLabel>
                   <Input size="sm" type="date" bg={bg} value={form.expense_date} onChange={e => setForm({ ...form, expense_date: e.target.value })} />
                 </FormControl>
               </SimpleGrid>
 
               <FormControl mb={4}>
-                <FormLabel fontSize="sm" color={mutedText}>Notes / Reference #</FormLabel>
-                <Input size="sm" bg={bg} placeholder="Optional tracking details" value={form.reference_number || form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
+                <FormLabel fontSize="sm" color={mutedText}>{t("expense.notes")}</FormLabel>
+                <Input size="sm" bg={bg} placeholder={t("expense.opt_notes")} value={form.reference_number || form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
               </FormControl>
 
             </ModalBody>
             <ModalFooter>
-              <Button size="sm" variant="ghost" mr={3} onClick={() => setIsOpen(false)}>Cancel</Button>
-              <Button size="sm" colorScheme="blue" type="submit">Save Record</Button>
+              <Button size="sm" variant="ghost" mr={3} onClick={() => setIsOpen(false)}>{t("common.cancel")}</Button>
+              <Button size="sm" colorScheme="blue" type="submit">{t("expense.save")}</Button>
             </ModalFooter>
           </form>
         </ModalContent>
@@ -314,11 +336,11 @@ function Expense() {
       <AlertDialog isOpen={!!deleteId} leastDestructiveRef={cancelRef} onClose={() => setDeleteId(null)} isCentered>
         <AlertDialogOverlay bg="blackAlpha.600">
           <AlertDialogContent bg={bg}>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold">Delete Expense</AlertDialogHeader>
-            <AlertDialogBody>Are you sure? This action cannot be undone.</AlertDialogBody>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">{t("expense.del_title")}</AlertDialogHeader>
+            <AlertDialogBody>{t("expense.del_desc")}</AlertDialogBody>
             <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={() => setDeleteId(null)}>Cancel</Button>
-              <Button colorScheme="red" onClick={handleDelete} ml={3}>Delete</Button>
+              <Button ref={cancelRef} onClick={() => setDeleteId(null)}>{t("common.cancel")}</Button>
+              <Button colorScheme="red" onClick={handleDelete} ml={3}>{t("common.delete")}</Button>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialogOverlay>

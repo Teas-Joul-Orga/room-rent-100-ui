@@ -45,7 +45,7 @@ const DashboardLayout = () => {
   useGlobalNotifications(userDetails);
   
   // Outer app background matches Blade app bg-gray-100 or gray-900 (dark mode)
-  const appBg = useColorModeValue("gray.100", "gray.900");
+  const appBg = useColorModeValue("gray.100", "#0d1117");
 
   return (
     <Flex h="100vh" bg={appBg}>

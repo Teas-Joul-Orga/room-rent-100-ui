@@ -34,10 +34,13 @@ import {
   useDisclosure,
   VStack,
 } from "@chakra-ui/react";
+import { useTranslation } from "react-i18next";
 import { FiArrowUp, FiArrowDown, FiPlus, FiEye, FiEdit2, FiTrash2, FiCalendar } from "react-icons/fi";
+import { exportToExcel } from "../../utils/exportExcel";
 
 export default function Leases() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // Data
   const [leases, setLeases] = useState([]);
@@ -86,14 +89,14 @@ export default function Leases() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const bg = useColorModeValue("gray.50", "gray.900");
-  const cardBg = useColorModeValue("white", "gray.800");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const bg = useColorModeValue("gray.50", "#0d1117");
+  const cardBg = useColorModeValue("white", "#161b22");
+  const borderColor = useColorModeValue("gray.200", "#30363d");
   
   const textColor = useColorModeValue("gray.800", "white");
   const mutedText = useColorModeValue("gray.500", "gray.400");
   const thColor = useColorModeValue("gray.500", "gray.400");
-  const trHoverBg = useColorModeValue("gray.50", "gray.700");
+  const trHoverBg = useColorModeValue("gray.50", "#1c2333");
   const expiringBgRow = useColorModeValue("orange.50", "orange.900");
 
   const fetchData = async () => {
@@ -342,11 +345,11 @@ export default function Leases() {
   const getStatusBadge = (status) => {
     switch (status) {
       case "active":
-        return { bg: "green.100", color: "green.700", label: "Active" };
+        return { bg: "green.100", color: "green.700", label: t("lease.active") };
       case "expired":
-        return { bg: "red.100", color: "red.700", label: "Expired" };
+        return { bg: "red.100", color: "red.700", label: t("lease.expired") };
       case "terminated":
-        return { bg: "gray.200", color: "gray.700", label: "Terminated" };
+        return { bg: "gray.200", color: "gray.700", label: t("lease.terminated") };
       default:
         return { bg: "gray.100", color: "gray.600", label: status };
     }
@@ -404,9 +407,9 @@ export default function Leases() {
           wrap="wrap"
         >
           <FormControl flex="2" minW="200px">
-            <FormLabel fontSize="xs" fontWeight="semibold" color={thColor} mb={1}>Search</FormLabel>
+            <FormLabel fontSize="xs" fontWeight="semibold" color={thColor} mb={1}>{t("lease.tenant")} / {t("lease.room")}</FormLabel>
             <Input
-              placeholder="Search tenant, room, or status..."
+              placeholder={t("lease.search_placeholder")}
               value={search}
               size="sm"
               borderRadius="md"
@@ -415,22 +418,22 @@ export default function Leases() {
           </FormControl>
 
           <FormControl flex="1" minW="140px">
-            <FormLabel fontSize="xs" fontWeight="semibold" color={thColor} mb={1}>Status</FormLabel>
+            <FormLabel fontSize="xs" fontWeight="semibold" color={thColor} mb={1}>{t("lease.status")}</FormLabel>
             <Select 
               value={statusFilter} 
               size="sm"
               borderRadius="md"
               onChange={(e) => setStatusFilter(e.target.value)}
             >
-              <option value="">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="expired">Expired</option>
-              <option value="terminated">Terminated</option>
+              <option value="">{t("lease.all_status")}</option>
+              <option value="active">{t("lease.active")}</option>
+              <option value="expired">{t("lease.expired")}</option>
+              <option value="terminated">{t("lease.terminated")}</option>
             </Select>
           </FormControl>
 
           <FormControl flex="1.5" minW="240px">
-            <FormLabel fontSize="xs" fontWeight="semibold" color={thColor} mb={1}>Date Range</FormLabel>
+            <FormLabel fontSize="xs" fontWeight="semibold" color={thColor} mb={1}>{t("lease.date_range")}</FormLabel>
             <Flex align="center" gap={2}>
               <Input
                 type="date"
@@ -439,7 +442,7 @@ export default function Leases() {
                 borderRadius="md"
                 onChange={(e) => setStartsAfter(e.target.value)}
               />
-              <Text fontSize="xs" color="gray.400" flexShrink={0}>to</Text>
+              <Text fontSize="xs" color="gray.400" flexShrink={0}>{t("lease.to")}</Text>
               <Input
                 type="date"
                 value={endsBefore}
@@ -454,19 +457,37 @@ export default function Leases() {
           <Flex gap={2} flexShrink={0} align="flex-end" pb="1px">
             {selectedIds.length > 0 && (
               <Button size="sm" colorScheme="purple" borderRadius="md" onClick={handleRenew}>
-                Renew {selectedIds.length > 1 ? `(${selectedIds.length})` : ""}
+                {t("lease.renew")} {selectedIds.length > 1 ? `(${selectedIds.length})` : ""}
               </Button>
             )}
             {selectedIds.length >= 2 && (
               <Button size="sm" colorScheme="red" borderRadius="md" leftIcon={<FiTrash2 />} onClick={handleBulkDelete}>
-                Delete
+                {t("lease.delete")}
               </Button>
             )}
-            <Button size="sm" colorScheme="green" borderRadius="md" px={5} onClick={() => alert("Export functionality not implemented yet.")}>
-              Export
+            <Button
+              size="sm"
+              colorScheme="green"
+              borderRadius="md"
+              px={5}
+              onClick={() => {
+                const dataToExport = processed.map(l => ({
+                  "Tenant": l.tenant?.name || "Unknown",
+                  "Room": l.room?.name || "Unknown",
+                  "Rent": Number(l.rent_amount),
+                  "Security Deposit": Number(l.security_deposit || 0),
+                  "Start Date": l.start_date,
+                  "End Date": l.end_date,
+                  "Status": l.status,
+                  "Created At": new Date(l.created_at).toLocaleDateString()
+                }));
+                exportToExcel(dataToExport, "All_Leases_" + new Date().toISOString().split('T')[0]);
+              }}
+            >
+              {t("lease.export")}
             </Button>
             <Button size="sm" colorScheme="blue" borderRadius="md" leftIcon={<FiPlus />} onClick={() => navigate("/dashboard/lease/createnewlease")}>
-              New
+              {t("lease.new")}
             </Button>
           </Flex>
         </Flex>
@@ -498,18 +519,18 @@ export default function Leases() {
                     }}
                   />
                 </Th>
-                <Th fontSize="10px" color={thColor}>TENANT</Th>
-                <Th fontSize="10px" color={thColor}>ROOM</Th>
+                <Th fontSize="10px" color={thColor}>{t("lease.tenant")}</Th>
+                <Th fontSize="10px" color={thColor}>{t("lease.room")}</Th>
                 <Th fontSize="10px" color={thColor} cursor="pointer" onClick={() => handleSort('rent')}>
-                  RENT <SortIcon field="rent" />
+                  {t("lease.rent")} <SortIcon field="rent" />
                 </Th>
                 <Th fontSize="10px" color={thColor} cursor="pointer" onClick={() => handleSort('end_date')}>
-                  PERIOD <SortIcon field="end_date" />
+                  {t("lease.period")} <SortIcon field="end_date" />
                 </Th>
                 <Th fontSize="10px" color={thColor} cursor="pointer" onClick={() => handleSort('status')}>
-                  STATUS <SortIcon field="status" />
+                  {t("lease.status")} <SortIcon field="status" />
                 </Th>
-                <Th fontSize="10px" color={thColor} textAlign="right">ACTIONS</Th>
+                <Th fontSize="10px" color={thColor} textAlign="right">{t("lease.actions")}</Th>
               </Tr>
             </Thead>
 
@@ -584,7 +605,7 @@ export default function Leases() {
                               py={0.5} 
                               borderRadius="md"
                             >
-                              EXPIRING SOON
+                              {t("lease.expiring_soon")}
                             </Badge>
                           )}
                         </Flex>
@@ -664,8 +685,8 @@ export default function Leases() {
                 })
               ) : (
                 <Tr>
-                  <Td colSpan={7} textAlign="center" py={12} color={mutedText}>
-                    No leases found matching your search.
+                   <Td colSpan={7} textAlign="center" py={12} color={mutedText}>
+                    {t("lease.no_leases")}
                   </Td>
                 </Tr>
               )}
@@ -678,15 +699,15 @@ export default function Leases() {
         {totalPages > 1 && (
           <Flex justify="space-between" align="center" mt={4} px={2} flexShrink={0}>
             <Text fontSize="sm" color={mutedText}>
-              Showing {firstIndex + 1} to {Math.min(lastIndex, processed.length)} of {processed.length} entries
+              {t("lease.showing_entries", { first: firstIndex + 1, last: Math.min(lastIndex, processed.length), total: processed.length })}
             </Text>
             <Flex gap={2}>
               <Button size="sm" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} isDisabled={currentPage === 1}>
-                Prev
+                {t("lease.prev")}
               </Button>
-              <Text fontSize="sm" alignSelf="center" mx={2}>Page {currentPage} of {totalPages}</Text>
+              <Text fontSize="sm" alignSelf="center" mx={2}>{t("lease.page_info", { current: currentPage, total: totalPages })}</Text>
               <Button size="sm" onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} isDisabled={currentPage === totalPages}>
-                Next
+                {t("lease.next")}
               </Button>
             </Flex>
           </Flex>

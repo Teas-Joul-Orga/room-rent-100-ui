@@ -51,6 +51,7 @@ import CreateAccount from "./page/tenant/CreateAccount";
 
 //Users
 import AllUsers from "./page/user/AllUsers";
+import Profile from "./page/user/Profile";
 
 //Payment
 import Payment from "./page/payment/Payment";
@@ -120,6 +121,7 @@ function App() {
             <Route path="users">
               <Route index element={<AllUsers />} />
             </Route>
+            <Route path="profile" element={<Profile />} />
 
             {/* Furniture  */}
             <Route path="furniture">

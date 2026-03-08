@@ -30,9 +30,9 @@ function Notification() {
   const token = localStorage.getItem("token");
   const toast = useToast();
 
-  const bg = useColorModeValue("white", "gray.800");
-  const borderColor = useColorModeValue("gray.100", "gray.700");
-  const hoverBg = useColorModeValue("gray.50", "gray.700");
+  const bg = useColorModeValue("white", "#161b22");
+  const borderColor = useColorModeValue("gray.100", "#30363d");
+  const hoverBg = useColorModeValue("gray.50", "#1c2333");
   const unreadBg = useColorModeValue("blue.50", "blue.900");
 
   const fetchNotifications = async () => {
@@ -143,7 +143,7 @@ function Notification() {
       overflow="hidden"
     >
       {/* Header */}
-      <Flex align="center" justify="space-between" px={4} py={3} borderBottom="1px" borderColor={borderColor} bg={useColorModeValue("gray.50", "gray.900")}>
+      <Flex align="center" justify="space-between" px={4} py={3} borderBottom="1px" borderColor={borderColor} bg={useColorModeValue("gray.50", "#0d1117")}>
         <HStack>
           <Icon as={IoNotificationsOutline} boxSize={5} color="blue.500" />
           <Text fontWeight="bold">Notifications</Text>
@@ -190,7 +190,7 @@ function Notification() {
                     w={8} 
                     h={8} 
                     rounded="full" 
-                    bg={useColorModeValue("white", "gray.700")} 
+                    bg={useColorModeValue("white", "#30363d")} 
                     align="center" 
                     justify="center" 
                     shadow="sm"
@@ -222,7 +222,7 @@ function Notification() {
       </VStack>
 
       {/* Footer */}
-      <Box px={4} py={2} borderTop="1px" borderColor={borderColor} textAlign="center" bg={useColorModeValue("gray.50", "gray.900")}>
+      <Box px={4} py={2} borderTop="1px" borderColor={borderColor} textAlign="center" bg={useColorModeValue("gray.50", "#0d1117")}>
         <Text fontSize="xs" color="gray.500" fontWeight="medium">
           Showing latest {notifications.length} notifications
         </Text>

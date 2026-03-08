@@ -31,7 +31,7 @@ export default function TenantDashboard() {
   const navigate = useNavigate();
 
   const { colorMode } = useColorMode();
-  const cardBg = colorMode === "light" ? "white" : "gray.800";
+  const cardBg = colorMode === "light" ? "white" : "#161b22";
   const cardBorder = colorMode === "light" ? "gray.100" : "gray.700";
   const textColor = colorMode === "light" ? "gray.900" : "white";
   const mutedTextColor = colorMode === "light" ? "gray.500" : "gray.400";
@@ -159,7 +159,7 @@ export default function TenantDashboard() {
             <Button
               mt={4}
               w="full"
-              bg={colorMode === 'light' ? "gray.900" : "gray.700"}
+              bg={colorMode === 'light' ? "#161b22" : "#1c2333"}
               color="white"
               _hover={{ bg: colorMode === 'light' ? "black" : "gray.600" }}
               fontSize="xs"

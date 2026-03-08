@@ -81,12 +81,12 @@ export default function AddBill() {
   });
 
   // Theme
-  const bg = useColorModeValue("gray.50", "gray.900");
-  const cardBg = useColorModeValue("white", "gray.800");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const bg = useColorModeValue("gray.50", "#0d1117");
+  const cardBg = useColorModeValue("white", "#161b22");
+  const borderColor = useColorModeValue("gray.200", "#30363d");
   const textColor = useColorModeValue("gray.800", "white");
   const mutedText = useColorModeValue("gray.500", "gray.400");
-  const inputBg = useColorModeValue("white", "gray.700");
+  const inputBg = useColorModeValue("white", "#30363d");
   const hoverBg = useColorModeValue("blue.50", "blue.900");
 
   // Fetch rooms on mount
@@ -439,7 +439,7 @@ export default function AddBill() {
                   </Box>
 
                   {/* Status */}
-                  <Box p={6} bg={useColorModeValue("gray.50", "gray.700/50")} borderRadius="xl" border="1px solid" borderColor={borderColor}>
+                  <Box p={6} bg={useColorModeValue("gray.50", "#31363f/50")} borderRadius="xl" border="1px solid" borderColor={borderColor}>
                     <Flex align="center" gap={2} mb={4}>
                       <Icon as={FiCalendar} color={mutedText} />
                       <Text fontWeight="black" fontSize="sm" color={textColor}>Payment Status</Text>
@@ -462,7 +462,7 @@ export default function AddBill() {
 
                   {/* Notes */}
                   {formData.type !== "other" && (
-                    <Box p={6} bg={useColorModeValue("gray.50", "gray.700/50")} borderRadius="xl" border="1px solid" borderColor={borderColor}>
+                    <Box p={6} bg={useColorModeValue("gray.50", "#31363f/50")} borderRadius="xl" border="1px solid" borderColor={borderColor}>
                       <Flex align="center" gap={2} mb={4}>
                         <Icon as={FiFileText} color={mutedText} />
                         <Text fontWeight="black" fontSize="sm" color={textColor}>Notes (Optional)</Text>

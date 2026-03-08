@@ -4,6 +4,7 @@ import {
   Stat, StatLabel, StatNumber, StatHelpText, StatArrow, Badge,
   Table, Thead, Tbody, Tr, Th, Td, TableContainer, Icon, Grid, GridItem
 } from "@chakra-ui/react";
+import { useTranslation } from "react-i18next";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell
@@ -26,6 +27,7 @@ const fmt = (n) => {
 const COLORS = ['#3182CE', '#38A169', '#E53E3E', '#D69E2E', '#805AD5'];
 
 function Dashboard() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [yearFilter, setYearFilter] = useState(dayjs().format('YYYY'));
   
@@ -35,14 +37,18 @@ function Dashboard() {
   const [trendData, setTrendData] = useState([]);
   const [maintenance, setMaintenance] = useState(null);
 
-  const bg = useColorModeValue("white", "gray.800");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const bg = useColorModeValue("white", "#161b22");
+  const borderColor = useColorModeValue("gray.200", "#30363d");
   const textColor = useColorModeValue("gray.800", "white");
   const mutedText = useColorModeValue("gray.500", "gray.400");
   
   // Custom colors that were used inline below
-  const gray50_gray700 = useColorModeValue("gray.50", "gray.700");
-  const blue50_gray700 = useColorModeValue("blue.50", "gray.700");
+  const gray50_gray700 = useColorModeValue("gray.50", "#1c2333");
+  const blue50_gray900 = useColorModeValue("blue.50", "#0e2135");
+  const red50_gray900 = useColorModeValue("red.50", "#2d1215");
+  const green50_gray900 = useColorModeValue("green.50", "#0c2d1b");
+  const purple50_gray900 = useColorModeValue("purple.50", "#211340");
+  const blue50_gray700 = useColorModeValue("blue.50", "#30363d");
   
   const headers = () => {
     const token = localStorage.getItem("token");
@@ -107,10 +113,10 @@ function Dashboard() {
       <Flex direction={{ base: "column", sm: "row" }} justify="space-between" align={{ base: "flex-start", sm: "center" }} mb={6} gap={{ base: 4, sm: 0 }}>
         <Box>
           <Text fontSize="2xl" fontWeight="black" letterSpacing="tight" color={textColor}>
-            Dashboard Overview
+            {t("dashboard.overview")}
           </Text>
           <Text fontSize="sm" color={mutedText}>
-            Financial and operational oversight ({yearFilter}).
+            {t("dashboard.financial_oversight", { year: yearFilter })}
           </Text>
         </Box>
         <Select size="sm" w="120px" bg={bg} value={yearFilter} onChange={e => setYearFilter(e.target.value)}>
@@ -122,53 +128,53 @@ function Dashboard() {
       <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6} mb={8}>
         <Stat bg={bg} p={5} borderRadius="xl" border="1px solid" borderColor={borderColor} shadow="sm">
           <Flex align="center" gap={3} mb={2}>
-            <Flex w="40px" h="40px" bg="blue.50" color="blue.600" borderRadius="full" justify="center" align="center">
+            <Flex w="40px" h="40px" bg={blue50_gray900} color="blue.600" borderRadius="full" justify="center" align="center">
               <Icon as={FiDollarSign} boxSize={5} />
             </Flex>
-            <StatLabel fontSize="sm" fontWeight="bold" color={mutedText} textTransform="uppercase">Gross Revenue</StatLabel>
+            <StatLabel fontSize="sm" fontWeight="bold" color={mutedText} textTransform="uppercase">{t("dashboard.gross_revenue")}</StatLabel>
           </Flex>
           <StatNumber fontSize="3xl" fontWeight="black" color={textColor}>{fmt(financials.revenueCollected)}</StatNumber>
           <StatHelpText m={0} mt={1} fontSize="sm" fontWeight="bold" color="green.500">
-            Collected this year
+            {t("dashboard.collected_this_year")}
           </StatHelpText>
         </Stat>
 
         <Stat bg={bg} p={5} borderRadius="xl" border="1px solid" borderColor={borderColor} shadow="sm">
           <Flex align="center" gap={3} mb={2}>
-            <Flex w="40px" h="40px" bg="red.50" color="red.600" borderRadius="full" justify="center" align="center">
+            <Flex w="40px" h="40px" bg={red50_gray900} color="red.600" borderRadius="full" justify="center" align="center">
               <Icon as={FiTrendingDown} boxSize={5} />
             </Flex>
-            <StatLabel fontSize="sm" fontWeight="bold" color={mutedText} textTransform="uppercase">Total Expenses</StatLabel>
+            <StatLabel fontSize="sm" fontWeight="bold" color={mutedText} textTransform="uppercase">{t("dashboard.total_expenses")}</StatLabel>
           </Flex>
           <StatNumber fontSize="3xl" fontWeight="black" color={textColor}>{fmt(financials.totalExpenses)}</StatNumber>
           <StatHelpText m={0} mt={1} fontSize="sm" fontWeight="bold" color="red.500">
-            {financials.revenueCollected > 0 ? ((financials.totalExpenses / financials.revenueCollected) * 100).toFixed(1) : 0}% of revenue
+            {financials.revenueCollected > 0 ? ((financials.totalExpenses / financials.revenueCollected) * 100).toFixed(1) : 0}{t("dashboard.of_revenue")}
           </StatHelpText>
         </Stat>
 
         <Stat bg={bg} p={5} borderRadius="xl" border="1px solid" borderColor={borderColor} shadow="sm">
           <Flex align="center" gap={3} mb={2}>
-            <Flex w="40px" h="40px" bg="green.50" color="green.600" borderRadius="full" justify="center" align="center">
+            <Flex w="40px" h="40px" bg={green50_gray900} color="green.600" borderRadius="full" justify="center" align="center">
               <Icon as={FiTrendingUp} boxSize={5} />
             </Flex>
-            <StatLabel fontSize="sm" fontWeight="bold" color={mutedText} textTransform="uppercase">Net Profit</StatLabel>
+            <StatLabel fontSize="sm" fontWeight="bold" color={mutedText} textTransform="uppercase">{t("dashboard.net_profit")}</StatLabel>
           </Flex>
           <StatNumber fontSize="3xl" fontWeight="black" color={textColor}>{fmt(financials.netProfit)}</StatNumber>
           <StatHelpText m={0} mt={1} fontSize="sm" fontWeight="bold" color="gray.500">
-            Profit margin: {financials.revenueCollected > 0 ? ((financials.netProfit / financials.revenueCollected) * 100).toFixed(1) : 0}%
+            {t("dashboard.profit_margin")}: {financials.revenueCollected > 0 ? ((financials.netProfit / financials.revenueCollected) * 100).toFixed(1) : 0}%
           </StatHelpText>
         </Stat>
 
         <Stat bg={bg} p={5} borderRadius="xl" border="1px solid" borderColor={borderColor} shadow="sm">
           <Flex align="center" gap={3} mb={2}>
-            <Flex w="40px" h="40px" bg="purple.50" color="purple.600" borderRadius="full" justify="center" align="center">
+            <Flex w="40px" h="40px" bg={purple50_gray900} color="purple.600" borderRadius="full" justify="center" align="center">
               <Icon as={FiHome} boxSize={5} />
             </Flex>
-            <StatLabel fontSize="sm" fontWeight="bold" color={mutedText} textTransform="uppercase">Occupancy Rate</StatLabel>
+            <StatLabel fontSize="sm" fontWeight="bold" color={mutedText} textTransform="uppercase">{t("dashboard.occupancy_rate")}</StatLabel>
           </Flex>
           <StatNumber fontSize="3xl" fontWeight="black" color={textColor}>{occupancy.occupancyRate.toFixed(1)}%</StatNumber>
           <StatHelpText m={0} mt={1} fontSize="sm" fontWeight="bold" color="gray.500">
-            {occupancy.occupiedRooms} / {occupancy.totalRooms} Units Occupied
+            {t("dashboard.units_occupied", { occupied: occupancy.occupiedRooms, total: occupancy.totalRooms })}
           </StatHelpText>
         </Stat>
       </SimpleGrid>
@@ -178,7 +184,7 @@ function Dashboard() {
         <GridItem>
           {/* P&L Bar Chart */}
           <Box bg={bg} p={6} borderRadius="xl" border="1px solid" borderColor={borderColor} shadow="sm" h="400px">
-            <Text fontSize="md" fontWeight="bold" color={textColor} mb={6} textTransform="uppercase">Revenue vs Expenses ({yearFilter})</Text>
+            <Text fontSize="md" fontWeight="bold" color={textColor} mb={6} textTransform="uppercase">{t("dashboard.revenue_vs_expenses", { year: yearFilter })}</Text>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={trendData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={borderColor} />
@@ -213,7 +219,7 @@ function Dashboard() {
         <GridItem>
           {/* Occupancy Pie Chart */}
           <Box bg={bg} p={6} borderRadius="xl" border="1px solid" borderColor={borderColor} shadow="sm" h="400px">
-            <Text fontSize="md" fontWeight="bold" color={textColor} mb={2} textTransform="uppercase">Current Occupancy</Text>
+            <Text fontSize="md" fontWeight="bold" color={textColor} mb={2} textTransform="uppercase">{t("dashboard.current_occupancy")}</Text>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -250,16 +256,16 @@ function Dashboard() {
             <Flex p={4} bg={gray50_gray700} align="center" justify="space-between">
               <Flex align="center" gap={2}>
                 <Icon as={FiTool} color="orange.500" />
-                <Text fontSize="sm" fontWeight="bold" textTransform="uppercase" color={textColor}>Highest Maintenance Cost (By Unit)</Text>
+                <Text fontSize="sm" fontWeight="bold" textTransform="uppercase" color={textColor}>{t("dashboard.highest_maintenance")}</Text>
               </Flex>
-              <Badge colorScheme="orange">{maintenance?.totalRequests || 0} Requests this year</Badge>
+              <Badge colorScheme="orange">{t("dashboard.requests_this_year", { count: maintenance?.totalRequests || 0 })}</Badge>
             </Flex>
             <TableContainer>
               <Table size="md" variant="simple">
                 <Thead>
                   <Tr>
-                    <Th>Unit Name</Th>
-                    <Th isNumeric>Total Cost</Th>
+                    <Th>{t("dashboard.unit_name")}</Th>
+                    <Th isNumeric>{t("dashboard.total_cost")}</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
@@ -271,7 +277,7 @@ function Dashboard() {
                       </Tr>
                     ))
                   ) : (
-                    <Tr><Td colSpan={2} textAlign="center" py={6} color={mutedText}>No maintenance cost data recorded.</Td></Tr>
+                    <Tr><Td colSpan={2} textAlign="center" py={6} color={mutedText}>{t("dashboard.no_maintenance")}</Td></Tr>
                   )}
                 </Tbody>
               </Table>
@@ -283,29 +289,29 @@ function Dashboard() {
            {/* Utility Efficiency or Lease Renewals Focus could go here. Doing Lease Renewals */}
            <Box bg={bg} borderRadius="xl" border="1px solid" borderColor={borderColor} shadow="sm" overflow="hidden">
             <Flex p={4} bg={blue50_gray700} align="center" justify="space-between">
-              <Text fontSize="sm" fontWeight="bold" textTransform="uppercase" color={textColor}>Upcoming Lease Expirations</Text>
-              <Badge colorScheme="red">{occupancy?.expiringSoon?.length || 0} Expiring Soon</Badge>
+              <Text fontSize="sm" fontWeight="bold" textTransform="uppercase" color={textColor}>{t("dashboard.upcoming_expirations")}</Text>
+              <Badge colorScheme="red">{t("dashboard.expiring_soon", { count: occupancy?.expiringSoon?.length || 0 })}</Badge>
             </Flex>
             <TableContainer>
               <Table size="md" variant="simple">
                 <Thead>
                   <Tr>
-                    <Th>Tenant</Th>
-                    <Th>Unit</Th>
-                    <Th isNumeric>End Date</Th>
+                    <Th>{t("dashboard.tenant")}</Th>
+                    <Th>{t("dashboard.unit")}</Th>
+                    <Th isNumeric>{t("dashboard.end_date")}</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
                   {occupancy?.expiringSoon && occupancy.expiringSoon.length > 0 ? (
                     occupancy.expiringSoon.map((lease) => (
                       <Tr key={lease.id}>
-                        <Td fontSize="sm" fontWeight="bold" color={textColor}>{lease.tenant?.first_name} {lease.tenant?.last_name}</Td>
+                        <Td fontSize="sm" fontWeight="bold" color={textColor}>{lease.tenant?.name}</Td>
                         <Td fontSize="sm" fontWeight="bold" color="blue.500">{lease.room?.name}</Td>
                         <Td isNumeric fontSize="sm" fontWeight="bold" color="red.500">{dayjs(lease.end_date).format('MMM D, YYYY')}</Td>
                       </Tr>
                     ))
                   ) : (
-                    <Tr><Td colSpan={3} textAlign="center" py={6} color={mutedText}>No leases expiring within 30 days.</Td></Tr>
+                    <Tr><Td colSpan={3} textAlign="center" py={6} color={mutedText}>{t("dashboard.no_expirations")}</Td></Tr>
                   )}
                 </Tbody>
               </Table>

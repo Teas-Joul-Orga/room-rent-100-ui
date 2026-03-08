@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { AnimatePresence } from "framer-motion";
 import {
   Box,
@@ -19,6 +20,7 @@ import {
   Checkbox,
   Select,
   Text,
+  HStack,
   useColorModeValue,
   IconButton,
   Tooltip,
@@ -27,10 +29,12 @@ import {
   Spinner,
 } from "@chakra-ui/react";
 import toast from "react-hot-toast";
-import { FiEdit2, FiTrash2, FiEye, FiPlus, FiUsers, FiClock, FiCheckCircle, FiLink, FiAlertTriangle, FiUserPlus } from "react-icons/fi";
+import { FiEdit2, FiTrash2, FiEye, FiPlus, FiUsers, FiClock, FiCheckCircle, FiLink, FiAlertTriangle, FiUserPlus, FiDownload } from "react-icons/fi";
+import { exportToExcel } from "../../utils/exportExcel";
 
 export default function AllTenants() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [tenants, setTenants] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -70,9 +74,9 @@ export default function AllTenants() {
   useEffect(() => {
     const calculatePerPage = () => {
       // 100vh - 560px approx for extra summary cards row + toolbar + pagination
-      const availableHeight = window.innerHeight - 560;
-      let calculated = Math.floor(availableHeight / 60);
-      if (calculated < 3) calculated = 3;
+      const availableHeight = window.innerHeight - 580;
+      let calculated = Math.floor(availableHeight / 72);
+      if (calculated < 5) calculated = 5;
       setRowsPerPage(calculated);
     };
     calculatePerPage();
@@ -295,31 +299,59 @@ export default function AllTenants() {
     }
   };
   // Colors
-  const bg = useColorModeValue("sky.50", "gray.900");
-  const cardBg = useColorModeValue("white", "gray.800");
+  const bg = useColorModeValue("sky.50", "#0d1117");
+  const cardBg = useColorModeValue("white", "#161b22");
   const textColor = useColorModeValue("gray.800", "white");
   const mutedText = useColorModeValue("gray.500", "gray.400");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
-  const tableHeaderBg = useColorModeValue("sky.100", "gray.700");
-  const hoverBg = useColorModeValue("sky.50", "gray.700");
+  const borderColor = useColorModeValue("gray.200", "#30363d");
+  const tableHeaderBg = useColorModeValue("sky.100", "#30363d");
+  const hoverBg = useColorModeValue("sky.50", "#30363d");
+
+  const statBlue = useColorModeValue("sky.700", "blue.300");
+  const statYellow = useColorModeValue("yellow.600", "yellow.400");
+  const statGreen = useColorModeValue("green.600", "green.400");
 
   return (
     <Box p={6} bg={bg} h={{ base: "auto", lg: "calc(100vh - 140px)" }} overflow="hidden" display="flex" flexDirection="column">
       {/* ===== HEADER ===== */}
       <Flex direction={{ base: "column", sm: "row" }} align={{ sm: "center" }} justify="space-between" gap={4} mb={6} flexShrink={0}>
         <Heading size="lg" color={useColorModeValue("sky.900", "white")}>
-          Tenants Management
+          {t("sidebar.tenant_mgmt")}
         </Heading>
 
-        <Button
-          display={{ base: "none", sm: "flex" }}
-          leftIcon={<FiPlus />}
-          colorScheme="blue"
-          onClick={() => navigate("/dashboard/tenants/addtenant")}
-          shadow="sm"
-        >
-          Add New Tenant
-        </Button>
+        <HStack spacing={3}>
+          <Button
+            display={{ base: "none", sm: "flex" }}
+            leftIcon={<FiPlus />}
+            colorScheme="blue"
+            onClick={() => navigate("/dashboard/tenants/addtenant")}
+            shadow="sm"
+          >
+            {t("tenant.add_new")}
+          </Button>
+
+          <Button
+            display={{ base: "none", sm: "flex" }}
+            leftIcon={<FiDownload />}
+            colorScheme="green"
+            variant="outline"
+            onClick={() => {
+              const dataToExport = tenants.map(t => ({
+                "Name": t.name,
+                "Email": t.email,
+                "Phone": t.phone,
+                "Occupation": t.occupation || t.job,
+                "DOB": t.dob || "N/A",
+                "Status": !t.user_id ? "Pending" : "Linked",
+                "Created At": new Date(t.created_at).toLocaleDateString()
+              }));
+              exportToExcel(dataToExport, "All_Tenants_" + new Date().toISOString().split('T')[0]);
+            }}
+            shadow="sm"
+          >
+            Export Excel
+          </Button>
+        </HStack>
 
         {/* Mobile FAB */}
         <IconButton
@@ -348,8 +380,8 @@ export default function AllTenants() {
         <SimpleGrid columns={{ base: 1, sm: 3 }} spacing={4} mb={6} flexShrink={0}>
         <Flex bg={cardBg} borderRadius="xl" shadow="sm" p={5} align="center" justify="space-between">
           <Box>
-            <Text fontSize="sm" color={mutedText}>Total Tenants</Text>
-            <Heading size="lg" color={useColorModeValue("sky.700", "blue.300")}>
+            <Text fontSize="sm" color={mutedText}>{t("tenant.total")}</Text>
+            <Heading size="lg" color={statBlue}>
               {tenants.length}
             </Heading>
           </Box>
@@ -358,9 +390,9 @@ export default function AllTenants() {
 
         <Flex bg={cardBg} borderRadius="xl" shadow="sm" p={5} align="center" justify="space-between">
           <Box>
-            <Text fontSize="sm" color={mutedText}>Pending Accounts</Text>
-            <Heading size="lg" color={useColorModeValue("yellow.600", "yellow.400")}>
-              {tenants.filter((t) => !t.user_id).length}
+            <Text fontSize="sm" color={mutedText}>{t("tenant.pending")}</Text>
+            <Heading size="lg" color={statYellow}>
+              {tenants.filter((tenantObj) => !tenantObj.user_id).length}
             </Heading>
           </Box>
           <Icon as={FiClock} boxSize={8} color="yellow.500" />
@@ -368,9 +400,9 @@ export default function AllTenants() {
 
         <Flex bg={cardBg} borderRadius="xl" shadow="sm" p={5} align="center" justify="space-between">
           <Box>
-            <Text fontSize="sm" color={mutedText}>Linked Accounts</Text>
-            <Heading size="lg" color={useColorModeValue("green.600", "green.400")}>
-              {tenants.filter((t) => t.user_id).length}
+            <Text fontSize="sm" color={mutedText}>{t("tenant.linked")}</Text>
+            <Heading size="lg" color={statGreen}>
+              {tenants.filter((tenantObj) => tenantObj.user_id).length}
             </Heading>
           </Box>
           <Icon as={FiCheckCircle} boxSize={8} color="green.500" />
@@ -380,7 +412,7 @@ export default function AllTenants() {
       {/* ===== SEARCH ===== */}
       <Box bg={cardBg} p={4} borderRadius="xl" shadow="sm" mb={6} flexShrink={0}>
         <Input
-          placeholder="Search tenant name..."
+          placeholder={t("tenant.search_name")}
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -393,8 +425,8 @@ export default function AllTenants() {
       </Box>
 
       {/* ===== TABLE ===== */}
-      <TableContainer bg={cardBg} borderRadius="xl" shadow="sm" mb={4} display="flex" flexDirection="column" flex={1} minH={0} overflow="hidden">
-        <Box overflow="hidden" flex={1}>
+      <TableContainer bg={cardBg} borderRadius="xl" shadow="sm" mb={4} display="flex" flexDirection="column" flex={1} minH={0} overflowY="auto">
+        <Box overflowX="auto" flex={1}>
           <Table variant="simple">
             <Thead bg={tableHeaderBg} position="sticky" top={0} zIndex={2}>
               <Tr>
@@ -402,11 +434,11 @@ export default function AllTenants() {
                 <Checkbox
                   isChecked={
                     paginatedTenants.length > 0 &&
-                    paginatedTenants.every((t) => selectedIds.includes(t.uid))
+                    paginatedTenants.every((tenantItem) => selectedIds.includes(tenantItem.uid))
                   }
                   onChange={(e) => {
                     if (e.target.checked) {
-                      setSelectedIds(paginatedTenants.map((t) => t.uid));
+                      setSelectedIds(paginatedTenants.map((tenantItem) => tenantItem.uid));
                     } else {
                       setSelectedIds([]);
                     }
@@ -415,29 +447,29 @@ export default function AllTenants() {
                 />
               </Th>
 
-              <Th>Photo</Th>
-              <Th>Name</Th>
-              <Th>Email</Th>
-              <Th>Phone</Th>
-              <Th>Job</Th>
-              <Th>Date of Birth</Th>
-              <Th>Status</Th>
-              <Th textAlign="center">Action</Th>
+              <Th>{t("tenant.photo")}</Th>
+              <Th>{t("tenant.name")}</Th>
+              <Th>{t("tenant.email")}</Th>
+              <Th>{t("tenant.phone")}</Th>
+              <Th>{t("tenant.job")}</Th>
+              <Th>{t("tenant.dob")}</Th>
+              <Th>{t("tenant.status")}</Th>
+              <Th textAlign="center">{t("tenant.action")}</Th>
             </Tr>
           </Thead>
 
           <Tbody>
-            {paginatedTenants.map((t) => (
-              <Tr key={t.uid} _hover={{ bg: hoverBg }} transition="all 0.2s">
+            {paginatedTenants.map((tenantItem) => (
+              <Tr key={tenantItem.uid} _hover={{ bg: hoverBg }} transition="all 0.2s">
                 <Td>
                   <Checkbox
-                    isChecked={selectedIds.includes(t.uid)}
+                    isChecked={selectedIds.includes(tenantItem.uid)}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        setSelectedIds((prev) => [...prev, t.uid]);
+                        setSelectedIds((prev) => [...prev, tenantItem.uid]);
                       } else {
                         setSelectedIds((prev) =>
-                          prev.filter((id) => id !== t.uid),
+                          prev.filter((id) => id !== tenantItem.uid),
                         );
                       }
                     }}
@@ -447,7 +479,7 @@ export default function AllTenants() {
 
                 <Td>
                   <Image
-                    src={t.photo_path ? `http://localhost:8000/storage/${t.photo_path}` : "/avatar.png"}
+                    src={tenantItem.photo_path ? `http://localhost:8000/storage/${tenantItem.photo_path}` : "/avatar.png"}
                     alt="avatar"
                     boxSize="40px"
                     borderRadius="full"
@@ -457,21 +489,21 @@ export default function AllTenants() {
                   />
                 </Td>
 
-                <Td fontWeight="medium" color={textColor}>{t.name}</Td>
-                <Td color={mutedText}>{t.email}</Td>
-                <Td color={mutedText}>{t.phone}</Td>
-                <Td color={mutedText}>{t.occupation || t.job}</Td>
-                <Td color={mutedText}>{t.dob || "N/A"}</Td>
+                <Td fontWeight="medium" color={textColor}>{tenantItem.name}</Td>
+                <Td color={mutedText}>{tenantItem.email}</Td>
+                <Td color={mutedText}>{tenantItem.phone}</Td>
+                <Td color={mutedText}>{tenantItem.occupation || tenantItem.job}</Td>
+                <Td color={mutedText}>{tenantItem.dob || "N/A"}</Td>
 
                 <Td>
                   <Badge
-                    colorScheme={!t.user_id ? "yellow" : "green"}
+                    colorScheme={!tenantItem.user_id ? "yellow" : "green"}
                     px={2}
                     py={1}
                     borderRadius="full"
                     textTransform="capitalize"
                   >
-                    {!t.user_id ? "Pending" : "Linked"}
+                    {!tenantItem.user_id ? t("tenant.pending_badge") : t("tenant.linked_badge")}
                   </Badge>
                 </Td>
 
@@ -484,7 +516,7 @@ export default function AllTenants() {
                         colorScheme="blue"
                         variant="ghost"
                         onClick={() =>
-                          navigate(`/dashboard/tenants/view/${t.uid}`)
+                          navigate(`/dashboard/tenants/view/${tenantItem.uid}`)
                         }
                         aria-label="View Tenant"
                       />
@@ -498,16 +530,16 @@ export default function AllTenants() {
                         variant="ghost"
                         onClick={() => {
                           setIsEdit(true);
-                          setSelectedTenant(t);
+                          setSelectedTenant(tenantItem);
                           setForm({
-                            name: t.name || "",
-                            email: t.email || "",
-                            phone: t.phone || "",
-                            dob: t.dob || "",
-                            job: t.occupation || t.job || "",
-                            photo: t.photo || "",
-                            idFront: { preview: t.id_photo_path ? `http://localhost:8000/storage/${t.id_photo_path}` : null, file: null },
-                            idBack: { preview: t.id_card_back_path ? `http://localhost:8000/storage/${t.id_card_back_path}` : null, file: null },
+                            name: tenantItem.name || "",
+                            email: tenantItem.email || "",
+                            phone: tenantItem.phone || "",
+                            dob: tenantItem.dob || "",
+                            job: tenantItem.occupation || tenantItem.job || "",
+                            photo: tenantItem.photo || "",
+                            idFront: { preview: tenantItem.id_photo_path ? `http://localhost:8000/storage/${tenantItem.id_photo_path}` : null, file: null },
+                            idBack: { preview: tenantItem.id_card_back_path ? `http://localhost:8000/storage/${tenantItem.id_card_back_path}` : null, file: null },
                           });
                           setShowFormModal(true);
                         }}
@@ -515,16 +547,16 @@ export default function AllTenants() {
                       />
                     </Tooltip>
 
-                    <Tooltip label={!t.user_id ? "Link Account" : "Account Linked"} hasArrow>
+                    <Tooltip label={!tenantItem.user_id ? "Link Account" : "Account Linked"} hasArrow>
                       <IconButton
                         icon={<FiUserPlus />}
                         size="sm"
                         colorScheme="green"
                         variant="ghost"
-                        isDisabled={!!t.user_id}
+                        isDisabled={!!tenantItem.user_id}
                         onClick={() => {
-                          if (!t.user_id) {
-                            setSelectedTenant(t);
+                          if (!tenantItem.user_id) {
+                            setSelectedTenant(tenantItem);
                             setAccountPassword("");
                             setAccountConfirmPassword("");
                             setShowAccountModal(true);
@@ -541,7 +573,7 @@ export default function AllTenants() {
                         colorScheme="gray"
                         variant="ghost"
                         onClick={() => {
-                          setSelectedTenant(t);
+                          setSelectedTenant(tenantItem);
                           setShowModal(true);
                         }}
                         aria-label="Delete Tenant"
@@ -555,7 +587,7 @@ export default function AllTenants() {
             {filteredTenants.length === 0 && (
               <Tr>
                 <Td colSpan={9} textAlign="center" py={10} color={mutedText}>
-                  No tenants found
+                  {t("tenant.no_found")}
                 </Td>
               </Tr>
             )}
@@ -579,7 +611,7 @@ export default function AllTenants() {
       {/* ===== PAGINATION ===== */}
       <Flex direction={{ base: "column", sm: "row" }} justify="space-between" align="center" gap={4} flexShrink={0}>
         <Flex align="center" gap={2} fontSize="sm" color={textColor}>
-          <Text>Total {totalPages} Pages</Text>
+          <Text>{t("common.total_pages", { count: totalPages })}</Text>
         </Flex>
 
         <Flex align="center" gap={2}>
@@ -589,7 +621,7 @@ export default function AllTenants() {
             isDisabled={currentPage === 1}
             onClick={() => setCurrentPage((p) => p - 1)}
           >
-            Prev
+            {t("lease.prev")}
           </Button>
 
           {[...Array(totalPages)].map((_, i) => (
@@ -610,7 +642,7 @@ export default function AllTenants() {
             isDisabled={currentPage === totalPages || totalPages === 0}
             onClick={() => setCurrentPage((p) => p + 1)}
           >
-            Next
+            {t("lease.next")}
           </Button>
         </Flex>
       </Flex>
@@ -977,7 +1009,7 @@ export default function AllTenants() {
 
 function ModalInput({ label, type = "text", ...props }) {
   const textColor = useColorModeValue("gray.500", "gray.400");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const borderColor = useColorModeValue("gray.200", "#30363d");
   return (
     <Flex direction="column" gap={1}>
       <Text fontSize="sm" color={textColor}>{label}</Text>
@@ -994,7 +1026,7 @@ function ModalInput({ label, type = "text", ...props }) {
 
 function ImageInput({ label, value, onChange }) {
   const textColor = useColorModeValue("gray.500", "gray.400");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const borderColor = useColorModeValue("gray.200", "#30363d");
 
   const handleFile = (e) => {
     const file = e.target.files[0];

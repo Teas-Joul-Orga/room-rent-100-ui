@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import toast, { Toaster } from "react-hot-toast";
 import {
   Box,
@@ -19,15 +20,18 @@ import {
   Checkbox,
   Select,
   Text,
+  HStack,
   useColorModeValue,
   IconButton,
   Tooltip,
   Spinner,
 } from "@chakra-ui/react";
-import { FiEdit2, FiTrash2, FiEye, FiPlus } from "react-icons/fi";
+import { FiEdit2, FiTrash2, FiEye, FiPlus, FiDownload } from "react-icons/fi";
+import { exportToExcel } from "../../utils/exportExcel";
 
 export default function AllRoom() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [rooms, setRooms] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,9 +43,9 @@ export default function AllRoom() {
   useEffect(() => {
     const calculatePerPage = () => {
       // similar to AllUsers
-      const availableHeight = window.innerHeight - 420;
-      let calculated = Math.floor(availableHeight / 60);
-      if (calculated < 3) calculated = 3;
+      const availableHeight = window.innerHeight - 440;
+      let calculated = Math.floor(availableHeight / 70);
+      if (calculated < 5) calculated = 5;
       setRowsPerPage(calculated);
     };
     calculatePerPage();
@@ -93,13 +97,13 @@ export default function AllRoom() {
   };
 
   // Colors
-  const bg = useColorModeValue("sky.50", "gray.900");
-  const cardBg = useColorModeValue("white", "gray.800");
+  const bg = useColorModeValue("sky.50", "#0d1117");
+  const cardBg = useColorModeValue("white", "#161b22");
   const textColor = useColorModeValue("gray.800", "white");
   const mutedText = useColorModeValue("gray.500", "gray.400");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
-  const tableHeaderBg = useColorModeValue("sky.100", "gray.700");
-  const hoverBg = useColorModeValue("sky.50", "gray.700");
+  const borderColor = useColorModeValue("gray.200", "#30363d");
+  const tableHeaderBg = useColorModeValue("sky.100", "#30363d");
+  const hoverBg = useColorModeValue("sky.50", "#30363d");
 
   const handleToggleActive = async (room, newStatus) => {
     setIsLoading(true);
@@ -163,17 +167,40 @@ export default function AllRoom() {
       {/* ===== HEADER ===== */}
       <Flex direction={{ base: "column", sm: "row" }} align={{ sm: "center" }} justify="space-between" gap={4} mb={6} flexShrink={0}>
         <Heading size="lg" color={useColorModeValue("sky.900", "white")}>
-          All Rooms
+          {t("sidebar.all_rooms")}
         </Heading>
-        <Button
-          display={{ base: "none", sm: "flex" }}
-          leftIcon={<FiPlus />}
-          colorScheme="blue"
-          onClick={() => navigate("/dashboard/rooms/add")}
-          shadow="sm"
-        >
-          Add New Room
-        </Button>
+        <HStack spacing={3}>
+          <Button
+            display={{ base: "none", sm: "flex" }}
+            leftIcon={<FiPlus />}
+            colorScheme="blue"
+            onClick={() => navigate("/dashboard/rooms/add")}
+            shadow="sm"
+          >
+            {t("room.add_new")}
+          </Button>
+
+          <Button
+            display={{ base: "none", sm: "flex" }}
+            leftIcon={<FiDownload />}
+            colorScheme="green"
+            variant="outline"
+            onClick={() => {
+              const dataToExport = rooms.map(r => ({
+                "Name": r.name,
+                "Price": r.base_rent_price,
+                "Status": r.status,
+                "Availability": r.deleted_at ? "Disabled" : "Enabled",
+                "Size": r.size || "N/A",
+                "Created At": new Date(r.created_at).toLocaleDateString()
+              }));
+              exportToExcel(dataToExport, "All_Rooms_" + new Date().toISOString().split('T')[0]);
+            }}
+            shadow="sm"
+          >
+            Export Excel
+          </Button>
+        </HStack>
         
         {/* Mobile FAB */}
         <IconButton
@@ -195,7 +222,7 @@ export default function AllRoom() {
       {/* ===== SEARCH ===== */}
       <Box bg={cardBg} p={4} borderRadius="xl" shadow="sm" mb={6} flexShrink={0}>
         <Input
-          placeholder="Search room..."
+          placeholder={t("room.search")}
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -208,18 +235,18 @@ export default function AllRoom() {
       </Box>
 
       {/* ===== TABLE ===== */}
-      <TableContainer bg={cardBg} borderRadius="xl" shadow="sm" mb={4} display="flex" flexDirection="column" flex={1} minH={0} overflow="hidden">
-        <Box overflow="hidden" flex={1}>
+      <TableContainer bg={cardBg} borderRadius="xl" shadow="sm" mb={4} display="flex" flexDirection="column" flex={1} minH={0} overflowY="auto">
+        <Box overflowX="auto" flex={1}>
           <Table variant="simple">
             <Thead bg={tableHeaderBg} position="sticky" top={0} zIndex={2}>
               <Tr>
-              <Th w="50px">Check Box</Th>
-              <Th>Photo</Th>
-              <Th>Room</Th>
-              <Th>Base Rent</Th>
-              <Th>Status</Th>
-              <Th>Active</Th>
-              <Th textAlign="center">Action</Th>
+               <Th w="50px">{t("room.check_box")}</Th>
+               <Th>{t("room.photo")}</Th>
+               <Th>{t("room.name")}</Th>
+               <Th>{t("room.base_rent")}</Th>
+               <Th>{t("room.status")}</Th>
+               <Th>{t("room.active")}</Th>
+               <Th textAlign="center">{t("room.action")}</Th>
             </Tr>
           </Thead>
 
@@ -285,7 +312,7 @@ export default function AllRoom() {
                     display="inline-flex"
                     alignItems="center"
                   >
-                    {r.status}
+                     {t(`room.${r.status}`)}
                   </Badge>
                 </Td>
 
@@ -302,8 +329,8 @@ export default function AllRoom() {
                     onChange={(e) => handleToggleActive(r, e.target.value)}
                     cursor="pointer"
                   >
-                    <option value="enabled">Enabled</option>
-                    <option value="disabled">Disabled</option>
+                     <option value="enabled">{t("room.enabled")}</option>
+                     <option value="disabled">{t("room.disabled")}</option>
                   </Select>
                 </Td>
 
@@ -337,7 +364,7 @@ export default function AllRoom() {
             ) : (
               <Tr>
                 <Td colSpan={6} textAlign="center" py={10} color={mutedText}>
-                  No rooms found
+                   {t("room.no_found")}
                 </Td>
               </Tr>
             )}
@@ -362,7 +389,7 @@ export default function AllRoom() {
       {/* ===== PAGINATION ===== */}
       <Flex direction={{ base: "column", sm: "row" }} justify="space-between" align="center" gap={4} flexShrink={0}>
         <Flex align="center" gap={2} fontSize="sm" color={textColor}>
-          <Text>Total {totalPages} Pages</Text>
+           <Text>{t("common.total_pages", { count: totalPages })}</Text>
         </Flex>
 
         <Flex align="center" gap={2}>
@@ -372,7 +399,7 @@ export default function AllRoom() {
             isDisabled={currentPage === 1}
             onClick={() => setCurrentPage((p) => p - 1)}
           >
-            Prev
+             {t("common.back")}
           </Button>
 
           {[...Array(totalPages)].map((_, i) => (
@@ -393,7 +420,7 @@ export default function AllRoom() {
             isDisabled={currentPage === totalPages || totalPages === 0}
             onClick={() => setCurrentPage((p) => p + 1)}
           >
-            Next
+             {t("common.next")}
           </Button>
         </Flex>
       </Flex>

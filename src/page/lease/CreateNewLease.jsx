@@ -85,12 +85,12 @@ export default function CreateNewLease() {
   });
 
   // Theme
-  const bg = useColorModeValue("gray.50", "gray.900");
-  const cardBg = useColorModeValue("white", "gray.800");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const bg = useColorModeValue("gray.50", "#0d1117");
+  const cardBg = useColorModeValue("white", "#161b22");
+  const borderColor = useColorModeValue("gray.200", "#30363d");
   const textColor = useColorModeValue("gray.800", "white");
   const mutedText = useColorModeValue("gray.500", "gray.400");
-  const inputBg = useColorModeValue("white", "gray.700");
+  const inputBg = useColorModeValue("white", "#30363d");
 
   useEffect(() => {
     const fetchAllData = async () => {
@@ -451,7 +451,7 @@ export default function CreateNewLease() {
                   {(selectedTenant || selectedRoom) && (
                     <Flex gap={4} mb={8} direction={{ base: "column", md: "row" }}>
                       {selectedTenant && (
-                        <Flex flex={1} align="center" gap={3} p={4} bg={useColorModeValue("gray.50", "gray.700")} borderRadius="xl" border="1px solid" borderColor={borderColor}>
+                        <Flex flex={1} align="center" gap={3} p={4} bg={useColorModeValue("gray.50", "#1c2333")} borderRadius="xl" border="1px solid" borderColor={borderColor}>
                           <Avatar size="sm" name={selectedTenant.name} />
                           <Box>
                             <Text fontSize="10px" fontWeight="black" color={mutedText} textTransform="uppercase">Tenant</Text>
@@ -460,7 +460,7 @@ export default function CreateNewLease() {
                         </Flex>
                       )}
                       {selectedRoom && (
-                        <Flex flex={1} align="center" gap={3} p={4} bg={useColorModeValue("gray.50", "gray.700")} borderRadius="xl" border="1px solid" borderColor={borderColor}>
+                        <Flex flex={1} align="center" gap={3} p={4} bg={useColorModeValue("gray.50", "#1c2333")} borderRadius="xl" border="1px solid" borderColor={borderColor}>
                           <Flex w="34px" h="34px" bg="blue.100" borderRadius="lg" align="center" justify="center">
                             <Icon as={FiHome} color="blue.600" />
                           </Flex>
@@ -496,7 +496,7 @@ export default function CreateNewLease() {
 
                     {/* RIGHT: Dates + Status */}
                     <VStack spacing={5}>
-                      <Box w="full" p={6} bg={useColorModeValue("gray.50", "gray.700/50")} borderRadius="xl" border="1px solid" borderColor={borderColor}>
+                      <Box w="full" p={6} bg={useColorModeValue("gray.50", "#31363f/50")} borderRadius="xl" border="1px solid" borderColor={borderColor}>
                         <Flex align="center" gap={2} mb={5}>
                           <Icon as={FiCalendar} color={mutedText} />
                           <Text fontWeight="black" fontSize="sm" color={textColor}>Lease Duration</Text>
@@ -515,7 +515,7 @@ export default function CreateNewLease() {
                         </VStack>
                       </Box>
 
-                      <Box w="full" p={6} bg={useColorModeValue("gray.50", "gray.700/50")} borderRadius="xl" border="1px solid" borderColor={borderColor}>
+                      <Box w="full" p={6} bg={useColorModeValue("gray.50", "#31363f/50")} borderRadius="xl" border="1px solid" borderColor={borderColor}>
                         <Flex align="center" gap={2} mb={5}>
                           <Icon as={FiShield} color={mutedText} />
                           <Text fontWeight="black" fontSize="sm" color={textColor}>Lease Status</Text>

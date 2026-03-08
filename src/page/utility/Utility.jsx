@@ -9,7 +9,9 @@ import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton,
   ModalBody, ModalFooter, useDisclosure, FormControl, FormLabel, Textarea
 } from "@chakra-ui/react";
-import { FiArrowUp, FiArrowDown, FiTrash2, FiPrinter, FiBell, FiChevronLeft, FiChevronRight, FiPlus, FiCreditCard } from "react-icons/fi";
+import { useTranslation } from "react-i18next";
+import { FiArrowUp, FiArrowDown, FiTrash2, FiPrinter, FiBell, FiChevronLeft, FiChevronRight, FiPlus, FiCreditCard, FiDownload } from "react-icons/fi";
+import { exportToExcel } from "../../utils/exportExcel";
 import RecordPaymentModal from "../../components/RecordPaymentModal";
 
 const API = "http://localhost:8000/api/v1/admin";
@@ -26,6 +28,7 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-US", { month: "sho
 
 export default function Utility() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [bills, setBills] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -68,14 +71,14 @@ export default function Utility() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState({ last_page: 1, total: 0 });
 
-  const bg = useColorModeValue("gray.50", "gray.900");
-  const cardBg = useColorModeValue("white", "gray.800");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const bg = useColorModeValue("gray.50", "#0d1117");
+  const cardBg = useColorModeValue("white", "#161b22");
+  const borderColor = useColorModeValue("gray.200", "#30363d");
   const textColor = useColorModeValue("gray.800", "white");
   const mutedText = useColorModeValue("gray.500", "gray.400");
   const thColor = useColorModeValue("gray.500", "gray.400");
-  const trHoverBg = useColorModeValue("gray.50", "gray.700");
-  const tableHBg = useColorModeValue("gray.50", "gray.700");
+  const trHoverBg = useColorModeValue("gray.50", "#1c2333");
+  const tableHBg = useColorModeValue("gray.50", "#1c2333");
 
   const headers = () => ({
     Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -335,20 +338,52 @@ export default function Utility() {
         <Flex align="center" justify="space-between" mb={6} flexWrap="wrap" gap={3}>
           <Box>
             <Heading size="md" color={textColor} textTransform="uppercase" letterSpacing="tight">
-              Utility Bills
+              {t("utility.title")}
             </Heading>
             <Text fontSize="sm" color={mutedText} mt={0.5}>
-              Manage all electricity, water, and other utility bills
+              {t("utility.subtitle")}
             </Text>
           </Box>
           <Flex gap={2}>
             {selectedIds.length > 0 && (
               <Button size="md" colorScheme="purple" variant="outline" leftIcon={<FiPrinter />} onClick={handlePrintInvoice}>
-                Print Invoice ({selectedIds.length})
+                {t("utility.print_invoice", { count: selectedIds.length })}
               </Button>
             )}
+            <Button
+              size="md"
+              colorScheme="green"
+              variant="outline"
+              leftIcon={<FiDownload />}
+              onClick={() => {
+                if (activeTab === 0) {
+                  const dataToExport = bills.map(b => ({
+                    "Tenant": b.lease?.tenant?.name || "—",
+                    "Room": b.lease?.room?.name || b.room?.name || "—",
+                    "Type": b.type,
+                    "Amount": Number(b.amount),
+                    "Due Date": b.due_date,
+                    "Status": b.status,
+                    "Description": b.description || "—"
+                  }));
+                  exportToExcel(dataToExport, "Utility_Bills_" + new Date().toISOString().split('T')[0]);
+                } else {
+                  const dataToExport = payments.map(p => ({
+                    "Tenant": p.lease?.tenant?.name || "—",
+                    "Room": p.lease?.room?.name || "—",
+                    "Date": p.payment_date,
+                    "Amount Paid": Number(p.amount_paid),
+                    "Method": p.payment_method,
+                    "Notes": p.notes || "—"
+                  }));
+                  exportToExcel(dataToExport, "Utility_Payments_" + new Date().toISOString().split('T')[0]);
+                }
+              }}
+            >
+              Export Excel
+            </Button>
             <Button size="md" colorScheme="blue" leftIcon={<FiPlus />} onClick={() => navigate("/dashboard/utility/addbill")}>
-              Add New Bill
+              {t("utility.add_new")}
             </Button>
           </Flex>
         </Flex>
@@ -356,10 +391,10 @@ export default function Utility() {
         <Tabs variant="line" colorScheme="blue" index={activeTab} onChange={(i) => setActiveTab(i)} isLazy>
           <TabList borderBottom="1px solid" borderColor={borderColor} mb={6}>
             <Tab fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" pb={4}>
-              Utility Statements
+              {t("utility.statements")}
             </Tab>
             <Tab fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" pb={4}>
-              Utility Payments Ledger
+              {t("utility.payments_ledger")}
             </Tab>
           </TabList>
 
@@ -369,17 +404,17 @@ export default function Utility() {
               {/* KPI Cards */}
               <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} mb={6}>
                 <Box bg={cardBg} p={5} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor}>
-                  <Text fontSize="sm" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>Total Unpaid Bills</Text>
+                  <Text fontSize="sm" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>{t("utility.total_unpaid")}</Text>
                   <Heading size="lg" fontWeight="black" color="red.500">{unpaidCount}</Heading>
                   <Text fontSize="sm" color={mutedText}>{fmt(totalUnpaidAmount)} outstanding</Text>
                 </Box>
                 <Box bg={cardBg} p={5} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor}>
-                  <Text fontSize="sm" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>Total Recordings</Text>
+                  <Text fontSize="sm" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>{t("utility.total_recordings")}</Text>
                   <Heading size="lg" fontWeight="black" color={textColor}>{pagination.total || 0}</Heading>
                   <Text fontSize="sm" color={mutedText}>bills on record</Text>
                 </Box>
                 <Box bg={cardBg} p={5} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor}>
-                  <Text fontSize="sm" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>Selected for Printing</Text>
+                  <Text fontSize="sm" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>{t("utility.selected_printing")}</Text>
                   <Heading size="lg" fontWeight="black" color="purple.500">{selectedIds.length}</Heading>
                   <Text fontSize="sm" color={mutedText}>bills selected</Text>
                 </Box>
@@ -388,24 +423,24 @@ export default function Utility() {
               {/* Filters */}
               <Flex gap={3} mb={4} flexWrap="wrap" align="center">
                 <Input
-                  placeholder="Search tenant, room, description..."
+                  placeholder={t("utility.search_placeholder")}
                   size="md" bg={cardBg} borderColor={borderColor} maxW="300px"
                   value={search} onChange={e => setSearch(e.target.value)}
                   _hover={{ borderColor: "blue.400" }}
                   _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
                 />
                 <Select size="md" bg={cardBg} borderColor={borderColor} maxW="160px" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
-                  <option value="">All Types</option>
-                  <option value="electricity">Electricity</option>
-                  <option value="water">Water</option>
-                  <option value="trash">Trash</option>
-                  <option value="internet">Internet</option>
-                  <option value="other">Other</option>
+                  <option value="">{t("utility.all_types")}</option>
+                  <option value="electricity">{t("utility.electricity")}</option>
+                  <option value="water">{t("utility.water")}</option>
+                  <option value="trash">{t("utility.trash")}</option>
+                  <option value="internet">{t("utility.internet")}</option>
+                  <option value="other">{t("utility.other")}</option>
                 </Select>
                 <Select size="md" bg={cardBg} borderColor={borderColor} maxW="160px" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-                  <option value="">All Status</option>
-                  <option value="unpaid">Unpaid</option>
-                  <option value="paid">Paid</option>
+                  <option value="">{t("utility.all_status")}</option>
+                  <option value="unpaid">{t("utility.unpaid")}</option>
+                  <option value="paid">{t("utility.paid")}</option>
                 </Select>
               </Flex>
 
@@ -418,20 +453,20 @@ export default function Utility() {
                         <Th w="40px" borderBottom="2px solid" borderColor={borderColor}>
                           <Checkbox onChange={(e) => toggleAll(e.target.checked)} isChecked={selectedIds.length === bills.length && bills.length > 0} />
                         </Th>
-                        <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider">Tenant / Room</Th>
+                        <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider">{t("utility.tenant_room")}</Th>
                         <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" cursor="pointer" onClick={() => handleSort("type")}>
-                          <Flex align="center" gap={1}>Type <SortIcon field="type" /></Flex>
+                          <Flex align="center" gap={1}>{t("utility.type")} <SortIcon field="type" /></Flex>
                         </Th>
                         <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" cursor="pointer" onClick={() => handleSort("amount")}>
-                          <Flex align="center" gap={1}>Amount <SortIcon field="amount" /></Flex>
+                          <Flex align="center" gap={1}>{t("utility.amount")} <SortIcon field="amount" /></Flex>
                         </Th>
                         <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" cursor="pointer" onClick={() => handleSort("due_date")}>
-                          <Flex align="center" gap={1}>Due Date <SortIcon field="due_date" /></Flex>
+                          <Flex align="center" gap={1}>{t("utility.due_date")} <SortIcon field="due_date" /></Flex>
                         </Th>
                         <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" cursor="pointer" onClick={() => handleSort("status")}>
-                          <Flex align="center" gap={1}>Status <SortIcon field="status" /></Flex>
+                          <Flex align="center" gap={1}>{t("utility.status")} <SortIcon field="status" /></Flex>
                         </Th>
-                        <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider">Description</Th>
+                        <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider">{t("utility.description")}</Th>
                         <Th borderBottom="2px solid" borderColor={borderColor} textAlign="right" />
                       </Tr>
                     </Thead>
@@ -454,14 +489,14 @@ export default function Utility() {
                             </Td>
                             <Td>
                               <Badge fontSize="sm" fontWeight="black" textTransform="uppercase" colorScheme={typeBadge(bill.type)}>
-                                {bill.type}
+                                {t(`utility.${bill.type}`)}
                               </Badge>
                             </Td>
                             <Td fontWeight="black" color={textColor}>{fmt(bill.amount)}</Td>
                             <Td fontSize="sm" fontWeight="bold" color={mutedText}>{fmtDate(bill.due_date)}</Td>
                             <Td>
                               <Badge fontSize="sm" fontWeight="black" textTransform="uppercase" colorScheme={statusBadge(bill.status)}>
-                                {bill.status}
+                                {t(`utility.${bill.status}`)}
                               </Badge>
                             </Td>
                             <Td fontSize="sm" color={mutedText} maxW="200px" isTruncated>{bill.description || "—"}</Td>
@@ -522,11 +557,11 @@ export default function Utility() {
                   <Table variant="simple" size="md">
                     <Thead bg={tableHBg}>
                       <Tr>
-                        <Th color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">Tenant / Room</Th>
-                        <Th color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">Date</Th>
-                        <Th color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">Amount Paid</Th>
-                        <Th color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">Method</Th>
-                        <Th color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">Notes</Th>
+                        <Th color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">{t("utility.tenant_room")}</Th>
+                        <Th color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">{t("utility.date")}</Th>
+                        <Th color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">{t("utility.amount_paid")}</Th>
+                        <Th color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">{t("utility.method")}</Th>
+                        <Th color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">{t("utility.notes")}</Th>
                         <Th textAlign="right"></Th>
                       </Tr>
                     </Thead>

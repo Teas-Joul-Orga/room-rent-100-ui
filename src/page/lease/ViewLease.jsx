@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import toast, { Toaster } from "react-hot-toast";
 import {
   Box, Flex, Text, Heading, Badge, Spinner, Button, Avatar,
@@ -25,11 +26,33 @@ const fmt = (n) => {
   }
   return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
+
+const toCurrent = (n) => {
+  const c = localStorage.getItem("currency") || "$";
+  const num = Number(n || 0);
+  if (c === "៛") {
+    const r = Number(localStorage.getItem("exchangeRate") || 4000);
+    return Math.round(num * r);
+  }
+  return num;
+};
+
+const toUSD = (n) => {
+  const c = localStorage.getItem("currency") || "$";
+  const num = Number(n || 0);
+  if (c === "៛") {
+    const r = Number(localStorage.getItem("exchangeRate") || 4000);
+    return (num / r).toFixed(2);
+  }
+  return num;
+};
+
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "—";
 
 export default function ViewLease() {
   const { id } = useParams(); // uid
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [lease, setLease] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -70,12 +93,17 @@ export default function ViewLease() {
   const [tenantSearch, setTenantSearch] = useState("");
   const [showTenantDropdown, setShowTenantDropdown] = useState(false);
 
-  const bg = useColorModeValue("gray.50", "gray.900");
-  const cardBg = useColorModeValue("white", "gray.800");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const bg = useColorModeValue("gray.50", "#0d1117");
+  const cardBg = useColorModeValue("white", "#161b22");
+  const borderColor = useColorModeValue("gray.200", "#30363d");
   const mutedText = useColorModeValue("gray.500", "gray.400");
   const textColor = useColorModeValue("gray.800", "white");
-  const tableHBg = useColorModeValue("gray.50", "gray.700");
+  const tableHBg = useColorModeValue("gray.50", "#1c2333");
+  const inputBg = useColorModeValue("white", "#0d1117");
+  const subCardBg = useColorModeValue("gray.50", "#1c2128");
+  const highlightBg = useColorModeValue("yellow.50", "yellow.900");
+  const successBg = useColorModeValue("green.50", "green.900");
+  const purpleBg = useColorModeValue("purple.50", "purple.900");
 
   const headers = () => ({
     Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -127,7 +155,11 @@ export default function ViewLease() {
       const res = await fetch(`${API}/payments`, {
         method: "POST",
         headers: headers(),
-        body: JSON.stringify({ ...payForm, lease_id: lease.id }),
+        body: JSON.stringify({ 
+          ...payForm, 
+          amount_paid: toUSD(payForm.amount_paid),
+          lease_id: lease.id 
+        }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -173,7 +205,13 @@ export default function ViewLease() {
       const res = await fetch(`${API}/utility-bills`, {
         method: "POST",
         headers: headers(),
-        body: JSON.stringify({ ...billForm, room_id: lease.room_id, lease_id: lease.id }),
+        body: JSON.stringify({ 
+          ...billForm, 
+          amount: toUSD(billForm.amount),
+          cost_per_unit: toUSD(billForm.cost_per_unit),
+          room_id: lease.room_id, 
+          lease_id: lease.id 
+        }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -235,7 +273,10 @@ export default function ViewLease() {
       const res = await fetch(`${API}/leases/${lease.uid}/refund-deposit`, {
         method: "POST",
         headers: headers(),
-        body: JSON.stringify(refundForm),
+        body: JSON.stringify({
+          ...refundForm,
+          amount: toUSD(refundForm.amount)
+        }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -257,7 +298,11 @@ export default function ViewLease() {
       const res = await fetch(`${API}/leases/${lease.uid}`, {
         method: "PUT",
         headers: headers(),
-        body: JSON.stringify(editForm),
+        body: JSON.stringify({
+          ...editForm,
+          rent_amount: toUSD(editForm.rent_amount),
+          security_deposit: toUSD(editForm.security_deposit)
+        }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -394,7 +439,7 @@ export default function ViewLease() {
               aria-label="Back"
             />
             <Box>
-              <Heading size="md" color={textColor}>Lease Statement</Heading>
+              <Heading size="md" color={textColor}>{t("lease.statement")}</Heading>
               <Text fontSize="xs" color={mutedText} mt={0.5}>
                 {fmtDate(lease.start_date)} — {fmtDate(lease.end_date)}
               </Text>
@@ -422,8 +467,8 @@ export default function ViewLease() {
                   room_id: lease.room?.id || "",
                   start_date: lease.start_date ? lease.start_date.split("T")[0] : "",
                   end_date: lease.end_date ? lease.end_date.split("T")[0] : "",
-                  rent_amount: lease.rent_amount || "",
-                  security_deposit: lease.security_deposit || 0,
+                  rent_amount: toCurrent(lease.rent_amount),
+                  security_deposit: toCurrent(lease.security_deposit),
                   status: lease.status || "active",
                   deposit_status: lease.deposit_status || "unpaid",
                 });
@@ -506,7 +551,7 @@ export default function ViewLease() {
                 </Box>
                 <Box textAlign={{ md: "right" }} mt={{ base: 3, md: 0 }}>
                   <Text fontSize="10px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>
-                    Current Resident
+                    {t("lease.current_resident")}
                   </Text>
                   <Text fontSize="lg" fontWeight="black" textTransform="uppercase" letterSpacing="tight" color={textColor}>
                     {lease.tenant?.name || "Unknown"}
@@ -516,19 +561,19 @@ export default function ViewLease() {
 
               <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={4}>
                 <Box>
-                  <Text fontSize="9px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>Email</Text>
+                   <Text fontSize="9px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>{t("lease.email")}</Text>
                   <Text fontSize="sm" fontWeight="bold" color={textColor} wordBreak="break-all">{lease.tenant?.email || "—"}</Text>
                 </Box>
                 <Box>
-                  <Text fontSize="9px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>Phone</Text>
+                   <Text fontSize="9px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>{t("lease.phone")}</Text>
                   <Text fontSize="sm" fontWeight="bold" color={textColor}>{lease.tenant?.phone || "N/A"}</Text>
                 </Box>
                 <Box>
-                  <Text fontSize="9px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>Occupation</Text>
+                   <Text fontSize="9px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>{t("lease.occupation")}</Text>
                   <Text fontSize="sm" fontWeight="bold" color={textColor} textTransform="uppercase">{lease.tenant?.job || "N/A"}</Text>
                 </Box>
                 <Box>
-                  <Text fontSize="9px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>Deposit Status</Text>
+                   <Text fontSize="9px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>{t("lease.deposit_status")}</Text>
                   <Badge
                     fontSize="xs"
                     colorScheme={lease.deposit_status === "held" ? "green" : lease.deposit_status === "refunded" ? "gray" : "orange"}
@@ -550,9 +595,9 @@ export default function ViewLease() {
                 <FiDollarSign size={20} color={useColorModeValue("#3182CE", "#63B3ED")} />
               </Box>
               <Box>
-                <Text fontSize="xs" fontWeight="black" color="blue.400" textTransform="uppercase" letterSpacing="wider">Outstanding Rent</Text>
+                <Text fontSize="xs" fontWeight="black" color="blue.400" textTransform="uppercase" letterSpacing="wider">{t("lease.remaining_rent")}</Text>
                 <Heading size="md" fontWeight="black" color="blue.600">
-                  {fmt(Math.max(0, Number(lease.total_contract_value || 0) - Number(lease.payments_sum_amount_paid || 0)))}
+                  {fmt(Math.max(0, totalContractValue - totalRentPaid))}
                 </Heading>
               </Box>
             </Flex>
@@ -561,7 +606,7 @@ export default function ViewLease() {
                 <FiDollarSign size={20} color={useColorModeValue("#38A169", "#68D391")} />
               </Box>
               <Box>
-                <Text fontSize="xs" fontWeight="black" color="green.400" textTransform="uppercase" letterSpacing="wider">Unpaid Utilities</Text>
+                <Text fontSize="xs" fontWeight="black" color="green.400" textTransform="uppercase" letterSpacing="wider">{t("lease.unpaid_utilities")}</Text>
                 <Heading size="md" fontWeight="black" color="green.600">
                   {fmt(lease.unpaid_utilities_sum || 0)}
                 </Heading>
@@ -574,15 +619,15 @@ export default function ViewLease() {
         <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mb={6}>
           {/* Monthly Rent */}
           <Box bg={cardBg} p={8} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor}>
-            <Text fontSize="10px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={2}>Monthly Rent</Text>
+            <Text fontSize="10px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={2}>{t("lease.monthly_rent")}</Text>
             <Heading size="xl" fontWeight="black" color={textColor}>{fmt(lease.rent_amount)}</Heading>
             {totalRentPaid >= totalContractValue ? (
               <Text mt={4} fontSize="10px" fontWeight="black" textTransform="uppercase" color="green.600">
                 ✓ Fully Paid
               </Text>
             ) : (
-              <Button mt={4} size="xs" colorScheme="blue" variant="link" leftIcon={<FiDollarSign />} onClick={() => { setPayForm({ ...payForm, amount_paid: lease.rent_amount }); onPayOpen(); }}>
-                Record Payment →
+              <Button mt={4} size="xs" colorScheme="blue" variant="link" leftIcon={<FiDollarSign />} onClick={() => { setPayForm({ ...payForm, amount_paid: toCurrent(lease.rent_amount) }); onPayOpen(); }}>
+                {t("lease.record_payment")} →
               </Button>
             )}
           </Box>
@@ -592,26 +637,26 @@ export default function ViewLease() {
             <Badge position="absolute" top={8} right={8} fontSize="9px" fontWeight="black" textTransform="uppercase" colorScheme={lease.deposit_status === "held" ? "green" : "gray"} variant="outline" px={2} py={1}>
               {lease.deposit_status || "unpaid"}
             </Badge>
-            <Text fontSize="10px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={2}>Security Deposit</Text>
+            <Text fontSize="10px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={2}>{t("lease.security_deposit")}</Text>
             <Heading size="xl" fontWeight="black" color={textColor}>{fmt(lease.security_deposit)}</Heading>
             {(!lease.deposit_status || lease.deposit_status === "unpaid") && (
-              <Button mt={4} size="xs" colorScheme="green" variant="link" onClick={() => { setPayForm({ ...payForm, type: "deposit", amount_paid: lease.security_deposit }); onPayOpen(); }}>
-                Collect Deposit →
+              <Button mt={4} size="xs" colorScheme="green" variant="link" onClick={() => { setPayForm({ ...payForm, type: "deposit", amount_paid: toCurrent(lease.security_deposit) }); onPayOpen(); }}>
+                {t("lease.collect_deposit")} →
               </Button>
             )}
             {lease.deposit_status === "held" && (
-              <Button mt={4} size="xs" colorScheme="orange" variant="link" onClick={() => { setRefundForm({ amount: lease.security_deposit, notes: "" }); onRefundOpen(); }}>
-                Initiate Refund →
+              <Button mt={4} size="xs" colorScheme="orange" variant="link" onClick={() => { setRefundForm({ amount: toCurrent(lease.security_deposit), notes: "" }); onRefundOpen(); }}>
+                {t("lease.initiate_refund")} →
               </Button>
             )}
           </Box>
 
           {/* Unpaid Utilities */}
           <Box bg="gray.900" p={8} borderRadius="xl" shadow="xl">
-            <Text fontSize="10px" fontWeight="black" color="blue.400" textTransform="uppercase" letterSpacing="wider" mb={2}>Unpaid Utilities</Text>
+            <Text fontSize="10px" fontWeight="black" color="blue.400" textTransform="uppercase" letterSpacing="wider" mb={2}>{t("lease.unpaid_utilities")}</Text>
             <Heading size="xl" fontWeight="black" color="white">{fmt(unpaidBillsTotal)}</Heading>
             <Button mt={4} size="xs" color="blue.400" variant="link" _hover={{ color: "white" }}>
-              Manage Bills →
+               {t("lease.manage_bills")} →
             </Button>
           </Box>
         </SimpleGrid>
@@ -621,10 +666,10 @@ export default function ViewLease() {
           <Flex direction={{ base: "column", md: "row" }} align={{ md: "center" }} justify="space-between" borderBottom="1px solid" borderColor={borderColor} mb={0}>
             <TabList border="none">
               <Tab fontSize="10px" fontWeight="black" textTransform="uppercase" letterSpacing="wider" pb={4}>
-                Utility Statement
+                {t("lease.utility_statement")}
               </Tab>
               <Tab fontSize="10px" fontWeight="black" textTransform="uppercase" letterSpacing="wider" pb={4}>
-                Payment Ledger
+                {t("lease.payment_ledger")}
               </Tab>
             </TabList>
             <Text fontSize="10px" fontWeight="black" textTransform="uppercase" letterSpacing="wider" color="gray.300" pb={{ md: 2 }}>
@@ -638,7 +683,7 @@ export default function ViewLease() {
               <Box bg={cardBg} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
                 <Flex align="center" justify="space-between" px={6} py={4} bg={tableHBg} borderBottom="1px solid" borderColor={borderColor}>
                   <Text fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="tight" color={textColor}>
-                    Utility Statement
+                    {t("lease.utility_statement")}
                   </Text>
                   <Flex align="center" gap={4}>
                     {selectedBillIds.length > 0 && (
@@ -647,7 +692,7 @@ export default function ViewLease() {
                       </Button>
                     )}
                     <Button size="xs" colorScheme="blue" variant="link" leftIcon={<FiPlus />} onClick={onBillOpen}>
-                      Add New Bill
+                      {t("lease.add_new_bill")}
                     </Button>
                     {unpaidBillsTotal > 0 && (
                       <Button
@@ -655,7 +700,7 @@ export default function ViewLease() {
                         colorScheme={selectedBillIds.length > 0 ? "green" : "gray"}
                         onClick={onPayAllOpen}
                       >
-                        {selectedBillIds.length > 0 ? `Pay Selected (${selectedBillIds.length})` : "Pay Bills"}
+                        {selectedBillIds.length > 0 ? `Pay Selected (${selectedBillIds.length})` : t("lease.pay_bills")}
                       </Button>
                     )}
                   </Flex>
@@ -669,33 +714,33 @@ export default function ViewLease() {
                           const bills = lease.utility_bills || [];
                           setSelectedBillIds(e.target.checked ? bills.map(b => b.id) : []);
                         }} /></Th>
-                        <Th>Type</Th>
-                        <Th>Amount</Th>
-                        <Th>Due Date</Th>
-                        <Th>Status</Th>
-                        <Th>Description</Th>
+                        <Th>{t("common.type")}</Th>
+                        <Th>{t("common.amount")}</Th>
+                        <Th>{t("lease.due_date") || "Due Date"}</Th>
+                        <Th>{t("common.status")}</Th>
+                        <Th>{t("common.description")}</Th>
                         <Th textAlign="right"></Th>
                       </Tr>
                     </Thead>
                     <Tbody>
                       {(lease.utility_bills || []).length === 0 ? (
-                        <Tr><Td colSpan={7} textAlign="center" py={10} color={mutedText}>No utility bills found.</Td></Tr>
+                        <Tr><Td colSpan={7} textAlign="center" py={10} color={mutedText}>{t("utility.no_bills")}</Td></Tr>
                       ) : (
                         [...(lease.utility_bills || [])].sort((a, b) => new Date(b.due_date) - new Date(a.due_date)).map(bill => (
-                          <Tr key={bill.id} bg={selectedBillIds.includes(bill.id) ? "blue.50" : "transparent"}>
+                          <Tr key={bill.id} bg={selectedBillIds.includes(bill.id) ? successBg : "transparent"}>
                             <Td><Checkbox isChecked={selectedBillIds.includes(bill.id)} onChange={(e) => {
                               setSelectedBillIds(e.target.checked ? [...selectedBillIds, bill.id] : selectedBillIds.filter(i => i !== bill.id));
                             }} /></Td>
                             <Td>
                               <Badge fontSize="9px" fontWeight="black" textTransform="uppercase" colorScheme={
                                 bill.type === "electricity" ? "yellow" : bill.type === "water" ? "blue" : "gray"
-                              }>{bill.type}</Badge>
+                              }>{t(`utility.${bill.type}`)}</Badge>
                             </Td>
                             <Td fontWeight="bold" color={textColor}>{fmt(bill.amount)}</Td>
                             <Td fontSize="xs" color={mutedText}>{fmtDate(bill.due_date)}</Td>
                             <Td>
                               <Badge fontSize="9px" fontWeight="black" textTransform="uppercase" colorScheme={bill.status === "paid" ? "green" : "red"}>
-                                {bill.status}
+                                {t(`utility.${bill.status}`)}
                               </Badge>
                             </Td>
                             <Td fontSize="xs" color={mutedText}>{bill.description || "—"}</Td>
@@ -726,7 +771,7 @@ export default function ViewLease() {
                 <Flex align="center" justify="space-between" px={6} py={4} bg={tableHBg} borderBottom="1px solid" borderColor={borderColor}>
                   <Flex align="center" gap={3}>
                     <Text fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="tight" color={textColor}>
-                      Payment Ledger
+                      {t("lease.payment_ledger")}
                     </Text>
                     {selectedPayments.length > 0 && (
                       <Badge colorScheme="purple" fontSize="xs">{selectedPayments.length} selected</Badge>
@@ -739,7 +784,7 @@ export default function ViewLease() {
                       </Button>
                     )}
                     <Button size="xs" colorScheme="blue" variant="link" leftIcon={<FiPlus />} onClick={onPayOpen}>
-                      New Entry
+                      {t("lease.new_entry")}
                     </Button>
                   </Flex>
                 </Flex>
@@ -752,20 +797,20 @@ export default function ViewLease() {
                           const payments = lease.payments || [];
                           setSelectedPayments(e.target.checked ? payments.map(p => p.id) : []);
                         }} /></Th>
-                        <Th>Date</Th>
-                        <Th>Amount</Th>
-                        <Th>Type</Th>
-                        <Th>Method</Th>
-                        <Th>Notes</Th>
+                        <Th>{t("common.date")}</Th>
+                        <Th>{t("common.amount")}</Th>
+                        <Th>{t("common.type")}</Th>
+                        <Th>{t("common.method")}</Th>
+                        <Th>{t("common.notes")}</Th>
                         <Th textAlign="right"></Th>
                       </Tr>
                     </Thead>
                     <Tbody>
                       {(lease.payments || []).length === 0 ? (
-                        <Tr><Td colSpan={7} textAlign="center" py={10} color={mutedText}>No payment records found.</Td></Tr>
+                        <Tr><Td colSpan={7} textAlign="center" py={10} color={mutedText}>{t("payment.no_records")}</Td></Tr>
                       ) : (
                         [...(lease.payments || [])].sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date)).map(payment => (
-                          <Tr key={payment.id} bg={selectedPayments.includes(payment.id) ? "purple.50" : "transparent"}>
+                          <Tr key={payment.id} bg={selectedPayments.includes(payment.id) ? purpleBg : "transparent"}>
                             <Td><Checkbox isChecked={selectedPayments.includes(payment.id)} onChange={(e) => {
                               setSelectedPayments(e.target.checked ? [...selectedPayments, payment.id] : selectedPayments.filter(i => i !== payment.id));
                             }} /></Td>
@@ -773,10 +818,10 @@ export default function ViewLease() {
                             <Td fontWeight="black" color={textColor}>{fmt(payment.amount_paid)}</Td>
                             <Td>
                               <Badge fontSize="9px" fontWeight="black" textTransform="uppercase" colorScheme={payment.type === "rent" ? "green" : payment.type === "deposit" ? "blue" : "orange"}>
-                                {payment.type}
+                                {t(`payment.${payment.type}`)}
                               </Badge>
                             </Td>
-                            <Td fontSize="10px" fontWeight="bold" color={mutedText} textTransform="uppercase">{payment.payment_method}</Td>
+                            <Td fontSize="10px" fontWeight="bold" color={mutedText} textTransform="uppercase">{t(`payment.${payment.payment_method}`)}</Td>
                             <Td fontSize="xs" color={mutedText}>{payment.notes || "—"}</Td>
                             <Td textAlign="right">
                               <Flex gap={1} justify="flex-end">
@@ -806,7 +851,7 @@ export default function ViewLease() {
         <ModalOverlay bg="blackAlpha.600" />
         <ModalContent bg={cardBg} borderRadius="xl">
           <form onSubmit={handleSavePayment}>
-            <ModalHeader color={textColor}>Record Payment</ModalHeader>
+            <ModalHeader color={textColor}>{t("lease.record_payment")}</ModalHeader>
             <ModalCloseButton />
             <ModalBody pb={6}>
               <SimpleGrid columns={2} spacing={4}>
@@ -821,28 +866,28 @@ export default function ViewLease() {
                 </FormControl>
                 <FormControl isRequired>
                   <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Amount ({localStorage.getItem("currency") || "$"})</FormLabel>
-                  <Input size="md" type="number" step="0.01" value={payForm.amount_paid} onChange={e => setPayForm({ ...payForm, amount_paid: e.target.value })} />
+                  <Input size="md" type="number" step="0.01" bg={inputBg} borderColor={borderColor} value={payForm.amount_paid} onChange={e => setPayForm({ ...payForm, amount_paid: e.target.value })} />
                 </FormControl>
                 <FormControl isRequired>
                   <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Payment Method</FormLabel>
-                  <Select size="sm" value={payForm.payment_method} onChange={e => setPayForm({ ...payForm, payment_method: e.target.value })}>
+                  <Select size="sm" bg={inputBg} borderColor={borderColor} value={payForm.payment_method} onChange={e => setPayForm({ ...payForm, payment_method: e.target.value })}>
                     <option value="cash">Cash</option>
                     <option value="bank">Bank Transfer</option>
                   </Select>
                 </FormControl>
                 <FormControl isRequired>
                   <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Date</FormLabel>
-                  <Input size="sm" type="date" value={payForm.payment_date} onChange={e => setPayForm({ ...payForm, payment_date: e.target.value })} />
+                  <Input size="sm" type="date" bg={inputBg} borderColor={borderColor} value={payForm.payment_date} onChange={e => setPayForm({ ...payForm, payment_date: e.target.value })} />
                 </FormControl>
                 <FormControl gridColumn="span 2">
                   <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Notes (optional)</FormLabel>
-                  <Textarea size="sm" rows={2} value={payForm.notes} onChange={e => setPayForm({ ...payForm, notes: e.target.value })} />
+                  <Textarea size="sm" rows={2} bg={inputBg} borderColor={borderColor} value={payForm.notes} onChange={e => setPayForm({ ...payForm, notes: e.target.value })} />
                 </FormControl>
               </SimpleGrid>
             </ModalBody>
             <ModalFooter>
-              <Button onClick={onPayClose} variant="ghost" mr={3} size="sm">Cancel</Button>
-              <Button colorScheme="blue" type="submit" size="sm" isLoading={isSavingPay}>Save Payment</Button>
+              <Button onClick={onPayClose} variant="ghost" mr={3} size="sm">{t("common.cancel")}</Button>
+              <Button colorScheme="blue" type="submit" size="sm" isLoading={isSavingPay}>{t("common.save")}</Button>
             </ModalFooter>
           </form>
         </ModalContent>
@@ -859,8 +904,8 @@ export default function ViewLease() {
               {/* Room (read-only) */}
               <FormControl mb={4}>
                 <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Room</FormLabel>
-                <Box p={3} bg="gray.100" border="1px solid" borderColor="gray.200" borderRadius="md" fontWeight="bold" color="gray.700" fontSize="sm">
-                  {lease.room?.name || "—"} <Text as="span" fontSize="xs" fontWeight="normal" color="gray.500">(Current Room)</Text>
+                <Box p={3} bg={subCardBg} border="1px solid" borderColor={borderColor} borderRadius="md" fontWeight="bold" color={textColor} fontSize="sm">
+                  {lease.room?.name || "—"} <Text as="span" fontSize="xs" fontWeight="normal" color={mutedText}>(Current Room)</Text>
                 </Box>
               </FormControl>
 
@@ -868,7 +913,7 @@ export default function ViewLease() {
                 {/* Bill Type */}
                 <FormControl isRequired>
                   <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Bill Type</FormLabel>
-                  <Select size="sm" value={billForm.type} onChange={e => setBillForm({ ...billForm, type: e.target.value })}>
+                  <Select size="sm" bg={inputBg} borderColor={borderColor} value={billForm.type} onChange={e => setBillForm({ ...billForm, type: e.target.value })}>
                     <option value="electricity">Electricity</option>
                     <option value="water">Water</option>
                     <option value="trash">Trash (Fixed)</option>
@@ -880,24 +925,24 @@ export default function ViewLease() {
 
                 {/* Meter Reading Section — only for electricity/water */}
                 {isMetered && (
-                  <Box gridColumn="span 2" bg="gray.50" p={4} borderRadius="lg" border="1px solid" borderColor="gray.200">
+                  <Box gridColumn="span 2" bg={subCardBg} p={4} borderRadius="lg" border="1px solid" borderColor={borderColor}>
                     <SimpleGrid columns={3} spacing={4}>
                       <FormControl>
                         <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Previous Reading</FormLabel>
-                        <Input size="sm" type="number" step="0.01" bg="gray.100" value={billForm.previous_reading} readOnly />
-                        <Text fontSize="xs" color="gray.500" mt={1}>Auto-fetched.</Text>
+                        <Input size="sm" type="number" step="0.01" bg={inputBg} borderColor={borderColor} value={billForm.previous_reading} readOnly />
+                        <Text fontSize="xs" color={mutedText} mt={1}>Auto-fetched.</Text>
                       </FormControl>
                       <FormControl>
                         <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Current Reading</FormLabel>
-                        <Input size="sm" type="number" step="0.01" value={billForm.current_reading} onChange={e => setBillForm({ ...billForm, current_reading: e.target.value })} />
+                        <Input size="sm" type="number" step="0.01" bg={inputBg} borderColor={borderColor} value={billForm.current_reading} onChange={e => setBillForm({ ...billForm, current_reading: e.target.value })} />
                       </FormControl>
                       <FormControl>
                         <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Rate per Unit ({localStorage.getItem("currency") || "$"})</FormLabel>
-                        <Input size="md" type="number" step="0.01" value={billForm.cost_per_unit} onChange={e => setBillForm({ ...billForm, cost_per_unit: e.target.value })} />
+                        <Input size="md" type="number" step="0.01" bg={inputBg} borderColor={borderColor} value={billForm.cost_per_unit} onChange={e => setBillForm({ ...billForm, cost_per_unit: e.target.value })} />
                       </FormControl>
                     </SimpleGrid>
-                    <Text fontSize="sm" fontWeight="bold" color="gray.600" textAlign="right" mt={2}>
-                      Usage: <Text as="span" fontWeight="black">{usage}</Text> units
+                    <Text fontSize="sm" fontWeight="bold" color={mutedText} textAlign="right" mt={2}>
+                      Usage: <Text as="span" fontWeight="black" color={textColor}>{usage}</Text> units
                     </Text>
                   </Box>
                 )}
@@ -905,20 +950,20 @@ export default function ViewLease() {
                 {/* Total Amount */}
                 <FormControl isRequired>
                   <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Total Amount ({localStorage.getItem("currency") || "$"})</FormLabel>
-                  <Input size="md" type="number" step="0.01" bg={isMetered ? "yellow.50" : undefined} fontWeight="bold" value={billForm.amount} onChange={e => setBillForm({ ...billForm, amount: e.target.value })} />
-                  {isMetered && <Text fontSize="xs" color="gray.500" mt={1}>Auto-calculated, but you can override.</Text>}
+                  <Input size="md" type="number" step="0.01" bg={isMetered ? highlightBg : inputBg} borderColor={borderColor} fontWeight="bold" value={billForm.amount} onChange={e => setBillForm({ ...billForm, amount: e.target.value })} />
+                  {isMetered && <Text fontSize="xs" color={mutedText} mt={1}>Auto-calculated, but you can override.</Text>}
                 </FormControl>
 
                 {/* Due Date */}
                 <FormControl isRequired>
                   <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Due Date</FormLabel>
-                  <Input size="sm" type="date" value={billForm.due_date} onChange={e => setBillForm({ ...billForm, due_date: e.target.value })} />
+                  <Input size="sm" type="date" bg={inputBg} borderColor={borderColor} value={billForm.due_date} onChange={e => setBillForm({ ...billForm, due_date: e.target.value })} />
                 </FormControl>
 
                 {/* Status */}
                 <FormControl>
                   <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Status</FormLabel>
-                  <Select size="sm" value={billForm.status} onChange={e => setBillForm({ ...billForm, status: e.target.value })}>
+                  <Select size="sm" bg={inputBg} borderColor={borderColor} value={billForm.status} onChange={e => setBillForm({ ...billForm, status: e.target.value })}>
                     <option value="unpaid">Unpaid</option>
                     <option value="paid">Paid</option>
                   </Select>
@@ -928,7 +973,7 @@ export default function ViewLease() {
                 {/* Description */}
                 <FormControl gridColumn="span 2">
                   <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Description (Optional)</FormLabel>
-                  <Textarea size="sm" rows={2} value={billForm.description} onChange={e => setBillForm({ ...billForm, description: e.target.value })} placeholder="e.g., September 2023 Usage" />
+                  <Textarea size="sm" rows={2} bg={inputBg} borderColor={borderColor} value={billForm.description} onChange={e => setBillForm({ ...billForm, description: e.target.value })} placeholder="e.g., September 2023 Usage" />
                 </FormControl>
               </SimpleGrid>
             </ModalBody>
@@ -951,7 +996,7 @@ export default function ViewLease() {
               {/* Bill list */}
               <Box maxH="200px" overflowY="auto" border="1px solid" borderColor={borderColor} borderRadius="lg" mb={4}>
                 {(lease.utility_bills || []).filter(b => b.status === "unpaid").map(bill => (
-                  <Flex key={bill.id} align="center" justify="space-between" px={3} py={2} borderBottom="1px solid" borderColor={borderColor} bg={selectedBillIds.includes(bill.id) ? "green.50" : "transparent"}>
+                  <Flex key={bill.id} align="center" justify="space-between" px={3} py={2} borderBottom="1px solid" borderColor={borderColor} bg={selectedBillIds.includes(bill.id) ? successBg : "transparent"}>
                     <Flex align="center" gap={2}>
                       <Checkbox
                         isChecked={selectedBillIds.includes(bill.id)}

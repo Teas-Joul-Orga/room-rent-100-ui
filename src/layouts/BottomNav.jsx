@@ -55,8 +55,8 @@ export default function BottomNav({ onOpenSidebar }) {
 
   const unreadChatCount = useUnreadChatCount(userDetails);
   
-  const bg = useColorModeValue("white", "gray.800");
-  const borderTopColor = useColorModeValue("gray.200", "gray.700");
+  const bg = useColorModeValue("white", "#0d1117");
+  const borderTopColor = useColorModeValue("gray.200", "#30363d");
 
   const isRouteActive = (route) => location.pathname.startsWith(route);
   // Specific check for Exact dashboard so it doesn't highlight when on /dashboard/rooms

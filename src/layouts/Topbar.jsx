@@ -32,17 +32,18 @@ import ChangePasswordModal from "../components/ChangePasswordModal";
 import useUnreadChatCount from "../hooks/useUnreadChatCount";
 import useNotificationCount from "../hooks/useNotificationCount";
 import Notification from "../page/notification/Notification";
+import LanguageSwitcher from "../components/LanguageSwitcher";
 
 const Topbar = ({ onOpenSidebar }) => {
   const { colorMode, toggleColorMode } = useColorMode();
   const navigate = useNavigate();
   const { isOpen: isPasswordOpen, onOpen: onPasswordOpen, onClose: onPasswordClose } = useDisclosure();
 
-  const bg = useColorModeValue("whiteAlpha.900", "gray.800");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
-  const textColor = useColorModeValue("gray.900", "white");
+  const bg = useColorModeValue("whiteAlpha.900", "rgba(13,17,23,0.95)");
+  const borderColor = useColorModeValue("gray.200", "#30363d");
+  const textColor = useColorModeValue("gray.900", "gray.100");
   const workspaceColor = useColorModeValue("gray.400", "gray.500");
-  const hoverBg = useColorModeValue("gray.100", "gray.700");
+  const hoverBg = useColorModeValue("gray.100", "#1c2333");
 
   const handleLogout = () => {
     localStorage.clear();
@@ -125,45 +126,8 @@ const Topbar = ({ onOpenSidebar }) => {
             size="sm"
           />
 
-          {/* Language Dropdown */}
-          <Menu placement="bottom-end">
-            <MenuButton
-              as={Flex}
-              alignItems="center"
-              gap={1}
-              px={2}
-              py={1.5}
-              borderRadius="xl"
-              cursor="pointer"
-              bg="transparent"
-              color="gray.500"
-              fontWeight="semibold"
-              fontSize="sm"
-              transition="all 0.2s"
-              _hover={{ bg: hoverBg, color: "gray.700" }}
-            >
-              <HStack spacing={1}>
-                <Text>EN</Text>
-                <Icon viewBox="0 0 20 20" fill="currentColor" boxSize={4}>
-                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                </Icon>
-              </HStack>
-            </MenuButton>
-            <MenuList borderRadius="xl" boxShadow="lg" borderColor={borderColor} p={1} minW="120px">
-              <MenuItem fontSize="sm" fontWeight="semibold" borderRadius="md" _hover={{ bg: "gray.50" }}>
-                <HStack spacing={2}>
-                  <Text fontSize="xs" fontWeight="bold">EN</Text>
-                  <Text>English</Text>
-                </HStack>
-              </MenuItem>
-              <MenuItem fontSize="sm" fontWeight="semibold" borderRadius="md" _hover={{ bg: "gray.50" }}>
-                <HStack spacing={2}>
-                  <Text fontSize="xs" fontWeight="bold">KH</Text>
-                  <Text>Khmer</Text>
-                </HStack>
-              </MenuItem>
-            </MenuList>
-          </Menu>
+          {/* Language Switcher */}
+          <LanguageSwitcher />
 
           {/* Chat Support (Hidden on mobile phones, handled by BottomNav) */}
           <Box position="relative" display={{ base: "none", md: "inline-flex" }}>
@@ -267,8 +231,9 @@ const Topbar = ({ onOpenSidebar }) => {
               fontWeight="semibold"
               fontSize="sm"
               transition="all 0.2s"
-              _hover={{ bg: hoverBg, color: "gray.900" }}
+              _hover={{ bg: hoverBg, color: textColor }}
               _focus={{ outline: "none" }}
+              _dark={{ color: "gray.300" }}
             >
               <HStack spacing={2}>
                 <Text display={{ base: "none", sm: "block" }}>{userDetails.name}</Text>
@@ -282,20 +247,24 @@ const Topbar = ({ onOpenSidebar }) => {
               p={1}
             >
               <MenuItem
+                as={NavLink}
+                to="/dashboard/profile"
                 icon={<LuCircleUser size={18} />}
                 fontSize="sm"
                 fontWeight="semibold"
                 borderRadius="md"
-                _hover={{ bg: "gray.50", color: "blue.600" }}
+                _hover={{ bg: hoverBg, color: "blue.500" }}
               >
                 Profile
               </MenuItem>
               <MenuItem
+                as={NavLink}
+                to="/dashboard/settings"
                 icon={<LuSettings size={18} />}
                 fontSize="sm"
                 fontWeight="semibold"
                 borderRadius="md"
-                _hover={{ bg: "gray.50", color: "blue.600" }}
+                _hover={{ bg: hoverBg, color: "blue.500" }}
               >
                 Settings
               </MenuItem>
@@ -304,7 +273,7 @@ const Topbar = ({ onOpenSidebar }) => {
                 fontSize="sm"
                 fontWeight="semibold"
                 borderRadius="md"
-                _hover={{ bg: "gray.50", color: "blue.600" }}
+                _hover={{ bg: hoverBg, color: "blue.500" }}
                 onClick={onPasswordOpen}
               >
                 Change Password
@@ -316,7 +285,7 @@ const Topbar = ({ onOpenSidebar }) => {
                 fontWeight="semibold"
                 color="red.600"
                 borderRadius="md"
-                _hover={{ bg: "red.50" }}
+                _hover={{ bg: useColorModeValue("red.50", "#2d1215") }}
                 onClick={handleLogout}
               >
                 Log Out

@@ -70,13 +70,13 @@ export default function Furniture() {
     return () => window.removeEventListener("resize", handleResize);
   }, []); 
 
-  const bg = useColorModeValue("sky.50", "gray.900");
-  const cardBg = useColorModeValue("white", "gray.800");
+  const bg = useColorModeValue("sky.50", "#0d1117");
+  const cardBg = useColorModeValue("white", "#161b22");
   const textColor = useColorModeValue("gray.800", "white");
   const mutedText = useColorModeValue("gray.500", "gray.400");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
-  const tableHeaderBg = useColorModeValue("sky.100", "gray.700");
-  const hoverBg = useColorModeValue("sky.50", "gray.700");
+  const borderColor = useColorModeValue("gray.200", "#30363d");
+  const tableHeaderBg = useColorModeValue("sky.100", "#30363d");
+  const hoverBg = useColorModeValue("sky.50", "#30363d");
 
   const fetchFurniture = async () => {
     setIsLoading(true);

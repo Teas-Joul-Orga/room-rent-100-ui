@@ -6,6 +6,7 @@ import {
   Input
 } from "@chakra-ui/react";
 import { toast } from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
 
 const API = "http://localhost:8000/api/v1";
@@ -20,6 +21,7 @@ const fmt = (n) => {
 };
 
 export default function Report() {
+  const { t } = useTranslation();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const activeTab = queryParams.get("tab") || 'financial';
@@ -34,12 +36,14 @@ export default function Report() {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const bg = useColorModeValue("white", "gray.800");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const bg = useColorModeValue("white", "#161b22");
+  const borderColor = useColorModeValue("gray.200", "#30363d");
   const textColor = useColorModeValue("gray.800", "white");
   const mutedText = useColorModeValue("gray.500", "gray.400");
-  const hoverBg = useColorModeValue("gray.50", "gray.700");
+  const hoverBg = useColorModeValue("gray.50", "#1c2333");
   const activeBg = useColorModeValue("blue.50", "blue.900");
+
+  const loadingBg = useColorModeValue("whiteAlpha.700", "blackAlpha.600");
 
   const headers = () => {
     const token = localStorage.getItem("token");
@@ -109,13 +113,13 @@ export default function Report() {
       {/* Header & Filters */}
       <Flex direction={{ base: "column", md: "row" }} justify="space-between" align="center" mb={8} gap={4}>
         <Box>
-          <Text fontSize="2xl" fontWeight="black" color={textColor}>Executive Analytics</Text>
+          <Text fontSize="2xl" fontWeight="black" color={textColor}>{t("report.title")}</Text>
         </Box>
         <Flex gap={3} align="center">
           <Select size="sm" w="120px" bg={bg} value={filterType} onChange={e => setFilterType(e.target.value)}>
-            <option value="daily">Daily</option>
-            <option value="monthly">Monthly</option>
-            <option value="yearly">Yearly</option>
+            <option value="daily">{t("report.daily")}</option>
+            <option value="monthly">{t("report.monthly")}</option>
+            <option value="yearly">{t("report.yearly")}</option>
           </Select>
 
           {filterType === 'daily' && (
@@ -130,13 +134,13 @@ export default function Report() {
             </Select>
           )}
 
-          <Button size="sm" colorScheme="green" px={6} onClick={handleExport}>Export</Button>
+          <Button size="sm" colorScheme="green" px={6} onClick={handleExport}>{t("report.export")}</Button>
         </Flex>
       </Flex>
 
       <Box minH="500px" pos="relative">
           {loading && (
-            <Flex pos="absolute" zIndex={10} top={0} left={0} right={0} bottom={0} bg={useColorModeValue("whiteAlpha.700", "blackAlpha.600")} backdropFilter="blur(5px)" align="center" justify="center" borderRadius="3xl">
+            <Flex pos="absolute" zIndex={10} top={0} left={0} right={0} bottom={0} bg={loadingBg} backdropFilter="blur(5px)" align="center" justify="center" borderRadius="3xl">
               <Spinner size="xl" color="blue.500" thickness="4px" />
             </Flex>
           )}
@@ -145,7 +149,7 @@ export default function Report() {
           {activeTab === 'financial' && (
             <Box>
                <Box bg={bg} p={8} borderRadius="3xl" border="1px solid" borderColor={borderColor} shadow="sm" mb={8}>
-                  <Text fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="widest" color={mutedText} mb={1}>Global Net Cashflow</Text>
+                  <Text fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="widest" color={mutedText} mb={1}>{t("report.net_cashflow")}</Text>
                   <Text fontSize="4xl" fontWeight="black" color={data.netProfit >= 0 ? textColor : "red.500"} letterSpacing="tighter">
                     {fmt(data.netProfit)}
                   </Text>
@@ -155,31 +159,31 @@ export default function Report() {
                   {/* Revenue Inflow */}
                   <Box bg={bg} borderRadius="3xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
                     <Flex p={6} borderBottom="1px solid" borderColor={borderColor} bg={hoverBg} justify="space-between" align="center">
-                      <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>Revenue Inflow</Text>
-                      <Badge colorScheme="green" borderRadius="full" px={3} py={1} fontSize="xs">Collected</Badge>
+                      <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>{t("report.revenue_inflow")}</Text>
+                      <Badge colorScheme="green" borderRadius="full" px={3} py={1} fontSize="xs">{t("report.collected")}</Badge>
                     </Flex>
                     <TableContainer>
                       <Table size="md">
-                        <Thead bg={hoverBg}><Tr><Th>Date</Th><Th>Tenant</Th><Th isNumeric>Amount</Th></Tr></Thead>
+                        <Thead bg={hoverBg}><Tr><Th>{t("report.date")}</Th><Th>{t("report.tenant")}</Th><Th isNumeric>{t("report.amount")}</Th></Tr></Thead>
                         <Tbody>
                           {data.revenueItems?.map((item) => (
                             <Tr key={item.id} _hover={{ bg: hoverBg }}>
                               <Td fontSize="sm" fontWeight="bold" color={mutedText}>{dayjs(item.payment_date).format('MMM D')}</Td>
                               <Td>
-                                <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor} maxW="150px" isTruncated>{item.lease?.tenant?.first_name} {item.lease?.tenant?.last_name}</Text>
+                                <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor} maxW="150px" isTruncated>{item.lease?.tenant?.name}</Text>
                                 <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase">{item.lease?.room?.name || 'General'}</Text>
                               </Td>
                               <Td isNumeric fontSize="sm" fontWeight="black" color="green.500">+{fmt(item.amount_paid)}</Td>
                             </Tr>
                           ))}
                           {(!data.revenueItems || data.revenueItems.length === 0) && (
-                            <Tr><Td colSpan={3} textAlign="center" py={10} color={mutedText} fontSize="sm" fontStyle="italic">No records.</Td></Tr>
+                            <Tr><Td colSpan={3} textAlign="center" py={10} color={mutedText} fontSize="sm" fontStyle="italic">{t("report.no_records")}</Td></Tr>
                           )}
                         </Tbody>
                       </Table>
                     </TableContainer>
                     <Flex p={3} bg="green.50" justify="space-between" _dark={{ bg: "green.900" }}>
-                      <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>Total In</Text>
+                      <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>{t("report.total_in")}</Text>
                       <Text fontSize="sm" fontWeight="black" color="green.600">{fmt(data.revenueCollected)}</Text>
                     </Flex>
                   </Box>
@@ -187,11 +191,11 @@ export default function Report() {
                   {/* Expense Outflow */}
                   <Box bg={bg} borderRadius="3xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
                     <Flex p={6} borderBottom="1px solid" borderColor={borderColor} bg={hoverBg} justify="space-between" align="center">
-                      <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>Expense Outflow</Text>
+                      <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>{t("report.expense_outflow")}</Text>
                     </Flex>
                     <TableContainer>
                       <Table size="md">
-                        <Thead bg={hoverBg}><Tr><Th>Date</Th><Th>Description</Th><Th isNumeric>Amount</Th></Tr></Thead>
+                        <Thead bg={hoverBg}><Tr><Th>{t("report.date")}</Th><Th>{t("report.desc")}</Th><Th isNumeric>{t("report.amount")}</Th></Tr></Thead>
                         <Tbody>
                           {data.expenseItems?.map((item) => (
                             <Tr key={item.id} _hover={{ bg: hoverBg }}>
@@ -204,13 +208,13 @@ export default function Report() {
                             </Tr>
                           ))}
                           {(!data.expenseItems || data.expenseItems.length === 0) && (
-                            <Tr><Td colSpan={3} textAlign="center" py={10} color={mutedText} fontSize="sm" fontStyle="italic">No records.</Td></Tr>
+                            <Tr><Td colSpan={3} textAlign="center" py={10} color={mutedText} fontSize="sm" fontStyle="italic">{t("report.no_records")}</Td></Tr>
                           )}
                         </Tbody>
                       </Table>
                     </TableContainer>
                     <Flex p={3} bg="red.50" justify="space-between" _dark={{ bg: "red.900" }}>
-                      <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>Total Out</Text>
+                      <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>{t("report.total_out")}</Text>
                       <Text fontSize="sm" fontWeight="black" color="red.600">{fmt(data.totalExpenses)}</Text>
                     </Flex>
                   </Box>
@@ -222,13 +226,13 @@ export default function Report() {
           {activeTab === 'p_and_l' && (
             <Box>
                <Box bg={bg} p={8} borderRadius="3xl" border="1px solid" borderColor={borderColor} shadow="sm" mb={8}>
-                  <Text fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="widest" color={mutedText} mb={1}>Rolling Net Performance</Text>
+                  <Text fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="widest" color={mutedText} mb={1}>{t("report.annual")}</Text>
                   <Text fontSize="4xl" fontWeight="black" color={textColor} letterSpacing="tighter">{fmt(data.annualNet)}</Text>
                </Box>
                <Box bg={bg} borderRadius="3xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
                   <TableContainer>
                     <Table size="md">
-                      <Thead bg={hoverBg}><Tr><Th>Period</Th><Th isNumeric>Income (+)</Th><Th isNumeric>Expense (-)</Th><Th isNumeric>Net Profit</Th></Tr></Thead>
+                      <Thead bg={hoverBg}><Tr><Th>{t("report.period")}</Th><Th isNumeric>{t("report.income")}</Th><Th isNumeric>{t("report.expense")}</Th><Th isNumeric>{t("report.net_profit")}</Th></Tr></Thead>
                       <Tbody>
                         {data.trendLabels?.map((label, idx) => (
                           <Tr key={idx} _hover={{ bg: hoverBg }}>
@@ -249,8 +253,8 @@ export default function Report() {
           {activeTab === 'aging' && (
             <Box>
                 <Box bg={bg} p={8} borderRadius="3xl" shadow="sm" border="1px solid" borderColor={borderColor} mb={8}>
-                  <Text fontSize="xl" fontWeight="black" color={textColor} textTransform="uppercase">Accounts Receivable Aging</Text>
-                  <Text fontSize="sm" fontWeight="medium" color={mutedText}>Categorized by days past due date.</Text>
+                  <Text fontSize="xl" fontWeight="black" color={textColor} textTransform="uppercase">{t("report.aging_title")}</Text>
+                  <Text fontSize="sm" fontWeight="medium" color={mutedText}>{t("report.aging_desc")}</Text>
                 </Box>
                 <SimpleGrid columns={{ base: 1, md: 4 }} spacing={6} mb={8}>
                    {['current', '30_days', '60_days', '90_plus'].map((bucket, idx) => {
@@ -261,7 +265,7 @@ export default function Report() {
                            <Box pos="absolute" top={0} left={0} w="4px" h="100%" bg={colors[idx]} />
                            <Text fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="widest" color={mutedText} mb={1}>{bucket.replace('_', ' ')}</Text>
                            <Text fontSize="2xl" fontWeight="black" color={textColor}>{fmt(sum)}</Text>
-                           <Text fontSize="sm" fontWeight="bold" textTransform="uppercase" color={mutedText} mt={1}>{data.aging?.[bucket]?.length || 0} Invoices</Text>
+                           <Text fontSize="sm" fontWeight="bold" textTransform="uppercase" color={mutedText} mt={1}>{data.aging?.[bucket]?.length || 0} {t("report.invoices")}</Text>
                         </Box>
                       )
                    })}
@@ -269,12 +273,12 @@ export default function Report() {
                 <Box bg={bg} borderRadius="3xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
                   <TableContainer>
                     <Table size="md">
-                      <Thead bg={hoverBg}><Tr><Th>Tenant / Room</Th><Th>Due Date</Th><Th textAlign="center">Days Late</Th><Th isNumeric>Balance</Th></Tr></Thead>
+                      <Thead bg={hoverBg}><Tr><Th>{t("report.tenant_room")}</Th><Th>{t("report.due_date")}</Th><Th textAlign="center">{t("report.days_late")}</Th><Th isNumeric>{t("report.balance")}</Th></Tr></Thead>
                       <Tbody>
                         {['current', '30_days', '60_days', '90_plus'].flatMap(b => data.aging?.[b] || []).map(bill => (
                           <Tr key={bill.id} _hover={{ bg: hoverBg }}>
                             <Td>
-                              <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>{bill.lease?.tenant?.first_name} {bill.lease?.tenant?.last_name}</Text>
+                              <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>{bill.lease?.tenant?.name}</Text>
                               <Text fontSize="sm" fontWeight="bold" textTransform="uppercase" color={mutedText}>{bill.lease?.room?.name}</Text>
                             </Td>
                             <Td fontSize="sm" fontWeight="bold" color={mutedText}>{dayjs(bill.due_date).format('MMM D, YYYY')}</Td>
@@ -296,9 +300,9 @@ export default function Report() {
             <Box>
                <Box bg={bg} p={8} borderRadius="3xl" shadow="sm" border="1px solid" borderColor={borderColor} mb={8}>
                   <Box maxW="md">
-                    <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={mutedText} mb={1}>Select Room to Analyze</Text>
+                    <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={mutedText} mb={1}>{t("report.unit_analyze")}</Text>
                     <Select bg={bg} borderRadius="xl" fontWeight="bold" fontSize="sm" value={roomId} onChange={e => setRoomId(e.target.value)}>
-                      <option value="">-- Choose Unit --</option>
+                      <option value="">{t("report.choose_unit")}</option>
                       {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                     </Select>
                   </Box>
@@ -308,15 +312,15 @@ export default function Report() {
                   <Box>
                      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mb={8}>
                         <Box bg={bg} p={6} borderRadius="2xl" border="1px solid" borderColor={borderColor} shadow="sm">
-                          <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={mutedText} mb={1}>Unit Revenue</Text>
+                          <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={mutedText} mb={1}>{t("report.unit_rev")}</Text>
                           <Text fontSize="3xl" fontWeight="black" color="green.500">{fmt(data.roomRevenue)}</Text>
                         </Box>
                         <Box bg={bg} p={6} borderRadius="2xl" border="1px solid" borderColor={borderColor} shadow="sm">
-                          <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={mutedText} mb={1}>Unit Expenses</Text>
+                          <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={mutedText} mb={1}>{t("report.unit_exp")}</Text>
                           <Text fontSize="3xl" fontWeight="black" color="red.500">{fmt(data.roomExpenses)}</Text>
                         </Box>
                         <Box bg="gray.900" p={6} borderRadius="2xl" shadow="xl" _dark={{ bg: "gray.700" }}>
-                          <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color="blue.400" mb={1}>Unit Net Flow</Text>
+                          <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color="blue.400" mb={1}>{t("report.unit_net")}</Text>
                           <Text fontSize="3xl" fontWeight="black" color="white">{fmt(data.roomNet)}</Text>
                         </Box>
                      </SimpleGrid>
@@ -324,18 +328,18 @@ export default function Report() {
                      <SimpleGrid columns={{ base: 1, xl: 2 }} spacing={8}>
                         {/* Unit Inflow Table */}
                         <Box bg={bg} borderRadius="3xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
-                          <Flex p={6} borderBottom="1px solid" borderColor={borderColor} bg={hoverBg} justify="space-between" align="center"><Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>Unit Inflow</Text></Flex>
+                          <Flex p={6} borderBottom="1px solid" borderColor={borderColor} bg={hoverBg} justify="space-between" align="center"><Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>{t("report.unit_inflow")}</Text></Flex>
                           <TableContainer>
                             <Table size="md">
                               <Tbody>
-                                {data.roomRevenueItems?.map(i => <Tr key={i.id}><Td fontSize="sm" fontWeight="bold" color={mutedText}>{dayjs(i.payment_date).format('MMM D')}</Td><Td fontSize="sm" fontWeight="black" color={textColor}>{i.lease?.tenant?.first_name}</Td><Td isNumeric fontSize="sm" fontWeight="black" color="green.500">+{fmt(i.amount_paid)}</Td></Tr>)}
+                                {data.roomRevenueItems?.map(i => <Tr key={i.id}><Td fontSize="sm" fontWeight="bold" color={mutedText}>{dayjs(i.payment_date).format('MMM D')}</Td><Td fontSize="sm" fontWeight="black" color={textColor}>{i.lease?.tenant?.name}</Td><Td isNumeric fontSize="sm" fontWeight="black" color="green.500">+{fmt(i.amount_paid)}</Td></Tr>)}
                               </Tbody>
                             </Table>
                           </TableContainer>
                         </Box>
                         {/* Unit Outflow Table */}
                         <Box bg={bg} borderRadius="3xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
-                          <Flex p={6} borderBottom="1px solid" borderColor={borderColor} bg={hoverBg} justify="space-between" align="center"><Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>Unit Outflow</Text></Flex>
+                          <Flex p={6} borderBottom="1px solid" borderColor={borderColor} bg={hoverBg} justify="space-between" align="center"><Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>{t("report.unit_outflow")}</Text></Flex>
                           <TableContainer>
                             <Table size="md">
                               <Tbody>
@@ -348,7 +352,7 @@ export default function Report() {
                   </Box>
                ) : (
                  <Box textAlign="center" py={12} bg={bg} borderRadius="lg" border="2px dashed" borderColor={borderColor}>
-                    <Text color={mutedText} fontStyle="italic">Please select a unit to view analysis.</Text>
+                    <Text color={mutedText} fontStyle="italic">{t("report.req_select")}</Text>
                  </Box>
                )}
             </Box>
@@ -360,36 +364,36 @@ export default function Report() {
                <Box bg={bg} p={8} borderRadius="3xl" shadow="sm" border="1px solid" borderColor={borderColor} mb={8}>
                   <Flex justify="space-between" align="flex-start" mb={8}>
                     <Box>
-                      <Text fontSize="2xl" fontWeight="black" color={textColor} textTransform="uppercase" letterSpacing="tight">Status Overview</Text>
-                      <Text fontSize="sm" fontWeight="bold" color={mutedText}>Units: {data.totalRooms}</Text>
+                      <Text fontSize="2xl" fontWeight="black" color={textColor} textTransform="uppercase" letterSpacing="tight">{t("report.status_overview")}</Text>
+                      <Text fontSize="sm" fontWeight="bold" color={mutedText}>{t("report.units")}: {data.totalRooms}</Text>
                     </Box>
                     <Box textAlign="right">
                       <Text fontSize="4xl" fontWeight="black" color="blue.500">{data.occupancyRate?.toFixed(1)}%</Text>
-                      <Text fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="widest" color={mutedText}>Occupancy</Text>
+                      <Text fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="widest" color={mutedText}>{t("report.occupancy")}</Text>
                     </Box>
                   </Flex>
                   <SimpleGrid columns={3} spacing={4}>
-                    <Box bg="green.50" p={4} borderRadius="2xl" border="1px solid" borderColor="green.100" textAlign="center" _dark={{ bg: "green.900", borderColor: "green.800" }}><Text fontSize="2xl" fontWeight="black" color="green.600">{data.occupiedRooms}</Text><Text fontSize="sm" fontWeight="black" color="green.600" textTransform="uppercase">Occupied</Text></Box>
-                    <Box bg="blue.50" p={4} borderRadius="2xl" border="1px solid" borderColor="blue.100" textAlign="center" _dark={{ bg: "blue.900", borderColor: "blue.800" }}><Text fontSize="2xl" fontWeight="black" color="blue.600">{data.vacantRooms}</Text><Text fontSize="sm" fontWeight="black" color="blue.600" textTransform="uppercase">Available</Text></Box>
-                    <Box bg="orange.50" p={4} borderRadius="2xl" border="1px solid" borderColor="orange.100" textAlign="center" _dark={{ bg: "orange.900", borderColor: "orange.800" }}><Text fontSize="2xl" fontWeight="black" color="orange.600">{data.maintenanceRooms}</Text><Text fontSize="sm" fontWeight="black" color="orange.600" textTransform="uppercase">In Repair</Text></Box>
+                    <Box bg="green.50" p={4} borderRadius="2xl" border="1px solid" borderColor="green.100" textAlign="center" _dark={{ bg: "green.900", borderColor: "green.800" }}><Text fontSize="2xl" fontWeight="black" color="green.600">{data.occupiedRooms}</Text><Text fontSize="sm" fontWeight="black" color="green.600" textTransform="uppercase">{t("report.occupied")}</Text></Box>
+                    <Box bg="blue.50" p={4} borderRadius="2xl" border="1px solid" borderColor="blue.100" textAlign="center" _dark={{ bg: "blue.900", borderColor: "blue.800" }}><Text fontSize="2xl" fontWeight="black" color="blue.600">{data.vacantRooms}</Text><Text fontSize="sm" fontWeight="black" color="blue.600" textTransform="uppercase">{t("report.available")}</Text></Box>
+                    <Box bg="orange.50" p={4} borderRadius="2xl" border="1px solid" borderColor="orange.100" textAlign="center" _dark={{ bg: "orange.900", borderColor: "orange.800" }}><Text fontSize="2xl" fontWeight="black" color="orange.600">{data.maintenanceRooms}</Text><Text fontSize="sm" fontWeight="black" color="orange.600" textTransform="uppercase">{t("report.repair")}</Text></Box>
                   </SimpleGrid>
                </Box>
                <SimpleGrid columns={{ base: 1, xl: 2 }} spacing={8}>
                   <Box bg={bg} borderRadius="3xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
-                    <Flex p={6} borderBottom="1px solid" borderColor={borderColor} bg={hoverBg} align="center"><Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>Available Units</Text></Flex>
+                    <Flex p={6} borderBottom="1px solid" borderColor={borderColor} bg={hoverBg} align="center"><Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>{t("report.avail_units")}</Text></Flex>
                     <TableContainer>
-                      <Table size="md"><Thead bg={hoverBg}><Tr><Th>Room</Th><Th isNumeric>Price</Th></Tr></Thead>
+                      <Table size="md"><Thead bg={hoverBg}><Tr><Th>{t("report.room")}</Th><Th isNumeric>{t("report.price")}</Th></Tr></Thead>
                       <Tbody>
-                        {data.availableRooms?.map(r => <Tr key={r.id}><Td><Text fontSize="sm" fontWeight="black" color={textColor} textTransform="uppercase">{r.name}</Text><Text fontSize="xs" fontWeight="bold" color="green.500" textTransform="uppercase">Ready</Text></Td><Td isNumeric fontSize="sm" fontWeight="bold" color={mutedText}>{fmt(r.price || r.base_rent_price)}</Td></Tr>)}
+                        {data.availableRooms?.map(r => <Tr key={r.id}><Td><Text fontSize="sm" fontWeight="black" color={textColor} textTransform="uppercase">{r.name}</Text><Text fontSize="xs" fontWeight="bold" color="green.500" textTransform="uppercase">{t("report.ready")}</Text></Td><Td isNumeric fontSize="sm" fontWeight="bold" color={mutedText}>{fmt(r.price || r.base_rent_price)}</Td></Tr>)}
                       </Tbody></Table>
                     </TableContainer>
                   </Box>
                   <Box bg={bg} borderRadius="3xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
-                    <Flex p={6} borderBottom="1px solid" borderColor={borderColor} bg={hoverBg} align="center"><Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>Unavailable Units</Text></Flex>
+                    <Flex p={6} borderBottom="1px solid" borderColor={borderColor} bg={hoverBg} align="center"><Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>{t("report.unavail_units")}</Text></Flex>
                     <TableContainer>
-                      <Table size="md"><Thead bg={hoverBg}><Tr><Th>Room</Th><Th>Status</Th><Th>Details</Th></Tr></Thead>
+                      <Table size="md"><Thead bg={hoverBg}><Tr><Th>{t("report.room")}</Th><Th>{t("report.status")}</Th><Th>{t("report.details")}</Th></Tr></Thead>
                       <Tbody>
-                        {data.unavailableRooms?.map(r => <Tr key={r.id}><Td fontSize="sm" fontWeight="black" color={textColor} textTransform="uppercase">{r.name}</Td><Td><Badge colorScheme={r.status === 'maintenance' ? 'orange' : 'blue'}>{r.status}</Badge></Td><Td fontSize="sm" color={mutedText}>{r.status === 'occupied' && <Box><Text fontWeight="bold">{r.leases?.[0]?.tenant?.first_name}</Text><Text fontSize="xs">Ends: {dayjs(r.leases?.[0]?.end_date).format('MMM D, YY')}</Text></Box>}</Td></Tr>)}
+                        {data.unavailableRooms?.map(r => <Tr key={r.id}><Td fontSize="sm" fontWeight="black" color={textColor} textTransform="uppercase">{r.name}</Td><Td><Badge colorScheme={r.status === 'maintenance' ? 'orange' : 'blue'}>{r.status}</Badge></Td><Td fontSize="sm" color={mutedText}>{r.status === 'occupied' && <Box><Text fontWeight="bold">{r.leases?.[0]?.tenant?.name}</Text><Text fontSize="xs">{t("report.ends")}: {dayjs(r.leases?.[0]?.end_date).format('MMM D, YY')}</Text></Box>}</Td></Tr>)}
                       </Tbody></Table>
                     </TableContainer>
                   </Box>
@@ -402,11 +406,11 @@ export default function Report() {
             <Box>
               <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={8}>
                 <Box bg={bg} p={6} borderRadius="2xl" shadow="sm" border="1px solid" borderColor={borderColor}>
-                  <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={1}>Expiring Next 30 Days</Text>
+                  <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={1}>{t("report.next_30")}</Text>
                   <Text fontSize="3xl" fontWeight="black" color="orange.500">{data.expiringNext30 || 0}</Text>
                 </Box>
                 <Box bg={bg} p={6} borderRadius="2xl" shadow="sm" border="1px solid" borderColor={borderColor}>
-                  <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={1}>Already Expired</Text>
+                  <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={1}>{t("report.expired")}</Text>
                   <Text fontSize="3xl" fontWeight="black" color="red.500">{data.expired || 0}</Text>
                 </Box>
               </SimpleGrid>
@@ -415,27 +419,27 @@ export default function Report() {
                   <Table size="md">
                     <Thead bg={hoverBg}>
                       <Tr>
-                        <Th>Tenant</Th>
-                        <Th>Room</Th>
-                        <Th>End Date</Th>
-                        <Th>Status</Th>
+                        <Th>{t("report.tenant")}</Th>
+                        <Th>{t("report.room")}</Th>
+                        <Th>{t("report.end_date")}</Th>
+                        <Th>{t("report.status")}</Th>
                       </Tr>
                     </Thead>
                     <Tbody>
                       {data.leases?.map(lease => (
                         <Tr key={lease.id} _hover={{ bg: hoverBg }}>
-                          <Td fontSize="sm" fontWeight="bold" color={textColor}>{lease.tenant?.first_name} {lease.tenant?.last_name}</Td>
+                          <Td fontSize="sm" fontWeight="bold" color={textColor}>{lease.tenant?.name}</Td>
                           <Td fontSize="xs" fontWeight="bold" color={mutedText}>{lease.room?.name}</Td>
                           <Td fontSize="xs" fontWeight="bold" color={textColor}>{dayjs(lease.end_date).format('MMM D, YYYY')}</Td>
                           <Td>
                              <Badge colorScheme={dayjs(lease.end_date).isBefore(dayjs().add(30, 'day')) ? 'orange' : 'green'}>
-                               {dayjs(lease.end_date).isBefore(dayjs().add(30, 'day')) ? 'Expiring' : 'Active'}
+                               {dayjs(lease.end_date).isBefore(dayjs().add(30, 'day')) ? t("report.expiring") : t("report.active")}
                              </Badge>
                           </Td>
                         </Tr>
                       ))}
                       {(!data.leases || data.leases.length === 0) && (
-                        <Tr><Td colSpan={4} textAlign="center" py={10} color={mutedText} fontSize="sm" fontStyle="italic">No active leases found.</Td></Tr>
+                        <Tr><Td colSpan={4} textAlign="center" py={10} color={mutedText} fontSize="sm" fontStyle="italic">{t("report.no_leases")}</Td></Tr>
                       )}
                     </Tbody>
                   </Table>
@@ -449,29 +453,29 @@ export default function Report() {
             <Box>
               <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mb={8}>
                 <Box bg={bg} p={6} borderRadius="2xl" shadow="sm" border="1px solid" borderColor={borderColor}>
-                  <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={1}>Total Requests</Text>
+                  <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={1}>{t("report.total_req")}</Text>
                   <Text fontSize="3xl" fontWeight="black" color={textColor}>{data.totalRequests || 0}</Text>
                 </Box>
                 <Box bg={bg} p={6} borderRadius="2xl" shadow="sm" border="1px solid" borderColor={borderColor}>
-                  <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={1}>Pending Actions</Text>
+                  <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={1}>{t("report.pending")}</Text>
                   <Text fontSize="3xl" fontWeight="black" color="orange.500">{data.pendingRequests || 0}</Text>
                 </Box>
                 <Box bg={bg} p={6} borderRadius="2xl" shadow="sm" border="1px solid" borderColor={borderColor}>
-                  <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={1}>Total Cost</Text>
+                  <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={1}>{t("report.total_cost")}</Text>
                   <Text fontSize="3xl" fontWeight="black" color="red.500">{fmt(data.totalCost || 0)}</Text>
                 </Box>
               </SimpleGrid>
               <Box bg={bg} borderRadius="3xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
                 <Flex p={6} borderBottom="1px solid" borderColor={borderColor} bg={hoverBg}>
-                  <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>Recent Requests</Text>
+                  <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>{t("report.recent_req")}</Text>
                 </Flex>
                 <TableContainer>
                   <Table size="md">
                     <Thead bg={hoverBg}>
                       <Tr>
-                        <Th>Date</Th>
-                        <Th>Issue</Th>
-                        <Th isNumeric>Cost</Th>
+                        <Th>{t("report.date")}</Th>
+                        <Th>{t("report.issue")}</Th>
+                        <Th isNumeric>{t("report.total_cost")}</Th>
                       </Tr>
                     </Thead>
                     <Tbody>
@@ -485,7 +489,7 @@ export default function Report() {
                         </Tr>
                       ))}
                       {(!data.requests || data.requests.length === 0) && (
-                        <Tr><Td colSpan={3} textAlign="center" py={10} color={mutedText} fontSize="sm" fontStyle="italic">No maintenance records.</Td></Tr>
+                        <Tr><Td colSpan={3} textAlign="center" py={10} color={mutedText} fontSize="sm" fontStyle="italic">{t("report.no_maint")}</Td></Tr>
                       )}
                     </Tbody>
                   </Table>
@@ -501,25 +505,25 @@ export default function Report() {
                 <Table size="md">
                   <Thead bg={hoverBg}>
                     <Tr>
-                      <Th>Tenant</Th>
-                      <Th isNumeric>Total Paid</Th>
-                      <Th textAlign="center">Late Incidents</Th>
+                      <Th>{t("report.tenant")}</Th>
+                      <Th isNumeric>{t("report.total_paid")}</Th>
+                      <Th textAlign="center">{t("report.late")}</Th>
                     </Tr>
                   </Thead>
                   <Tbody>
-                    {data.tenants?.map(t => (
-                      <Tr key={t.id} _hover={{ bg: hoverBg }}>
-                        <Td fontSize="sm" fontWeight="black" color={textColor} textTransform="uppercase">{t.first_name} {t.last_name}</Td>
-                        <Td isNumeric fontSize="sm" fontWeight="black" color="green.500">{fmt(t.total_paid || 0)}</Td>
+                    {data.tenants?.map(tenantItem => (
+                      <Tr key={tenantItem.id} _hover={{ bg: hoverBg }}>
+                        <Td fontSize="sm" fontWeight="black" color={textColor} textTransform="uppercase">{tenantItem.name}</Td>
+                        <Td isNumeric fontSize="sm" fontWeight="black" color="green.500">{fmt(tenantItem.total_paid || 0)}</Td>
                         <Td textAlign="center">
-                          <Badge colorScheme={t.late_incidents > 0 ? 'red' : 'gray'} borderRadius="full" px={3} py={1}>
-                            {t.late_incidents || 0}
+                          <Badge colorScheme={tenantItem.late_incidents > 0 ? 'red' : 'gray'} borderRadius="full" px={3} py={1}>
+                            {tenantItem.late_incidents || 0}
                           </Badge>
                         </Td>
                       </Tr>
                     ))}
                     {(!data.tenants || data.tenants.length === 0) && (
-                      <Tr><Td colSpan={3} textAlign="center" py={10} color={mutedText} fontSize="sm" fontStyle="italic">No tenant data available.</Td></Tr>
+                      <Tr><Td colSpan={3} textAlign="center" py={10} color={mutedText} fontSize="sm" fontStyle="italic">{t("report.no_tenant")}</Td></Tr>
                     )}
                   </Tbody>
                 </Table>
@@ -531,15 +535,15 @@ export default function Report() {
           {activeTab === 'utility_trends' && (
             <Box bg={bg} borderRadius="3xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
               <Flex p={6} borderBottom="1px solid" borderColor={borderColor} bg={hoverBg}>
-                <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>Utility Consumption ({data.year})</Text>
+                <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>{t("report.utility_consume")} ({data.year})</Text>
               </Flex>
               <TableContainer>
                 <Table size="md">
                   <Thead bg={hoverBg}>
                     <Tr>
-                      <Th>Month</Th>
-                      <Th isNumeric>Electricity (kWh)</Th>
-                      <Th isNumeric>Water (m³)</Th>
+                      <Th>{t("report.date")}</Th>
+                      <Th isNumeric>{t("report.elec")}</Th>
+                      <Th isNumeric>{t("report.water")}</Th>
                     </Tr>
                   </Thead>
                   <Tbody>
@@ -551,7 +555,7 @@ export default function Report() {
                       </Tr>
                     ))}
                     {(!data.monthlyStats || Object.keys(data.monthlyStats).length === 0) && (
-                      <Tr><Td colSpan={3} textAlign="center" py={10} color={mutedText} fontSize="sm" fontStyle="italic">No consumption data for this period.</Td></Tr>
+                      <Tr><Td colSpan={3} textAlign="center" py={10} color={mutedText} fontSize="sm" fontStyle="italic">{t("report.no_util")}</Td></Tr>
                     )}
                   </Tbody>
                 </Table>
@@ -564,11 +568,11 @@ export default function Report() {
             <Box>
               <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={8}>
                 <Box bg={bg} p={6} borderRadius="2xl" shadow="sm" border="1px solid" borderColor={borderColor}>
-                  <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={1}>Total Held</Text>
+                  <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={1}>{t("report.total_held")}</Text>
                   <Text fontSize="3xl" fontWeight="black" color="blue.500">{fmt(data.totalHeld || 0)}</Text>
                 </Box>
                 <Box bg={bg} p={6} borderRadius="2xl" shadow="sm" border="1px solid" borderColor={borderColor}>
-                  <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={1}>Total Refunded</Text>
+                  <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={1}>{t("report.total_refund")}</Text>
                   <Text fontSize="3xl" fontWeight="black" color={mutedText}>{fmt(data.totalRefunded || 0)}</Text>
                 </Box>
               </SimpleGrid>
@@ -577,16 +581,16 @@ export default function Report() {
                   <Table size="md">
                     <Thead bg={hoverBg}>
                       <Tr>
-                        <Th>Tenant</Th>
-                        <Th>Room</Th>
-                        <Th isNumeric>Deposit</Th>
-                        <Th textAlign="center">Status</Th>
+                        <Th>{t("report.tenant")}</Th>
+                        <Th>{t("report.room")}</Th>
+                        <Th isNumeric>{t("report.deposit")}</Th>
+                        <Th textAlign="center">{t("report.status")}</Th>
                       </Tr>
                     </Thead>
                     <Tbody>
                       {data.leases?.map(lease => (
                         <Tr key={lease.id} _hover={{ bg: hoverBg }}>
-                          <Td fontSize="sm" fontWeight="bold" color={textColor}>{lease.tenant?.first_name} {lease.tenant?.last_name}</Td>
+                          <Td fontSize="sm" fontWeight="bold" color={textColor}>{lease.tenant?.name}</Td>
                           <Td fontSize="xs" fontWeight="bold" color={mutedText}>{lease.room?.name}</Td>
                           <Td isNumeric fontSize="sm" fontWeight="black" color={textColor}>{fmt(lease.security_deposit || 0)}</Td>
                           <Td textAlign="center">
@@ -597,7 +601,7 @@ export default function Report() {
                         </Tr>
                       ))}
                       {(!data.leases || data.leases.length === 0) && (
-                        <Tr><Td colSpan={4} textAlign="center" py={10} color={mutedText} fontSize="sm" fontStyle="italic">No deposit records found.</Td></Tr>
+                        <Tr><Td colSpan={4} textAlign="center" py={10} color={mutedText} fontSize="sm" fontStyle="italic">{t("report.no_deposit")}</Td></Tr>
                       )}
                     </Tbody>
                   </Table>

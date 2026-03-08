@@ -37,7 +37,8 @@ import {
   useToast,
   Spinner
 } from "@chakra-ui/react";
-import { FiSearch, FiPlus, FiMoreVertical, FiEdit2, FiTrash2, FiUserCheck, FiUserX, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { FiSearch, FiPlus, FiMoreVertical, FiEdit2, FiTrash2, FiUserCheck, FiUserX, FiChevronLeft, FiChevronRight, FiDownload } from "react-icons/fi";
+import { exportToExcel } from "../../utils/exportExcel";
 
 export default function AllUsers() {
   const [users, setUsers] = useState([]);
@@ -74,11 +75,11 @@ export default function AllUsers() {
   }, []);
   
   // Colors
-  const bgMain = useColorModeValue("gray.50", "gray.900");
-  const cardBg = useColorModeValue("white", "gray.800");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const bgMain = useColorModeValue("gray.50", "#0d1117");
+  const cardBg = useColorModeValue("white", "#161b22");
+  const borderColor = useColorModeValue("gray.200", "#30363d");
   const thColor = useColorModeValue("gray.500", "gray.400");
-  const trHoverBadge = useColorModeValue("gray.50", "gray.700");
+  const trHoverBadge = useColorModeValue("gray.50", "#1c2333");
   const textColor = useColorModeValue("gray.900", "white");
   const mutedTextColor = useColorModeValue("gray.500", "gray.400");
   
@@ -286,16 +287,38 @@ export default function AllUsers() {
           </Text>
         </Box>
 
-        <Button 
-          leftIcon={<FiPlus />} 
-          colorScheme="blue" 
-          onClick={() => { setFormData(initialForm); onOpenCreate(); fetchTenants(); }}
-          borderRadius="lg"
-          px={6}
-          shadow="md"
-        >
-          Add User
-        </Button>
+        <HStack spacing={3}>
+          <Button
+            leftIcon={<FiDownload />}
+            colorScheme="green"
+            variant="outline"
+            onClick={() => {
+              const dataToExport = users.map(u => ({
+                "Name": u.name,
+                "Email": u.email,
+                "Role": u.role,
+                "Status": u.is_active ? "Active" : "Disabled",
+                "Created At": new Date(u.created_at).toLocaleDateString()
+              }));
+              exportToExcel(dataToExport, "System_Users_" + new Date().toISOString().split('T')[0]);
+            }}
+            borderRadius="lg"
+            px={6}
+            shadow="sm"
+          >
+            Export Excel
+          </Button>
+          <Button 
+            leftIcon={<FiPlus />} 
+            colorScheme="blue" 
+            onClick={() => { setFormData(initialForm); onOpenCreate(); fetchTenants(); }}
+            borderRadius="lg"
+            px={6}
+            shadow="md"
+          >
+            Add User
+          </Button>
+        </HStack>
       </Flex>
 
       <Box bg={cardBg} borderRadius="2xl" shadow="sm" borderWidth="1px" borderColor={borderColor} display="flex" flexDirection="column" flex={1} minH={0}>
@@ -328,7 +351,7 @@ export default function AllUsers() {
         {/* Table */}
         <Box overflow="hidden" flex={1}>
           <Table variant="simple" size="md">
-            <Thead bg={useColorModeValue("gray.50", "gray.700")} position="sticky" top={0} zIndex={2} boxShadow="sm">
+            <Thead bg={useColorModeValue("gray.50", "#1c2333")} position="sticky" top={0} zIndex={2} boxShadow="sm">
               <Tr>
                 <Th w="20px"></Th>
                 <Th color={thColor}>User Details</Th>

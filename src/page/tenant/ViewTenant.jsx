@@ -20,13 +20,13 @@ export default function ViewTenant() {
 
   // Chakra UI colors
   const { colorMode } = useColorMode();
-  const bgMain = useColorModeValue("sky.50", "gray.900");
-  const cardBg = useColorModeValue("white", "gray.800");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
-  const hoverBg = useColorModeValue("gray.50", "gray.700");
+  const bgMain = useColorModeValue("sky.50", "#0d1117");
+  const cardBg = useColorModeValue("white", "#161b22");
+  const borderColor = useColorModeValue("gray.200", "#30363d");
+  const hoverBg = useColorModeValue("gray.50", "#1c2333");
   const textColor = useColorModeValue("gray.900", "white");
   const mutedTextColor = useColorModeValue("gray.500", "gray.400");
-  const tableHeaderBg = useColorModeValue("sky.50", "gray.700");
+  const tableHeaderBg = useColorModeValue("sky.50", "#30363d");
 
   const [tenant, setTenant] = useState(null);
   const [loadingTenant, setLoadingTenant] = useState(true);
@@ -426,7 +426,7 @@ function CircleBadge({ isActive }) {
       h="5"
       borderRadius="full"
       borderWidth="3px"
-      borderColor={useColorModeValue("white", "gray.800")}
+      borderColor={useColorModeValue("white", "#161b22")}
       bg={isActive ? "green.400" : "orange.400"}
       boxShadow="sm"
     />
