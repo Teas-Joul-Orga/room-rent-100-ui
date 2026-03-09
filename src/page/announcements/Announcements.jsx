@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Flex, Text, Button, TableContainer, Table, Thead, Tbody, Tr, Th, Td,
-  Badge, useColorModeValue, Spinner, IconButton, useToast, Image, Tooltip,
+  Box, Flex, Text, Button, Badge, useColorModeValue, Spinner, IconButton, useToast, Image, Tooltip,
   AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader,
-  AlertDialogContent, AlertDialogOverlay, useDisclosure
+  AlertDialogContent, AlertDialogOverlay, useDisclosure, Avatar, HStack,
+  VStack, Icon, AspectRatio, Stack, Menu, MenuButton, MenuList, MenuItem, Container
 } from '@chakra-ui/react';
-import { FiPlus, FiTrash2, FiClock } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiClock, FiMoreHorizontal, FiCalendar, FiAlertCircle } from 'react-icons/fi';
 import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
 import AddAnnouncementModal from './AddAnnouncementModal';
+
+dayjs.extend(relativeTime);
 
 const API = "http://localhost:8000/api/v1";
 const IMAGE_URL = "http://localhost:8000/storage"; // Adjust based on your public config
@@ -20,6 +23,9 @@ export default function Announcements() {
   // AlertDialog state for deletion
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [deleteTarget, setDeleteTarget] = useState(null);
+  
+  const role = localStorage.getItem('role')?.toLowerCase();
+  const isAdmin = role === 'admin';
 
   const toast = useToast();
   const bg = useColorModeValue("white", "#161b22");
@@ -27,12 +33,18 @@ export default function Announcements() {
   const hoverBg = useColorModeValue("gray.50", "#1c2333");
   const textColor = useColorModeValue("gray.800", "white");
   const mutedText = useColorModeValue("gray.500", "gray.400");
+  const mediaBg = useColorModeValue("gray.50", "whiteAlpha.50");
+  const footerBg = useColorModeValue("gray.50", "whiteAlpha.50");
+  const emptyBg = useColorModeValue("gray.100", "#30363d");
+
+  const cancelRef = React.useRef();
 
   const fetchAnnouncements = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API}/admin/announcements`, {
+      const endpoint = isAdmin ? `${API}/admin/announcements` : `${API}/tenant/announcements`;
+      const res = await fetch(endpoint, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -76,74 +88,146 @@ export default function Announcements() {
   };
 
   return (
-    <Box p={6}>
-      <Flex justify="space-between" align="flex-end" mb={6}>
+    <Container maxW="container.md" py={10}>
+      <Flex justify="space-between" align="center" mb={10}>
         <Box>
-          <Text fontSize="2xl" fontWeight="black" color={textColor} letterSpacing="tight">Announcements</Text>
-          <Text fontSize="sm" color={mutedText}>Broadcast notifications to tenants directly to their portal.</Text>
+          <Text fontSize="3xl" fontWeight="black" color={textColor} letterSpacing="tight">
+            {isAdmin ? "Broadcast Center" : "Community Feed"}
+          </Text>
+          <Text fontSize="sm" color={mutedText} fontWeight="medium">
+            {isAdmin ? "Create and manage property-wide updates." : "Stay updated with the latest news from your community."}
+          </Text>
         </Box>
-        <Button leftIcon={<FiPlus />} colorScheme="blue" borderRadius="xl" onClick={() => setIsAddModalOpen(true)}>
-          New Broadcast
-        </Button>
+        {isAdmin && (
+          <Button 
+            leftIcon={<FiPlus />} 
+            colorScheme="blue" 
+            borderRadius="full" 
+            size="lg"
+            px={8}
+            shadow="lg"
+            _hover={{ transform: 'translateY(-2px)', shadow: 'xl' }}
+            onClick={() => setIsAddModalOpen(true)}
+          >
+            Broadcast
+          </Button>
+        )}
       </Flex>
 
       {loading ? (
         <Flex py={20} justify="center"><Spinner size="xl" color="blue.500" thickness="4px" /></Flex>
       ) : (
-        <Box bg={bg} borderRadius="2xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
-           <TableContainer>
-              <Table size="md" variant="simple">
-                 <Thead bg={hoverBg}>
-                   <Tr>
-                     <Th>Media</Th>
-                     <Th>Title</Th>
-                     <Th>Priority</Th>
-                     <Th>Status</Th>
-                     <Th>Scheduled For</Th>
-                     <Th textAlign="right">Actions</Th>
-                   </Tr>
-                 </Thead>
-                 <Tbody>
-                   {announcements.length > 0 ? announcements.map(a => {
-                     const isScheduled = dayjs(a.published_at).isAfter(dayjs());
-                     return (
-                       <Tr key={a.id} _hover={{ bg: hoverBg }}>
-                         <Td>
-                           {a.photo_path ? (
-                             <Image src={`${IMAGE_URL}/${a.photo_path}`} alt="Announcement" boxSize="50px" objectFit="cover" borderRadius="md" />
-                           ) : (
-                             <Box boxSize="50px" bg={useColorModeValue("gray.100", "#30363d")} borderRadius="md" display="flex" alignItems="center" justify="center">
-                               <Text fontSize="xs" color="gray.400">No Image</Text>
-                             </Box>
-                           )}
-                         </Td>
-                         <Td>
-                           <Text fontSize="sm" fontWeight="bold" color={textColor} isTruncated maxW="300px">{a.title}</Text>
-                           <Text fontSize="xs" color={mutedText} isTruncated maxW="400px">{a.content}</Text>
-                         </Td>
-                         <Td><Badge colorScheme={a.priority === 'urgent' ? 'red' : 'blue'}>{a.priority}</Badge></Td>
-                         <Td>
-                           {isScheduled ? (
-                             <Badge colorScheme="purple" variant="subtle"><Icon as={FiClock} mr={1} />Scheduled</Badge>
-                           ) : (
-                             <Badge colorScheme="green" variant="subtle">Published</Badge>
-                           )}
-                         </Td>
-                         <Td fontSize="sm" color={mutedText}>{dayjs(a.published_at).format('MMM D, YYYY h:mm A')}</Td>
-                         <Td textAlign="right">
-                           <Tooltip label="Delete" placement="top">
-                             <IconButton icon={<FiTrash2 />} onClick={() => confirmDelete(a.id)} size="sm" colorScheme="red" variant="ghost" aria-label="Delete announcement" />
-                           </Tooltip>
-                         </Td>
-                       </Tr>
-                     );
-                   }) : (
-                     <Tr><Td colSpan={6} textAlign="center" py={10} color={mutedText}>No announcements found.</Td></Tr>
-                   )}
-                 </Tbody>
-              </Table>
-           </TableContainer>
-        </Box>
+        <VStack spacing={8} align="stretch">
+          {announcements.length > 0 ? announcements.map(a => {
+            const isScheduled = dayjs(a.published_at).isAfter(dayjs());
+            
+            return (
+              <Box 
+                key={a.id} 
+                bg={bg} 
+                borderRadius="3xl" 
+                shadow="sm" 
+                border="1px solid" 
+                borderColor={borderColor} 
+                overflow="hidden"
+                transition="all 0.3s"
+                _hover={{ shadow: 'md' }}
+              >
+                {/* Post Header */}
+                <Flex p={5} justify="space-between" align="center">
+                  <HStack spacing={3}>
+                    <Avatar 
+                      name="Management" 
+                      bg="blue.500" 
+                      color="white" 
+                      size="md"
+                      boxShadow="inner"
+                    />
+                    <Box>
+                      <HStack spacing={2}>
+                        <Text fontWeight="black" color={textColor}>Property Management</Text>
+                        <Badge colorScheme={a.priority === 'urgent' ? 'red' : 'blue'} variant="subtle" borderRadius="full" px={2} fontSize="10px">
+                           {a.priority}
+                        </Badge>
+                      </HStack>
+                      <HStack spacing={2} color={mutedText} fontSize="xs">
+                        <Icon as={isScheduled ? FiCalendar : FiClock} />
+                        <Text fontWeight="bold">
+                          {isScheduled ? `Scheduled for ${dayjs(a.published_at).format('MMM D')}` : dayjs(a.published_at).fromNow()}
+                        </Text>
+                        {isScheduled && <Badge colorScheme="purple" variant="solid" boxSize="8px" borderRadius="full" />}
+                      </HStack>
+                    </Box>
+                  </HStack>
+
+                  {isAdmin && (
+                    <Menu>
+                      <MenuButton
+                        as={IconButton}
+                        icon={<FiMoreHorizontal />}
+                        variant="ghost"
+                        borderRadius="full"
+                        aria-label="Options"
+                      />
+                      <MenuList borderRadius="xl" shadow="xl" border="1px" borderColor={borderColor}>
+                        <MenuItem 
+                          icon={<FiTrash2 />} 
+                          color="red.500" 
+                          fontWeight="bold"
+                          onClick={() => confirmDelete(a.id)}
+                        >
+                          Delete Broadcast
+                        </MenuItem>
+                      </MenuList>
+                    </Menu>
+                  )}
+                </Flex>
+
+                {/* Post Content */}
+                <Box px={6} pb={4}>
+                   <Text fontSize="xl" fontWeight="black" mb={2} color={textColor}>{a.title}</Text>
+                   <Text color={textColor} lineHeight="tall" whiteSpace="pre-wrap">{a.content}</Text>
+                </Box>
+
+                {/* Post Media */}
+                {a.photo_path && (
+                  <Box bg={mediaBg} mx={4} mb={4} borderRadius="2xl" overflow="hidden">
+                    <Image 
+                      src={`${IMAGE_URL}/${a.photo_path}`} 
+                      alt="Announcement Media" 
+                      w="full"
+                      maxH="500px"
+                      objectFit="cover"
+                      transition="transform 0.5s"
+                      _hover={{ transform: 'scale(1.02)' }}
+                    />
+                  </Box>
+                )}
+
+                {/* Post Footer/Indicators */}
+                <Flex px={6} py={4} bg={footerBg} justify="space-between" align="center">
+                  <HStack spacing={4} color={mutedText} fontSize="xs" fontWeight="bold">
+                     <HStack>
+                        <Icon as={FiAlertCircle} />
+                        <Text textTransform="uppercase" letterSpacing="widest">Official Update</Text>
+                     </HStack>
+                  </HStack>
+                  {isScheduled && (
+                    <Badge colorScheme="purple" variant="outline" borderRadius="full" px={3}>
+                      Queued
+                    </Badge>
+                  )}
+                </Flex>
+              </Box>
+            );
+          }) : (
+            <Flex direction="column" align="center" justify="center" py={20} bg={bg} borderRadius="3xl" border="2px dashed" borderColor={borderColor}>
+              <Icon as={FiMoreHorizontal} boxSize={12} color="gray.300" mb={4} />
+              <Text fontSize="lg" fontWeight="bold" color={mutedText}>No news at the moment</Text>
+              <Text fontSize="sm" color="gray.400">Everything is quiet across the community.</Text>
+            </Flex>
+          )}
+        </VStack>
       )}
 
       {/* Add Modal */}
@@ -156,7 +240,7 @@ export default function Announcements() {
       )}
 
       {/* Delete Confirmation Alert */}
-      <AlertDialog isOpen={isOpen} onClose={onClose} isCentered>
+      <AlertDialog isOpen={isOpen} onClose={onClose} isCentered leastDestructiveRef={cancelRef}>
         <AlertDialogOverlay>
           <AlertDialogContent bg={bg} borderRadius="2xl">
             <AlertDialogHeader fontSize="lg" fontWeight="black" color={textColor}>Delete Announcement</AlertDialogHeader>
@@ -164,12 +248,12 @@ export default function Announcements() {
               Are you sure you want to delete this broadcast? It will be removed from the tenant portal immediately.
             </AlertDialogBody>
             <AlertDialogFooter>
-              <Button onClick={onClose} borderRadius="xl">Cancel</Button>
+              <Button ref={cancelRef} onClick={onClose} borderRadius="xl">Cancel</Button>
               <Button colorScheme="red" onClick={executeDelete} ml={3} borderRadius="xl">Delete</Button>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialogOverlay>
       </AlertDialog>
-    </Box>
+    </Container>
   );
 }

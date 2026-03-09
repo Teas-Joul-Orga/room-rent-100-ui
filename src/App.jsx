@@ -1,84 +1,80 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { Toaster } from "react-hot-toast";
-import { Box } from "@chakra-ui/react";
-import DashboardLayout from "./layouts/DashboardLayout";
+// Admin Pages
+import AdminDashboard from "./page/admin/Dashboard";
+import AdminOverview from "./page/admin/Overview";
+import AdminListPending from "./page/admin/ListPending";
+import AdminMonthlyIncomeChart from "./page/admin/MonthlyIncomeChart";
+import AdminAnnouncements from "./page/admin/AdminAnnouncements";
+import AdminChat from "./page/admin/AdminChat";
+import AdminUtility from "./page/utility/Utility";
+import AdminAddBill from "./page/utility/AddBill";
+import AdminRecordPayment from "./page/utility/RecordPayment";
+import AdminPaymentHistory from "./page/utility/PaymentHistory";
+import AdminAllTenants from "./page/admin/AllTenants";
+import AdminActiveTenant from "./page/admin/ActiveTenant";
+import AdminPendingTenant from "./page/admin/PendingTenant";
+import AdminAddNewTenant from "./page/admin/AddNewTenant";
+import AdminViewTenant from "./page/admin/ViewTenant";
+import AdminCreateAccount from "./page/admin/CreateAccount";
+import AdminExpense from "./page/admin/Expense";
 
-// Dashboard
-import Dashboard from "./page/dashboard/Dashboard";
-import Overview from "./page/dashboard/Overview";
-import TenantDashboard from "./page/tenant/TenantDashboard";
-import ListPending from "./page/dashboard/ListPending";
-import MonthlyIncomeChart from "./page/dashboard/MonthlyIncomeChart";
+// Tenant Pages
+import TenantDashboard from "./page/tenant/Dashboard";
+import TenantLease from "./page/tenant/Lease";
+import TenantUtility from "./page/tenant/Utility";
+import TenantAnnouncements from "./page/tenant/Announcements";
+import TenantChat from "./page/tenant/Chat";
 
-// Rooms
+// Shared/Common
 import AllRoom from "./page/room/AllRoom";
 import AvailableRoom from "./page/room/AvailableRoom";
 import OccupiedRoom from "./page/room/OccupiedRoom";
 import MaintenanceRoom from "./page/room/MaintenanceRoom";
 import AddNewRoom from "./page/room/AddNewRoom";
+import EditRoom from "./page/room/EditRoom";
+import ViewRoom from "./page/room/ViewRoom";
 
-// Lease
 import NewLease from "./page/lease/NewLease";
 import ActiveLease from "./page/lease/ActiveLease";
 import ExpiredLease from "./page/lease/ExpiredLease";
 import CreateNewLease from "./page/lease/CreateNewLease";
-
-// Chat
-import Chat from "./page/chat/Chat";
-
-// Notification
-import Notification from "./page/notification/Notification";
-
-// Report
-import Report from "./page/report/Report";
-
-// Recycle Bin
-import AllRecyclebin from "./page/recycleben/AllRecyclebin";
-
-// Announcements
-import Announcements from "./page/announcements/Announcements";
-
-// Settings
-import Settings from "./page/settings/Settings";
-
-//Tenant
-import AllTenants from "./page/tenant/AllTenants";
-import ActiveTenant from "./page/tenant/ActiveTenant";
-import PendingTenant from "./page/tenant/PendingTenant";
-import AddNewTenant from "./page/tenant/AddNewTenant";
-import ViewTenant from "./page/tenant/ViewTenant";
-import CreateAccount from "./page/tenant/CreateAccount";
-
-//Users
-import AllUsers from "./page/user/AllUsers";
-import Profile from "./page/user/Profile";
-
-//Payment
-import Payment from "./page/payment/Payment";
-
-// Expenses
-import Expense from "./page/dashboard/Expense";
-
-//Utility
-import Utility from "./page/utility/Utility";
-import AddPayment from "./page/utility/Addpayment";
-import PaymentHistory from "./page/utility/PaymentHistory";
-
-//Furniture
-import Furniture from "./page/furniture/Furniture";
-import Allpayment from "./page/utility/Allpayment";
-import Login from "./Login";
-import ProtectedRoute from "./protectedroute";
-// import ChangePassword from "./page/tenant/ChangePassword";
-import AddNewFurniture from "./page/furniture/AddNewFurniture";
-import RoomFurniture from "./page/furniture/RoomFurniture";
-import EditRoom from "./page/room/EditRoom";
-import ViewRoom from "./page/room/ViewRoom";
-import ViewFurniture from "./page/furniture/ViewFurniture";
 import Leases from "./page/lease/Lease";
 import ViewLease from "./page/lease/ViewLease";
-import AddBill from "./page/utility/AddBill";
-import RecordPayment from "./page/utility/RecordPayment";
+
+import Notification from "./page/notification/Notification";
+import Report from "./page/report/Report";
+import AllRecyclebin from "./page/recycleben/AllRecyclebin";
+import Settings from "./page/settings/Settings";
+import AllUsers from "./page/user/AllUsers";
+import Profile from "./page/user/Profile";
+import Payment from "./page/payment/Payment";
+import Furniture from "./page/furniture/Furniture";
+import AddNewFurniture from "./page/furniture/AddNewFurniture";
+import RoomFurniture from "./page/furniture/RoomFurniture";
+import ViewFurniture from "./page/furniture/ViewFurniture";
+
+import Login from "./Login";
+import ProtectedRoute from "./protectedroute";
+
+// Wrapper to dynamically pick the right dashboard/page based on role
+function DashboardIndex() {
+  const role = localStorage.getItem('role')?.toLowerCase();
+  return role === 'tenant' ? <TenantDashboard /> : <AdminDashboard />;
+}
+
+function ChatPage() {
+  const role = localStorage.getItem('role')?.toLowerCase();
+  return role === 'tenant' ? <TenantChat /> : <AdminChat />;
+}
+
+function AnnouncementPage() {
+  const role = localStorage.getItem('role')?.toLowerCase();
+  return role === 'tenant' ? <TenantAnnouncements /> : <AdminAnnouncements />;
+}
+
+function UtilityPage() {
+  const role = localStorage.getItem('role')?.toLowerCase();
+  return role === 'tenant' ? <TenantUtility /> : <AdminUtility />;
+}
 
 function App() {
   return (
@@ -91,8 +87,7 @@ function App() {
           {/* Redirect root to login */}
           <Route path="/" element={<Navigate to="/login" replace />} />
 
-          {/* Dashboard */}
-
+          {/* Dashboard Area */}
           <Route
             path="/dashboard"
             element={
@@ -101,22 +96,21 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={localStorage.getItem('role') === 'tenant' ? <TenantDashboard /> : <Dashboard />} />
-            <Route path="listpending" element={<ListPending />} />
-            <Route path="monthlyincome" element={<MonthlyIncomeChart />} />
-            {/* </Route> */}
+            <Route index element={<DashboardIndex />} />
+            <Route path="listpending" element={<AdminListPending />} />
+            <Route path="monthlyincome" element={<AdminMonthlyIncomeChart />} />
 
-            {/* Tenants */}
+            {/* Admin-only Management: Tenants */}
             <Route path="tenants">
-              <Route index element={<AllTenants />} />
-              <Route path="activetenant" element={<ActiveTenant />} />
-              <Route path="pendingtenant" element={<PendingTenant />} />
-              <Route path="addtenant" element={<AddNewTenant />} />
-              <Route path="edit/:id" element={<AddNewTenant />} />
-              <Route path="view/:id" element={<ViewTenant />} />
-              <Route path="createaccount/:id" element={<CreateAccount />} />
-              {/* <Route path="changepassword" element={<ChangePassword />} /> */}
+              <Route index element={<AdminAllTenants />} />
+              <Route path="activetenant" element={<AdminActiveTenant />} />
+              <Route path="pendingtenant" element={<AdminPendingTenant />} />
+              <Route path="addtenant" element={<AdminAddNewTenant />} />
+              <Route path="edit/:id" element={<AdminAddNewTenant />} />
+              <Route path="view/:id" element={<AdminViewTenant />} />
+              <Route path="createaccount/:id" element={<AdminCreateAccount />} />
             </Route>
+
             {/* Users */}
             <Route path="users">
               <Route index element={<AllUsers />} />
@@ -126,10 +120,7 @@ function App() {
             {/* Furniture  */}
             <Route path="furniture">
               <Route index element={<Furniture />} />
-              <Route
-                path="addnewfurniture"
-                element={<AddNewFurniture key="add" />}
-              />
+              <Route path="addnewfurniture" element={<AddNewFurniture key="add" />} />
               <Route path="edit/:id" element={<AddNewFurniture key="edit" />} />
               <Route path="viewfurniture/:id" element={<ViewFurniture />} />
               <Route path="room/:room" element={<RoomFurniture />} />
@@ -139,7 +130,6 @@ function App() {
             <Route path="rooms">
               <Route index element={<AllRoom />} />
               <Route path="available" element={<AvailableRoom />} />
-              <Route path="occupied" element={<OccupiedRoom />} />
               <Route path="occupied" element={<OccupiedRoom />} />
               <Route path="add" element={<AddNewRoom />} />
               <Route path="viewroom/:id" element={<ViewRoom />} />
@@ -156,15 +146,21 @@ function App() {
               <Route path="edit/:id" element={<CreateNewLease />} />
               <Route path="renew/:id" element={<CreateNewLease />} />
               <Route path="view/:id" element={<ViewLease />} />
+              <Route path="my-lease" element={<TenantLease />} />
             </Route>
 
-            {/* Chat */}
-            <Route path="chat" element={<Chat />} />
+            {/* Separated Hybrid Pages */}
+            <Route path="chat" element={<ChatPage />} />
+            <Route path="announcements" element={<AnnouncementPage />} />
+            <Route path="utility">
+              <Route index element={<UtilityPage />} />
+              <Route path="addbill" element={<AdminAddBill />} />
+              <Route path="recordpayment" element={<AdminRecordPayment />} />
+              <Route path="paymenthistory" element={<AdminPaymentHistory />} />
+            </Route>
 
-            {/* Maintenance */}
+            {/* Common Pages */}
             <Route path="maintenance" element={<MaintenanceRoom />} />
-
-            {/* Notification */}
             <Route path="notifications" element={
               <Box p={4} display="flex" justifyContent="center">
                 <Box w="full" maxW="600px" shadow="sm" border="1px" borderColor="gray.100" rounded="xl" bg="white" _dark={{ bg: "gray.800", borderColor: "gray.700" }}>
@@ -172,33 +168,11 @@ function App() {
                 </Box>
               </Box>
             } />
-
-            {/* Report */}
             <Route path="report" element={<Report />} />
-
-            {/* Settings */}
             <Route path="settings" element={<Settings />} />
-
-            {/* Trash */}
             <Route path="recyclebin" element={<AllRecyclebin />} />
-
-            {/* Announcements */}
-            <Route path="announcements" element={<Announcements />} />
-
-            {/* Expenses */}
-            <Route path="expenses" element={<Expense />} />
-
-            {/* Payments */}
+            <Route path="expenses" element={<AdminExpense />} />
             <Route path="payments" element={<Payment />} />
-
-            {/* utitlity */}
-            <Route path="utility">
-              <Route index element={<Utility />} />
-              <Route path="addpayment" element={<AddPayment />} />
-              <Route path="addbill" element={<AddBill />} />
-              <Route path="recordpayment" element={<RecordPayment />} />
-              <Route path="paymenthistory" element={<PaymentHistory />} />
-            </Route>
           </Route>
         </Routes>
       </BrowserRouter>

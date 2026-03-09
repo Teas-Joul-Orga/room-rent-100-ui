@@ -82,6 +82,11 @@ export default function LoginForm1() {
         localStorage.setItem("user", JSON.stringify(data.user));
         localStorage.setItem("role", data.role);
         
+        if (data.settings) {
+          localStorage.setItem("currency", data.settings.currency || "$");
+          localStorage.setItem("exchangeRate", data.settings.exchangeRate || "4000");
+        }
+        
         toast({
           title: "Login Successful",
           description: "Welcome back!",

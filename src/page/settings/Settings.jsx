@@ -128,7 +128,7 @@ export default function Settings() {
 
   return (
     <Box bg={mainBg} minH="calc(100vh - 80px)" p={{ base: 4, md: 8 }}>
-      <Container maxW="container.xl" p={0}>
+      <Container maxW="container.xxl" p={0}>
         {/* Top bar header */}
         <Flex justify="space-between" align="center" mb={10} flexWrap="wrap" gap={4}>
           <Box>

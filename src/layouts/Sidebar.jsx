@@ -35,9 +35,11 @@ const getSidebarGroups = (role, t) => {
       {
         title: t("sidebar.tenant"),
         links: [
+          { label: t("sidebar.my_lease") || "My Lease", path: "/dashboard/lease/my-lease", exact: false, pathD: ["M7 3h8l4 4v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z", "M9 13h6M9 17h6M9 9h3"] },
           { label: t("sidebar.my_billing"), path: "/dashboard/utility", exact: false, pathD: ["M7 3h10v18H7z", "M9 7h6M9 11h6M9 15h4"] },
           { label: t("sidebar.maintenance"), path: "/dashboard/maintenance", exact: false, pathD: ["M14.7 6.3a4 4 0 0 0-5.7 5.7l-6.3 6.3 2 2 6.3-6.3a4 4 0 0 0 5.7-5.7Z", "M16 8l4-4"] },
-          { label: t("sidebar.community"), path: "/dashboard/notifications", exact: false, pathD: ["M4 11v2a1 1 0 0 0 1 1h2l5 5V6L7 11H5a1 1 0 0 0-1 1Z", "M15 9a4 4 0 0 1 0 6"] },
+          { label: t("sidebar.community"), path: "/dashboard/chat", exact: false, pathD: ["M4 11v2a1 1 0 0 0 1 1h2l5 5V6L7 11H5a1 1 0 0 0-1 1Z", "M15 9a4 4 0 0 1 0 6"] },
+          { label: t("sidebar.announcements"), path: "/dashboard/announcements", exact: false, pathD: ["M4 11v2a1 1 0 0 0 1 1h2l5 5V6L7 11H5a1 1 0 0 0-1 1Z", "M15 9a4 4 0 0 1 0 6", "M17 7a7 7 0 0 1 0 10"] },
         ]
       }
     ];
@@ -55,9 +57,9 @@ const getSidebarGroups = (role, t) => {
         { label: t("sidebar.furniture"), path: "/dashboard/furniture", exact: false, pathD: ["M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"] },
         { label: t("sidebar.leases"), path: "/dashboard/lease", exact: false, pathD: ["M7 3h8l4 4v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z", "M9 13h6M9 17h6M9 9h3"] },
         { label: t("sidebar.utilities"), path: "/dashboard/utility", exact: false, pathD: ["M12 2v4", "M7 8h10", "M8 22h8", "M9 12h6v6H9z"] },
-        { label: t("sidebar.payments"), path: "/dashboard/payments", exact: false, pathD: ["M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"] },
+        { label: t("sidebar.payments"), path: "/dashboard/payments", exact: false, pathD: ["M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7z", "M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0", "M6 12h.01", "M18 12h.01"] },
         { label: t("sidebar.maintenance"), path: "/dashboard/maintenance", exact: false, pathD: ["M14.7 6.3a4 4 0 0 0-5.7 5.7l-6.3 6.3 2 2 6.3-6.3a4 4 0 0 0 5.7-5.7Z", "M16 8l4-4"] },
-        { label: t("sidebar.expenses"), path: "/dashboard/expenses", exact: false, pathD: ["M12 2v20", "M17 7H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H7"] },
+        { label: t("sidebar.expenses"), path: "/dashboard/expenses", exact: false, pathD: ["M20 12V8H4v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2z", "M4 12V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4", "M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"] },
       ]
     },
     {
@@ -235,7 +237,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   };
 
   const [pendingMaintenanceCount, setPendingMaintenanceCount] = React.useState(0);
-  const userRole = localStorage.getItem('role');
+  const userRole = localStorage.getItem('role')?.toLowerCase();
 
   React.useEffect(() => {
     if (userRole !== 'admin') return;
@@ -282,7 +284,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const sidebarContent = (
       <VStack spacing={6} align="stretch" p={3} pb={20}>
-        {getSidebarGroups(localStorage.getItem('role'), t).map((group, index) => (
+        {getSidebarGroups(userRole, t).map((group, index) => (
           <Box key={index}>
             <Text
               px={3}

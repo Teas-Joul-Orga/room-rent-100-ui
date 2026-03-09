@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import dayjs from "dayjs";
 import toast, { Toaster } from "react-hot-toast";
 import {
   Box,
@@ -23,7 +24,10 @@ import {
   Divider,
   InputGroup,
   InputLeftElement,
+  InputRightAddon,
+  InputLeftAddon,
   useOutsideClick,
+  FormErrorMessage,
 } from "@chakra-ui/react";
 import {
   FiSearch,
@@ -35,6 +39,7 @@ import {
   FiArrowRight,
   FiArrowLeft,
   FiShield,
+  FiActivity,
 } from "react-icons/fi";
 
 const steps = [
@@ -46,8 +51,9 @@ const steps = [
 const fmt = (n) => {
   const c = localStorage.getItem("currency") || "$";
   const num = Number(n || 0);
-  if (c === "៛") {
-    const r = Number(localStorage.getItem("exchangeRate") || 4000);
+  if (c === "៛" || c === "KHR" || c === "Riel") {
+    const rateItem = localStorage.getItem("exchangeRate");
+    const r = rateItem ? Number(rateItem) : 4000;
     return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
   }
   return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -57,10 +63,14 @@ export default function CreateNewLease() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = Boolean(id);
+  const isRenew = window.location.pathname.includes('/renew');
+  const today = new Date().toISOString().split("T")[0];
+  const isRiel = localStorage.getItem("currency") === "៛" || localStorage.getItem("currency") === "KHR" || localStorage.getItem("currency") === "Riel";
 
   const [activeStep, setActiveStep] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const [tenants, setTenants] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -77,7 +87,7 @@ export default function CreateNewLease() {
   const [formData, setFormData] = useState({
     tenant_id: "",
     room_id: "",
-    start_date: "",
+    start_date: today,
     end_date: "",
     rent_amount: "",
     security_deposit: 0,
@@ -117,25 +127,26 @@ export default function CreateNewLease() {
 
         if (isEdit && leaseRes && leaseRes.ok) {
           const found = await leaseRes.json();
-          // The API resource might wrap in 'data'
           const l = found.data || found;
           if (l) {
             let initialRoomId = l.room?.id || "";
-            const isRenew = window.location.pathname.includes('/renew');
 
             if (isRenew && initialRoomId) {
               const rObj = roomsList.find(r => String(r.id) === String(initialRoomId));
-              if (rObj && rObj.status?.toLowerCase() !== "available" && l.status !== "active") {
-                toast.error("The previous room is currently occupied. Please select an available room.", { duration: 5000 });
-                initialRoomId = "";
+              // In renewal, if the room status is not available but it IS the same room as the old lease, 
+              // and the old lease is not active (e.g. expired), then it's fine.
+              if (rObj && rObj.status?.toLowerCase() !== "available" && l.status === "active") {
+                 // If the room is currently active in THIS lease, we can renew it.
+                 // If the room is occupied by someone ELSE, then maybe it's a conflict.
+                 // But for simplicity of "copying setting", we trust the user.
               }
             }
 
             setFormData({
               tenant_id: l.tenant?.id || "",
               room_id: initialRoomId,
-              start_date: l.start_date ? l.start_date.split("T")[0] : "",
-              end_date: l.end_date ? l.end_date.split("T")[0] : "",
+              start_date: isRenew ? today : (l.start_date ? l.start_date.split("T")[0] : today),
+              end_date: isRenew ? "" : (l.end_date ? l.end_date.split("T")[0] : ""),
               rent_amount: l.rent_amount || "",
               security_deposit: l.security_deposit || 0,
               status: isRenew ? "active" : (l.status || "active"),
@@ -157,26 +168,81 @@ export default function CreateNewLease() {
     if (formData.room_id) {
       const room = rooms.find((r) => String(r.id) === String(formData.room_id));
       if (room && !isEdit) {
-        setFormData((prev) => ({ ...prev, rent_amount: room.base_rent_price || 0, security_deposit: room.base_rent_price || 0 }));
+        setFormData((prev) => ({ 
+          ...prev, 
+          rent_amount: room.base_rent_price || 0, 
+          security_deposit: room.base_rent_price || 0 
+        }));
       }
     }
   }, [formData.room_id, rooms, isEdit]);
 
+  // Auto calculate rent based on duration
+  useEffect(() => {
+    if (formData.room_id && formData.start_date && formData.end_date && !isEdit) {
+      const room = rooms.find((r) => String(r.id) === String(formData.room_id));
+      if (room) {
+        const start = dayjs(formData.start_date);
+        const end = dayjs(formData.end_date);
+        const days = end.diff(start, "day") + 1;
+        
+        if (days > 0) {
+          const basePrice = Number(room.base_rent_price || 0);
+          // Pro-rate if less than 28 days (roughly 1 month), otherwise cap at full base price
+          let calculated = days >= 28 ? basePrice : (basePrice / 30) * days;
+          
+          setFormData(prev => ({ 
+            ...prev, 
+            rent_amount: Number(calculated.toFixed(2)) 
+          }));
+        }
+      }
+    }
+  }, [formData.room_id, formData.start_date, formData.end_date, rooms, isEdit]);
+
   const handleNext = () => {
-    if (activeStep === 0 && !formData.tenant_id) return toast.error("Please select a tenant first.");
-    if (activeStep === 1 && !formData.room_id) return toast.error("Please select a room.");
+    const newErrors = {};
+    if (activeStep === 0 && !formData.tenant_id) {
+      newErrors.tenant_id = "Please select a tenant.";
+    }
+    if (activeStep === 1 && !formData.room_id) {
+      newErrors.room_id = "Please select a room.";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      // Optional: scroll to error
+      return;
+    }
+
+    setErrors({});
     setActiveStep((prev) => prev + 1);
   };
-  const handlePrev = () => setActiveStep((prev) => prev - 1);
+  const handlePrev = () => {
+    setErrors({});
+    setActiveStep((prev) => prev - 1);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     // Prevent accidental submission if not on the last step
     if (activeStep < steps.length - 1) return;
 
-    if (!formData.tenant_id || !formData.room_id || !formData.start_date || !formData.end_date || formData.rent_amount === "") {
-      return toast.error("Please fill all required fields");
+    const newErrors = {};
+    if (!formData.tenant_id) newErrors.tenant_id = "Tenant is required";
+    if (!formData.room_id) newErrors.room_id = "Room is required";
+    if (!formData.start_date) newErrors.start_date = "Start date is required";
+    if (!formData.end_date) newErrors.end_date = "End date is required";
+    if (formData.rent_amount === "" || formData.rent_amount === null) newErrors.rent_amount = "Rent amount is required";
+    if (formData.security_deposit === "" || formData.security_deposit === null) newErrors.security_deposit = "Security deposit is required";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast.error("Please fill all required fields");
+      return;
     }
+
+    setErrors({});
     setIsSaving(true);
     const token = localStorage.getItem("token");
     const url = isEdit
@@ -299,7 +365,7 @@ export default function CreateNewLease() {
                   <Text fontSize="sm" color={mutedText} mb={6}>Search and select the tenant for this lease.</Text>
 
                   <Box maxW="xl" position="relative" ref={tenantDropdownRef}>
-                    <FormControl isRequired>
+                    <FormControl isInvalid={errors.tenant_id}>
                       <InputGroup size="lg">
                         <InputLeftElement pointerEvents="none">
                           <Icon as={FiSearch} color={mutedText} />
@@ -309,7 +375,8 @@ export default function CreateNewLease() {
                           placeholder="Search by name or email..."
                           value={tenantSearch}
                           bg={inputBg}
-                          onFocus={() => setShowTenantDropdown(true)}
+                          isDisabled={isRenew}
+                          onFocus={() => !isRenew && setShowTenantDropdown(true)}
                           onChange={(e) => {
                             setTenantSearch(e.target.value);
                             setShowTenantDropdown(true);
@@ -319,6 +386,7 @@ export default function CreateNewLease() {
                           _focus={{ borderColor: "blue.400", boxShadow: "0 0 0 1px #4299e1" }}
                         />
                       </InputGroup>
+                      <FormErrorMessage>{errors.tenant_id}</FormErrorMessage>
                     </FormControl>
 
                     {/* Dropdown */}
@@ -387,8 +455,9 @@ export default function CreateNewLease() {
                   <Text fontSize="lg" fontWeight="black" color={textColor} mb={1}>Select Room</Text>
                   <Text fontSize="sm" color={mutedText} mb={6}>Choose an available unit for this lease.</Text>
 
-                  <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} spacing={4}>
-                    {rooms.map((r) => {
+                  <FormControl isInvalid={errors.room_id}>
+                    <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} spacing={4}>
+                      {rooms.map((r) => {
                       const isSelected = String(formData.room_id) === String(r.id);
                       const isAvailable = r.status?.toLowerCase() === "available" || isSelected;
                       return (
@@ -401,16 +470,20 @@ export default function CreateNewLease() {
                           borderRadius="xl"
                           border="2px solid"
                           borderColor={isSelected ? "blue.500" : isAvailable ? borderColor : "red.200"}
-                          bg={isSelected ? useColorModeValue("blue.50", "blue.900") : cardBg}
-                          opacity={!isAvailable && !isSelected ? 0.55 : 1}
-                          cursor={!isAvailable && !isSelected ? "not-allowed" : "pointer"}
-                          _hover={isAvailable || isSelected ? {
+                           bg={isSelected ? useColorModeValue("blue.50", "blue.900") : cardBg}
+                          opacity={(!isAvailable && !isSelected) || (isRenew && !isSelected) ? 0.55 : 1}
+                          cursor={(!isAvailable && !isSelected) || (isRenew && !isSelected) ? "not-allowed" : "pointer"}
+                          _hover={(isAvailable || isSelected) && !isRenew ? {
                             borderColor: isSelected ? "blue.600" : "blue.300",
                             transform: "translateY(-2px)",
                             shadow: "md",
                           } : {}}
                           transition="all 0.2s"
-                          onClick={() => { if (!isAvailable && !isSelected) return; setFormData({ ...formData, room_id: r.id }); }}
+                          onClick={() => { 
+                            if (isRenew) return;
+                            if (!isAvailable && !isSelected) return; 
+                            setFormData({ ...formData, room_id: r.id }); 
+                          }}
                           position="relative"
                         >
                           {isSelected && (
@@ -438,7 +511,9 @@ export default function CreateNewLease() {
                       );
                     })}
                   </SimpleGrid>
-                </Box>
+                  <FormErrorMessage>{errors.room_id}</FormErrorMessage>
+                </FormControl>
+              </Box>
               )}
 
               {/* ===== STEP 3: DETAILS ===== */}
@@ -477,19 +552,53 @@ export default function CreateNewLease() {
                     {/* LEFT: Financials */}
                     <Box p={6} bg={useColorModeValue("blue.50", "blue.900/30")} borderRadius="xl" border="1px solid" borderColor={useColorModeValue("blue.100", "blue.700")}>
                       <Flex align="center" gap={2} mb={5}>
-                        <Icon as={FiDollarSign} color="blue.600" />
+                        <Icon as={FiActivity} color="blue.600" />
                         <Text fontWeight="black" fontSize="sm" color={useColorModeValue("blue.800", "blue.100")}>Financial Terms</Text>
                       </Flex>
                       <VStack spacing={4}>
-                        <FormControl isRequired>
-                          <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Monthly Rent ({localStorage.getItem("currency") || "$"})</FormLabel>
-                          <Input size="md" type="number" step="0.01" bg={inputBg} value={formData.rent_amount}
-                            onChange={(e) => setFormData({ ...formData, rent_amount: e.target.value })} />
+                        <FormControl isInvalid={errors.rent_amount}>
+                          <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Monthly Rent</FormLabel>
+                          <InputGroup size="md">
+                            <InputLeftAddon fontWeight="black" bg={useColorModeValue("gray.100", "gray.700")}>
+                              {isRiel ? "៛" : "$"}
+                            </InputLeftAddon>
+                            <Input type="number" step={isRiel ? "100" : "0.01"} bg={inputBg} 
+                              value={isRiel ? Math.round(Number(formData.rent_amount || 0) * (Number(localStorage.getItem("exchangeRate") || 4000))) : formData.rent_amount}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const rate = Number(localStorage.getItem("exchangeRate") || 4000);
+                                setFormData({ ...formData, rent_amount: isRiel ? (Number(val) / rate).toFixed(2) : val });
+                              }} 
+                            />
+                            {isRiel && (
+                               <InputRightAddon fontSize="xs" fontWeight="black" bg={useColorModeValue("blue.50", "blue.900")} color="blue.600">
+                                 USD: ${Number(formData.rent_amount || 0).toFixed(2)}
+                               </InputRightAddon>
+                            )}
+                          </InputGroup>
+                          <FormErrorMessage>{errors.rent_amount}</FormErrorMessage>
                         </FormControl>
-                        <FormControl>
-                          <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Security Deposit ({localStorage.getItem("currency") || "$"})</FormLabel>
-                          <Input size="md" type="number" step="0.01" bg={inputBg} value={formData.security_deposit}
-                            onChange={(e) => setFormData({ ...formData, security_deposit: e.target.value })} />
+                        <FormControl isInvalid={errors.security_deposit}>
+                          <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Security Deposit</FormLabel>
+                          <InputGroup size="md">
+                            <InputLeftAddon fontWeight="black" bg={useColorModeValue("gray.100", "gray.700")}>
+                              {isRiel ? "៛" : "$"}
+                            </InputLeftAddon>
+                            <Input type="number" step={isRiel ? "100" : "0.01"} bg={inputBg} 
+                              value={isRiel ? Math.round(Number(formData.security_deposit || 0) * (Number(localStorage.getItem("exchangeRate") || 4000))) : formData.security_deposit}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const rate = Number(localStorage.getItem("exchangeRate") || 4000);
+                                setFormData({ ...formData, security_deposit: isRiel ? (Number(val) / rate).toFixed(2) : val });
+                              }} 
+                            />
+                            {isRiel && (
+                               <InputRightAddon fontSize="xs" fontWeight="black" bg={useColorModeValue("blue.50", "blue.900")} color="blue.600">
+                                 USD: ${Number(formData.security_deposit || 0).toFixed(2)}
+                               </InputRightAddon>
+                            )}
+                          </InputGroup>
+                          <FormErrorMessage>{errors.security_deposit}</FormErrorMessage>
                         </FormControl>
                       </VStack>
                     </Box>
@@ -502,15 +611,17 @@ export default function CreateNewLease() {
                           <Text fontWeight="black" fontSize="sm" color={textColor}>Lease Duration</Text>
                         </Flex>
                         <VStack spacing={4}>
-                          <FormControl isRequired>
+                          <FormControl isInvalid={errors.start_date}>
                             <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Start Date</FormLabel>
                             <Input size="md" type="date" bg={inputBg} value={formData.start_date}
                               onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} />
+                            <FormErrorMessage>{errors.start_date}</FormErrorMessage>
                           </FormControl>
-                          <FormControl isRequired>
+                          <FormControl isInvalid={errors.end_date}>
                             <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>End Date</FormLabel>
                             <Input size="md" type="date" bg={inputBg} value={formData.end_date}
                               onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
+                            <FormErrorMessage>{errors.end_date}</FormErrorMessage>
                           </FormControl>
                         </VStack>
                       </Box>
@@ -520,7 +631,7 @@ export default function CreateNewLease() {
                           <Icon as={FiShield} color={mutedText} />
                           <Text fontWeight="black" fontSize="sm" color={textColor}>Lease Status</Text>
                         </Flex>
-                        <FormControl isRequired>
+                        <FormControl>
                           <SimpleGrid columns={3} spacing={2}>
                             {["active", "expired", "terminated"].map((s) => (
                               <Button

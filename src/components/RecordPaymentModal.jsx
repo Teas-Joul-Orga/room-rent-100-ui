@@ -15,8 +15,9 @@ export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initial
   const fmt = (n) => {
     const c = localStorage.getItem("currency") || "$";
     const num = Number(n || 0);
-    if (c === "៛") {
-      const r = Number(localStorage.getItem("exchangeRate") || 4000);
+    if (c === "៛" || c === "KHR" || c === "Riel") {
+      const rateItem = localStorage.getItem("exchangeRate");
+      const r = rateItem ? Number(rateItem) : 4000;
       return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
     }
     return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });

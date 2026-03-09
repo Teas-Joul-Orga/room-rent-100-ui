@@ -14,19 +14,17 @@ const DashboardLayout = () => {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-      fetch("http://localhost:8000/api/v1/admin/settings", {
-        headers: { Authorization: `Bearer ${token}` }
+      fetch("http://localhost:8000/api/v1/me", {
+        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }
       })
       .then(r => r.json())
       .then(d => {
-        if (d?.finance_currency?.value) {
-           localStorage.setItem("currency", d.finance_currency.value);
-        }
-        if (d?.finance_exchange_rate?.value) {
-           localStorage.setItem("exchangeRate", d.finance_exchange_rate.value);
+        if (d?.settings) {
+           if (d.settings.currency) localStorage.setItem("currency", d.settings.currency);
+           if (d.settings.exchangeRate) localStorage.setItem("exchangeRate", d.settings.exchangeRate);
         }
       })
-      .catch(e => console.error("Could not fetch global currency settings."));
+      .catch(e => console.error("Could not fetch global settings."));
     }
   }, []);
   

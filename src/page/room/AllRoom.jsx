@@ -63,6 +63,9 @@ export default function AllRoom() {
   const [showBulkDelete, setShowBulkDelete] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
 
+  const [sortField, setSortField] = useState(null);
+  const [sortDir, setSortDir] = useState("desc");
+
   const token = localStorage.getItem("token");
 
   useEffect(() => {
@@ -71,12 +74,14 @@ export default function AllRoom() {
     }, 400);
     return () => clearTimeout(handler);
     // eslint-disable-next-line
-  }, [currentPage, rowsPerPage, search]);
+  }, [currentPage, rowsPerPage, search, sortField, sortDir]);
 
   const fetchRooms = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/admin/rooms?page=${currentPage}&limit=${rowsPerPage}&search=${search}`, {
+      let url = `http://localhost:8000/api/v1/admin/rooms?page=${currentPage}&limit=${rowsPerPage}&search=${search}`;
+      if (sortField) url += `&sort=${sortField}&direction=${sortDir}`;
+      const res = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
@@ -157,6 +162,15 @@ export default function AllRoom() {
       }
     } catch(err) {
       toast.error("Network Error");
+    }
+  };
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDir("asc");
     }
   };
 
@@ -242,9 +256,15 @@ export default function AllRoom() {
               <Tr>
                <Th w="50px">{t("room.check_box")}</Th>
                <Th>{t("room.photo")}</Th>
-               <Th>{t("room.name")}</Th>
-               <Th>{t("room.base_rent")}</Th>
-               <Th>{t("room.status")}</Th>
+               <Th cursor="pointer" onClick={() => handleSort('name')}>
+                 <Flex align="center" gap={1}>{t("room.name")} <Text as="span" color={sortField === 'name' ? "inherit" : "gray.400"}>{sortField === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</Text></Flex>
+               </Th>
+               <Th cursor="pointer" onClick={() => handleSort('base_rent_price')}>
+                 <Flex align="center" gap={1}>{t("room.base_rent")} <Text as="span" color={sortField === 'base_rent_price' ? "inherit" : "gray.400"}>{sortField === 'base_rent_price' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</Text></Flex>
+               </Th>
+               <Th cursor="pointer" onClick={() => handleSort('status')}>
+                 <Flex align="center" gap={1}>{t("room.status")} <Text as="span" color={sortField === 'status' ? "inherit" : "gray.400"}>{sortField === 'status' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</Text></Flex>
+               </Th>
                <Th>{t("room.active")}</Th>
                <Th textAlign="center">{t("room.action")}</Th>
             </Tr>

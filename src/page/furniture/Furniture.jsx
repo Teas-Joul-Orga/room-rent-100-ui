@@ -196,12 +196,34 @@ export default function Furniture() {
   };
 
   const filtered = [...furniture]
-    .filter((f) => (f?.name || "").toLowerCase().includes(search.trim().toLowerCase()))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .filter((f) => (f?.name || "").toLowerCase().includes(search.trim().toLowerCase()));
+
+  const [sortField, setSortField] = useState(null);
+  const [sortDir, setSortDir] = useState("asc");
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDir("asc");
+    }
+  };
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (!sortField) return 0;
+    
+    let aVal = a[sortField] || "";
+    let bVal = b[sortField] || "";
+
+    if (aVal < bVal) return sortDir === "asc" ? -1 : 1;
+    if (aVal > bVal) return sortDir === "asc" ? 1 : -1;
+    return 0;
+  });
 
   const lastIndex = currentPage * rowsPerPage;
   const firstIndex = lastIndex - rowsPerPage;
-  const paginated = filtered.slice(firstIndex, lastIndex);
+  const paginated = sorted.slice(firstIndex, lastIndex);
   const totalPages = Math.ceil(filtered.length / rowsPerPage);
 
   const getConditionColor = (condition) => {
@@ -252,9 +274,15 @@ export default function Furniture() {
             <Table variant="simple">
               <Thead bg={tableHeaderBg} position="sticky" top={0} zIndex={2}>
                 <Tr>
-                  <Th>Name</Th>
-                  <Th>Condition</Th>
-                  <Th>In Rooms</Th>
+                  <Th cursor="pointer" onClick={() => handleSort('name')}>
+                    <Flex align="center" gap={1}>Name <Text as="span" color={sortField === 'name' ? "inherit" : "gray.400"}>{sortField === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</Text></Flex>
+                  </Th>
+                  <Th cursor="pointer" onClick={() => handleSort('condition')}>
+                    <Flex align="center" gap={1}>Condition <Text as="span" color={sortField === 'condition' ? "inherit" : "gray.400"}>{sortField === 'condition' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</Text></Flex>
+                  </Th>
+                  <Th cursor="pointer" onClick={() => handleSort('rooms_count')}>
+                    <Flex align="center" gap={1}>In Rooms <Text as="span" color={sortField === 'rooms_count' ? "inherit" : "gray.400"}>{sortField === 'rooms_count' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</Text></Flex>
+                  </Th>
                   <Th>Active</Th>
                   <Th textAlign="center">Action</Th>
                 </Tr>

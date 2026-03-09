@@ -38,6 +38,17 @@ import { useTranslation } from "react-i18next";
 import { FiArrowUp, FiArrowDown, FiPlus, FiEye, FiEdit2, FiTrash2, FiCalendar } from "react-icons/fi";
 import { exportToExcel } from "../../utils/exportExcel";
 
+const fmt = (n) => {
+  const c = localStorage.getItem("currency") || "$";
+  const num = Number(n || 0);
+  if (c === "៛" || c === "KHR" || c === "Riel") {
+    const rateItem = localStorage.getItem("exchangeRate");
+    const r = rateItem ? Number(rateItem) : 4000;
+    return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
+  }
+  return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 export default function Leases() {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -69,6 +80,11 @@ export default function Leases() {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [bulkDates, setBulkDates] = useState({});
   const [isBulkRenewing, setIsBulkRenewing] = useState(false);
+
+  // Delete Modal
+  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
+  const [leaseToDelete, setLeaseToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const calculatePerPage = () => {
@@ -138,13 +154,18 @@ export default function Leases() {
     fetchData();
   }, []);
 
-  const handleDelete = async (l) => {
-    if (!window.confirm(`Are you sure you want to delete the lease for ${l.tenant?.name}?`)) return;
-    
+  const handleDelete = (l) => {
+    setLeaseToDelete(l);
+    onDeleteOpen();
+  };
+
+  const confirmDelete = async () => {
+    if (!leaseToDelete) return;
+
     const token = localStorage.getItem("token");
-    setIsLoading(true);
+    setIsDeleting(true);
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/admin/leases/${l.uid}`, {
+      const res = await fetch(`http://localhost:8000/api/v1/admin/leases/${leaseToDelete.uid}`, {
         method: "DELETE",
         headers: {
           Accept: "application/json",
@@ -153,8 +174,8 @@ export default function Leases() {
       });
       if (res.ok) {
         toast.success("Lease deleted successfully");
-        // Clear selection if the deleted item was selected
-        setSelectedIds(prev => prev.filter(id => id !== l.uid));
+        setSelectedIds(prev => prev.filter(id => id !== leaseToDelete.uid));
+        onDeleteClose();
       } else {
         const errData = await res.json().catch(() => ({}));
         toast.error(errData.error || "Failed to delete lease");
@@ -163,6 +184,7 @@ export default function Leases() {
       console.error(e);
       toast.error("Network Error");
     } finally {
+      setIsDeleting(false);
       fetchData();
     }
   };
@@ -580,7 +602,7 @@ export default function Leases() {
 
                       <Td>
                         <Text color={textColor} fontSize="sm">
-                          ${Number(l.rent_amount).toFixed(2)}
+                          {fmt(l.rent_amount)}
                         </Text>
                       </Td>
 
@@ -770,6 +792,29 @@ export default function Leases() {
             </Button>
             <Button colorScheme="purple" onClick={submitBulkRenew} isLoading={isBulkRenewing}>
               Confirm Renew
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={isDeleteOpen} onClose={onDeleteClose} isCentered>
+        <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(5px)" />
+        <ModalContent bg={cardBg} borderRadius="xl" shadow="2xl">
+          <ModalHeader color={textColor}>Confirm Deletion</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <Text color={mutedText}>
+              Are you sure you want to delete the lease for <strong>{leaseToDelete?.tenant?.name}</strong>? 
+              This action cannot be undone.
+            </Text>
+          </ModalBody>
+          <ModalFooter bg={useColorModeValue("gray.50", "whiteAlpha.100")} borderBottomRadius="xl">
+            <Button onClick={onDeleteClose} variant="ghost" mr={3} isDisabled={isDeleting}>
+              Cancel
+            </Button>
+            <Button colorScheme="red" onClick={confirmDelete} isLoading={isDeleting} leftIcon={<FiTrash2 />}>
+              Delete
             </Button>
           </ModalFooter>
         </ModalContent>

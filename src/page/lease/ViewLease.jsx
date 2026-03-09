@@ -20,8 +20,9 @@ const API = "http://localhost:8000/api/v1/admin";
 const fmt = (n) => {
   const c = localStorage.getItem("currency") || "$";
   const num = Number(n || 0);
-  if (c === "៛") {
-    const r = Number(localStorage.getItem("exchangeRate") || 4000);
+  if (c === "៛" || c === "KHR" || c === "Riel") {
+    const rateItem = localStorage.getItem("exchangeRate");
+    const r = rateItem ? Number(rateItem) : 4000;
     return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
   }
   return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -37,10 +38,10 @@ const toCurrent = (n) => {
   return num;
 };
 
-const toUSD = (n) => {
-  const c = localStorage.getItem("currency") || "$";
+const toUSD = (n, explicitCurrency) => {
+  const c = explicitCurrency || localStorage.getItem("currency") || "$";
   const num = Number(n || 0);
-  if (c === "៛") {
+  if (c === "៛" || c === "KHR" || c === "Riel") {
     const r = Number(localStorage.getItem("exchangeRate") || 4000);
     return (num / r).toFixed(2);
   }
@@ -61,12 +62,12 @@ export default function ViewLease() {
 
   // Payment modal
   const { isOpen: isPayOpen, onOpen: onPayOpen, onClose: onPayClose } = useDisclosure();
-  const [payForm, setPayForm] = useState({ type: "rent", amount_paid: "", payment_method: "cash", payment_date: new Date().toISOString().split("T")[0], notes: "" });
+  const [payForm, setPayForm] = useState({ type: "rent", amount_paid: "", payment_method: "cash", payment_date: new Date().toISOString().split("T")[0], notes: "", currency: localStorage.getItem("currency") || "$" });
   const [isSavingPay, setIsSavingPay] = useState(false);
 
   // Bill modal
   const { isOpen: isBillOpen, onOpen: onBillOpen, onClose: onBillClose } = useDisclosure();
-  const [billForm, setBillForm] = useState({ type: "electricity", amount: "", due_date: "", status: "unpaid", description: "", previous_reading: "", current_reading: "", cost_per_unit: "" });
+  const [billForm, setBillForm] = useState({ type: "electricity", amount: "", due_date: "", status: "unpaid", description: "", previous_reading: "", current_reading: "", cost_per_unit: "", currency: localStorage.getItem("currency") || "$" });
   const [isSavingBill, setIsSavingBill] = useState(false);
   const [lastReading, setLastReading] = useState(0);
 
@@ -157,7 +158,7 @@ export default function ViewLease() {
         headers: headers(),
         body: JSON.stringify({ 
           ...payForm, 
-          amount_paid: toUSD(payForm.amount_paid),
+          amount_paid: toUSD(payForm.amount_paid, payForm.currency),
           lease_id: lease.id 
         }),
       });
@@ -207,8 +208,8 @@ export default function ViewLease() {
         headers: headers(),
         body: JSON.stringify({ 
           ...billForm, 
-          amount: toUSD(billForm.amount),
-          cost_per_unit: toUSD(billForm.cost_per_unit),
+          amount: toUSD(billForm.amount, billForm.currency),
+          cost_per_unit: toUSD(billForm.cost_per_unit, billForm.currency),
           room_id: lease.room_id, 
           lease_id: lease.id 
         }),
@@ -626,7 +627,7 @@ export default function ViewLease() {
                 ✓ Fully Paid
               </Text>
             ) : (
-              <Button mt={4} size="xs" colorScheme="blue" variant="link" leftIcon={<FiDollarSign />} onClick={() => { setPayForm({ ...payForm, amount_paid: toCurrent(lease.rent_amount) }); onPayOpen(); }}>
+              <Button mt={4} size="xs" colorScheme="blue" variant="link" leftIcon={<FiDollarSign />} onClick={() => { setPayForm({ ...payForm, type: "rent", amount_paid: toCurrent(lease.rent_amount), currency: localStorage.getItem("currency") || "$" }); onPayOpen(); }}>
                 {t("lease.record_payment")} →
               </Button>
             )}
@@ -640,7 +641,7 @@ export default function ViewLease() {
             <Text fontSize="10px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={2}>{t("lease.security_deposit")}</Text>
             <Heading size="xl" fontWeight="black" color={textColor}>{fmt(lease.security_deposit)}</Heading>
             {(!lease.deposit_status || lease.deposit_status === "unpaid") && (
-              <Button mt={4} size="xs" colorScheme="green" variant="link" onClick={() => { setPayForm({ ...payForm, type: "deposit", amount_paid: toCurrent(lease.security_deposit) }); onPayOpen(); }}>
+              <Button mt={4} size="xs" colorScheme="green" variant="link" onClick={() => { setPayForm({ ...payForm, type: "deposit", amount_paid: toCurrent(lease.security_deposit), currency: localStorage.getItem("currency") || "$" }); onPayOpen(); }}>
                 {t("lease.collect_deposit")} →
               </Button>
             )}
@@ -865,8 +866,14 @@ export default function ViewLease() {
                   </Select>
                 </FormControl>
                 <FormControl isRequired>
-                  <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Amount ({localStorage.getItem("currency") || "$"})</FormLabel>
-                  <Input size="md" type="number" step="0.01" bg={inputBg} borderColor={borderColor} value={payForm.amount_paid} onChange={e => setPayForm({ ...payForm, amount_paid: e.target.value })} />
+                  <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Amount</FormLabel>
+                  <Flex gap={2}>
+                    <Select w="80px" size="md" value={payForm.currency} onChange={e => setPayForm({ ...payForm, currency: e.target.value })}>
+                      <option value="$">$</option>
+                      <option value="៛">៛</option>
+                    </Select>
+                    <Input size="md" type="number" step="0.01" bg={inputBg} borderColor={borderColor} value={payForm.amount_paid} onChange={e => setPayForm({ ...payForm, amount_paid: e.target.value })} />
+                  </Flex>
                 </FormControl>
                 <FormControl isRequired>
                   <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Payment Method</FormLabel>
@@ -937,8 +944,14 @@ export default function ViewLease() {
                         <Input size="sm" type="number" step="0.01" bg={inputBg} borderColor={borderColor} value={billForm.current_reading} onChange={e => setBillForm({ ...billForm, current_reading: e.target.value })} />
                       </FormControl>
                       <FormControl>
-                        <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Rate per Unit ({localStorage.getItem("currency") || "$"})</FormLabel>
-                        <Input size="md" type="number" step="0.01" bg={inputBg} borderColor={borderColor} value={billForm.cost_per_unit} onChange={e => setBillForm({ ...billForm, cost_per_unit: e.target.value })} />
+                        <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Rate per Unit</FormLabel>
+                        <Flex gap={2}>
+                           <Select w="80px" size="md" value={billForm.currency} onChange={e => setBillForm({ ...billForm, currency: e.target.value })}>
+                             <option value="$">$</option>
+                             <option value="៛">៛</option>
+                           </Select>
+                           <Input size="md" type="number" step="0.01" bg={inputBg} borderColor={borderColor} value={billForm.cost_per_unit} onChange={e => setBillForm({ ...billForm, cost_per_unit: e.target.value })} />
+                        </Flex>
                       </FormControl>
                     </SimpleGrid>
                     <Text fontSize="sm" fontWeight="bold" color={mutedText} textAlign="right" mt={2}>
@@ -949,8 +962,21 @@ export default function ViewLease() {
 
                 {/* Total Amount */}
                 <FormControl isRequired>
-                  <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Total Amount ({localStorage.getItem("currency") || "$"})</FormLabel>
-                  <Input size="md" type="number" step="0.01" bg={isMetered ? highlightBg : inputBg} borderColor={borderColor} fontWeight="bold" value={billForm.amount} onChange={e => setBillForm({ ...billForm, amount: e.target.value })} />
+                  <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Total Amount</FormLabel>
+                  <Flex gap={2}>
+                    {(!isMetered) && (
+                      <Select w="80px" size="md" value={billForm.currency} onChange={e => setBillForm({ ...billForm, currency: e.target.value })}>
+                        <option value="$">$</option>
+                        <option value="៛">៛</option>
+                      </Select>
+                    )}
+                    {isMetered && (
+                       <Box w="80px" display="flex" alignItems="center" justifyContent="center" bg={inputBg} border="1px solid" borderColor={borderColor} borderRadius="md" fontWeight="bold" color={textColor}>
+                         {billForm.currency}
+                       </Box>
+                    )}
+                    <Input size="md" type="number" step="0.01" bg={isMetered ? highlightBg : inputBg} borderColor={borderColor} fontWeight="bold" value={billForm.amount} onChange={e => setBillForm({ ...billForm, amount: e.target.value })} />
+                  </Flex>
                   {isMetered && <Text fontSize="xs" color={mutedText} mt={1}>Auto-calculated, but you can override.</Text>}
                 </FormControl>
 
