@@ -8,7 +8,7 @@ import {
 import { FiPlus, FiTrash2, FiClock, FiMoreHorizontal, FiCalendar, FiAlertCircle } from 'react-icons/fi';
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import AddAnnouncementModal from './AddAnnouncementModal';
+import AddAnnouncementModal from '../Admin/AddAnnouncementModal';
 
 dayjs.extend(relativeTime);
 

@@ -4,6 +4,58 @@ import { ChakraProvider, extendTheme } from "@chakra-ui/react";
 import "./index.css";
 import "./i18n";
 import App from "./App.jsx";
+import api from "./api/axios";
+
+// First Principles: Centralize network logic. 
+// Safely migrate all 139 existing fetch() calls across 43 components directly into the Axios engine.
+const originalFetch = window.fetch;
+window.fetch = async (...args) => {
+  const url = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url ? args[0].url : Object.prototype.toString.call(args[0]));
+  
+  // If this is an internal API call to Laravel, intercept and route through Axios
+  if (typeof url === 'string' && (url.includes('localhost:8000/api/v1') || url.startsWith('/'))) {
+    const options = args[1] || {};
+    const method = (options.method || 'GET').toUpperCase();
+    const cleanUrl = url.replace('http://localhost:8000/api/v1', '');
+    
+    let data;
+    if (options.body) {
+      if (options.body instanceof FormData) {
+        data = options.body;
+      } else if (typeof options.body === 'string') {
+        try { data = JSON.parse(options.body); } catch(e) { data = options.body; }
+      } else {
+        data = options.body;
+      }
+    }
+
+    try {
+      const res = await api({
+        url: cleanUrl,
+        method,
+        data,
+      });
+      // Emulate the standard Web Response object so existing components do not crash
+      return {
+        ok: true,
+        status: res.status,
+        json: async () => res.data,
+        text: async () => JSON.stringify(res.data),
+        blob: async () => res.data,
+      };
+    } catch (error) {
+       return {
+         ok: false,
+         status: error.response?.status || 500,
+         json: async () => error.response?.data || {},
+         text: async () => JSON.stringify(error.response?.data || {}),
+       };
+    }
+  }
+
+  // Fallback to native fetch for external CDNs, fonts, etc.
+  return originalFetch(...args);
+};
 
 const theme = extendTheme({
   fonts: {

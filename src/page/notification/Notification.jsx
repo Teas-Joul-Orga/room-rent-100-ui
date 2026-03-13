@@ -34,6 +34,8 @@ function Notification() {
   const borderColor = useColorModeValue("gray.100", "#30363d");
   const hoverBg = useColorModeValue("gray.50", "#1c2333");
   const unreadBg = useColorModeValue("blue.50", "blue.900");
+  const headerFooterBg = useColorModeValue("gray.50", "#0d1117");
+  const iconBg = useColorModeValue("white", "#30363d");
 
   const fetchNotifications = async () => {
     try {
@@ -143,7 +145,7 @@ function Notification() {
       overflow="hidden"
     >
       {/* Header */}
-      <Flex align="center" justify="space-between" px={4} py={3} borderBottom="1px" borderColor={borderColor} bg={useColorModeValue("gray.50", "#0d1117")}>
+      <Flex align="center" justify="space-between" px={4} py={3} borderBottom="1px" borderColor={borderColor} bg={headerFooterBg}>
         <HStack>
           <Icon as={IoNotificationsOutline} boxSize={5} color="blue.500" />
           <Text fontWeight="bold">Notifications</Text>
@@ -190,7 +192,7 @@ function Notification() {
                     w={8} 
                     h={8} 
                     rounded="full" 
-                    bg={useColorModeValue("white", "#30363d")} 
+                    bg={iconBg} 
                     align="center" 
                     justify="center" 
                     shadow="sm"
@@ -222,7 +224,7 @@ function Notification() {
       </VStack>
 
       {/* Footer */}
-      <Box px={4} py={2} borderTop="1px" borderColor={borderColor} textAlign="center" bg={useColorModeValue("gray.50", "#0d1117")}>
+      <Box px={4} py={2} borderTop="1px" borderColor={borderColor} textAlign="center" bg={headerFooterBg}>
         <Text fontSize="xs" color="gray.500" fontWeight="medium">
           Showing latest {notifications.length} notifications
         </Text>

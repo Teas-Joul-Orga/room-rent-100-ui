@@ -12,10 +12,7 @@ import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/en";
-import Echo from 'laravel-echo';
-import Pusher from 'pusher-js';
-
-window.Pusher = Pusher;
+import echo from "../../lib/echo";
 
 dayjs.extend(relativeTime);
 const API = "http://localhost:8000/api/v1";
@@ -47,6 +44,18 @@ function MaintenanceRoom() {
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [reportForm, setReportForm] = useState({ title: "", description: "", priority: "normal", photo: null });
 
+  // Refs for real-time fetch to avoid stale closure in socket listener
+  const searchRef = React.useRef(search);
+  const statusFilterRef = React.useRef(statusFilter);
+
+  useEffect(() => {
+    searchRef.current = search;
+  }, [search]);
+
+  useEffect(() => {
+    statusFilterRef.current = statusFilter;
+  }, [statusFilter]);
+
   const bg = useColorModeValue("white", "#161b22");
   const borderColor = useColorModeValue("gray.200", "#30363d");
   const textColor = useColorModeValue("gray.800", "white");
@@ -61,8 +70,11 @@ function MaintenanceRoom() {
 
   const fetchRequests = async () => {
     try {
+      const currentSearch = searchRef.current;
+      const currentStatus = statusFilterRef.current;
+      
       const endpoint = role === 'admin' 
-        ? `${API}/admin/maintenance?search=${search}&status=${statusFilter}&sort=created_at&direction=desc`
+        ? `${API}/admin/maintenance?search=${currentSearch}&status=${currentStatus}&sort=created_at&direction=desc`
         : `${API}/tenant/maintenance`;
       
       const res = await fetch(endpoint, { headers: { ...headers(), Accept: "application/json" } });
@@ -84,26 +96,18 @@ function MaintenanceRoom() {
   }, [search, statusFilter]);
 
   useEffect(() => {
-    const echo = new Echo({
-      broadcaster: 'reverb',
-      key: 'ia6m3xrvsph7zmudqiif',
-      wsHost: 'localhost',
-      wsPort: 8080,
-      wssPort: 8080,
-      forceTLS: false,
-      enabledTransports: ['ws', 'wss'],
-    });
+    const echoInstance = echo();
+    if (!echoInstance) return;
 
-    echo.channel('maintenance')
+    const channel = echoInstance.channel('maintenance')
       .listen('.App\\Events\\MaintenanceCountUpdated', () => {
-        // Trigger a fresh fetch of the list natively when any event is broadcasted
         fetchRequests();
       });
 
     return () => {
-      echo.leaveChannel('maintenance');
+      channel.stopListening('.App\\Events\\MaintenanceCountUpdated');
     };
-  }, [search, statusFilter]);
+  }, []); // Only subscribe once
 
   const handleUpdateSubmit = async (e) => {
     e.preventDefault();

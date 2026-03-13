@@ -1,9 +1,15 @@
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import { Box } from '@chakra-ui/react';
+import DashboardLayout from './layouts/DashboardLayout';
+
 // Admin Pages
 import AdminDashboard from "./page/admin/Dashboard";
 import AdminOverview from "./page/admin/Overview";
 import AdminListPending from "./page/admin/ListPending";
 import AdminMonthlyIncomeChart from "./page/admin/MonthlyIncomeChart";
-import AdminAnnouncements from "./page/admin/AdminAnnouncements";
+import AdminAnnouncements from "./page/announcements/AdminAnnouncements";
 import AdminChat from "./page/admin/AdminChat";
 import AdminUtility from "./page/utility/Utility";
 import AdminAddBill from "./page/utility/AddBill";

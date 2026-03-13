@@ -2,10 +2,7 @@ import React from "react";
 import { Box, VStack, Text, useColorModeValue, Flex, Icon, Tooltip, Drawer, DrawerOverlay, DrawerContent, DrawerCloseButton, Collapse } from "@chakra-ui/react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import Echo from 'laravel-echo';
-import Pusher from 'pusher-js';
-
-window.Pusher = Pusher;
+import echo from "../lib/echo";
 
 // Custom Icon Component to render Blade SVG paths
 const SvgIcon = ({ pathD, ...props }) => (
@@ -260,25 +257,18 @@ const Sidebar = ({ isOpen, onClose }) => {
 
     fetchCount(); // Initial fetch
     
-    // Initialize WebSockets (Reverb)
-    const echo = new Echo({
-      broadcaster: 'reverb',
-      key: 'ia6m3xrvsph7zmudqiif',
-      wsHost: 'localhost',
-      wsPort: 8080,
-      wssPort: 8080,
-      forceTLS: false,
-      enabledTransports: ['ws', 'wss'],
-    });
+    // Initialize WebSockets (Reverb) via shared instance
+    const echoInstance = echo();
+    if (!echoInstance) return;
 
     // Listen to 'maintenance' channel
-    echo.channel('maintenance')
+    const channel = echoInstance.channel('maintenance')
       .listen('.App\\Events\\MaintenanceCountUpdated', (e) => {
         setPendingMaintenanceCount(e.count);
       });
 
     return () => {
-      echo.leaveChannel('maintenance');
+      channel.stopListening('.App\\Events\\MaintenanceCountUpdated');
     };
   }, [userRole]);
 
