@@ -51,6 +51,10 @@ export default function Dashboard() {
   const borderColor = useColorModeValue("gray.100", "#30363d");
   const textColor = useColorModeValue("gray.800", "white");
   const mutedText = useColorModeValue("gray.500", "gray.400");
+  const cursorFill = useColorModeValue('rgba(0,0,0,0.02)', 'rgba(255,255,255,0.02)');
+  const maintenanceHeaderBg = useColorModeValue("orange.50", "rgba(249, 115, 22, 0.1)");
+  const tableHoverBg = useColorModeValue("gray.50", "whiteAlpha.50");
+  const expirationsHeaderBg = useColorModeValue("red.50", "rgba(239, 68, 68, 0.1)");
   
   const fetchDashboard = async () => {
     setLoading(true);
@@ -226,7 +230,7 @@ export default function Dashboard() {
                     formatter={(value, name) => [fmt(value), name.toUpperCase()]}
                     contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', background: bg }}
                     itemStyle={{ fontWeight: 'bold' }}
-                    cursor={{ fill: useColorModeValue('rgba(0,0,0,0.02)', 'rgba(255,255,255,0.02)') }}
+                    cursor={{ fill: cursorFill }}
                   />
                   <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 'bold', paddingTop: '20px' }} />
                   <Bar dataKey="revenue" name="Revenue" fill="#6366f1" radius={[6, 6, 0, 0]} barSize={24} />
@@ -279,7 +283,7 @@ export default function Dashboard() {
         <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} gap={6}>
           <MotionGridItem variants={item}>
             <Box bg={glassBg} backdropFilter="blur(10px)" borderRadius="3xl" border="1px solid" borderColor={borderColor} shadow="sm" overflow="hidden">
-              <Flex p={5} bg={useColorModeValue("orange.50", "rgba(249, 115, 22, 0.1)")} align="center" justify="space-between" borderBottom="1px solid" borderColor={borderColor}>
+              <Flex p={5} bg={maintenanceHeaderBg} align="center" justify="space-between" borderBottom="1px solid" borderColor={borderColor}>
                 <Flex align="center" gap={3}>
                   <Flex w="8" h="8" bg="orange.500" color="white" borderRadius="lg" justify="center" align="center"><Icon as={FiTool} /></Flex>
                   <Text fontSize="sm" fontWeight="bold" color={textColor}>Heavy Maintenance Consumers</Text>
@@ -297,7 +301,7 @@ export default function Dashboard() {
                   <Tbody>
                     {maintenance?.mostExpensiveRooms && Object.entries(maintenance.mostExpensiveRooms).length > 0 ? (
                       Object.entries(maintenance.mostExpensiveRooms).map(([room, cost]) => (
-                        <Tr key={room} _hover={{ bg: useColorModeValue("gray.50", "whiteAlpha.50") }} transition="background 0.2s">
+                        <Tr key={room} _hover={{ bg: tableHoverBg }} transition="background 0.2s">
                           <Td fontSize="sm" fontWeight="bold" color={textColor}>{room}</Td>
                           <Td isNumeric fontSize="sm" fontWeight="black" color="orange.500">{fmt(cost)}</Td>
                         </Tr>
@@ -313,7 +317,7 @@ export default function Dashboard() {
 
           <MotionGridItem variants={item}>
              <Box bg={glassBg} backdropFilter="blur(10px)" borderRadius="3xl" border="1px solid" borderColor={borderColor} shadow="sm" overflow="hidden">
-              <Flex p={5} bg={useColorModeValue("red.50", "rgba(239, 68, 68, 0.1)")} align="center" justify="space-between" borderBottom="1px solid" borderColor={borderColor}>
+              <Flex p={5} bg={expirationsHeaderBg} align="center" justify="space-between" borderBottom="1px solid" borderColor={borderColor}>
                 <Flex align="center" gap={3}>
                   <Text fontSize="sm" fontWeight="bold" color={textColor}>Upcoming Expirations</Text>
                 </Flex>
@@ -331,7 +335,7 @@ export default function Dashboard() {
                   <Tbody>
                     {occupancy?.expiringSoon && occupancy.expiringSoon.length > 0 ? (
                       occupancy.expiringSoon.map((lease) => (
-                        <Tr key={lease.id} _hover={{ bg: useColorModeValue("gray.50", "whiteAlpha.50") }} transition="background 0.2s">
+                        <Tr key={lease.id} _hover={{ bg: tableHoverBg }} transition="background 0.2s">
                           <Td fontSize="sm" fontWeight="bold" color={textColor}>{lease.tenant?.name}</Td>
                           <Td fontSize="sm" fontWeight="bold" color="blue.500">{lease.room?.name}</Td>
                           <Td isNumeric fontSize="sm" fontWeight="black" color="red.500">{dayjs(lease.end_date).format('MMM D')}</Td>

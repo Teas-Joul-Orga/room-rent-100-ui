@@ -44,6 +44,11 @@ export default function Settings() {
             flatSettings[k] = data[k].value;
           });
           setSettings(flatSettings);
+          // Cache key values in localStorage so bill forms can read them without an extra API call
+          if (flatSettings.finance_currency) localStorage.setItem("currency", flatSettings.finance_currency);
+          if (flatSettings.finance_exchange_rate) localStorage.setItem("exchangeRate", flatSettings.finance_exchange_rate);
+          if (flatSettings.utility_rate_electricity) localStorage.setItem("utility_rate_electricity", flatSettings.utility_rate_electricity);
+          if (flatSettings.utility_rate_water) localStorage.setItem("utility_rate_water", flatSettings.utility_rate_water);
         }
       } catch (e) {
         toast({ title: t('common.error_loading'), status: 'error', position: 'top-right' });
@@ -81,6 +86,12 @@ export default function Settings() {
         }
         if (settings.finance_exchange_rate) {
           localStorage.setItem("exchangeRate", settings.finance_exchange_rate);
+        }
+        if (settings.utility_rate_electricity) {
+          localStorage.setItem("utility_rate_electricity", settings.utility_rate_electricity);
+        }
+        if (settings.utility_rate_water) {
+          localStorage.setItem("utility_rate_water", settings.utility_rate_water);
         }
         toast({ title: t('settings_page.save_success'), status: 'success', duration: 3000, position: 'top-right' });
       } else {

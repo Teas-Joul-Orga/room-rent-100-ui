@@ -9,7 +9,6 @@ import {
   HStack,
   Heading,
   Text,
-  useToast,
   Divider,
   SimpleGrid,
   Image,
@@ -51,7 +50,6 @@ const AddNewTenant = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = Boolean(id);
-  const toast = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(isEdit);
@@ -156,6 +154,15 @@ const AddNewTenant = () => {
     e.preventDefault();
     setIsLoading(true);
 
+    // Frontend validation for password match
+    if (!isEdit && formData.create_account) {
+      if (formData.password !== formData.password_confirmation) {
+        hotToast.error(t("common.password_mismatch") || "Passwords do not match");
+        setIsLoading(false);
+        return;
+      }
+    }
+
     try {
       const token = localStorage.getItem("token");
       const data = new FormData();
@@ -198,12 +205,24 @@ const AddNewTenant = () => {
         hotToast.success(isEdit ? t("tenant.update_success") : t("tenant.create_success"));
         navigate("/dashboard/tenants");
       } else {
-        const firstError = Object.values(responseData.errors || {})[0]?.[0] || responseData.error || t("common.error_occurred");
-        hotToast.error(firstError);
+        console.log("Response Data on Error:", responseData);
+        // Improved error extraction: check errors object, message property, or error property
+        let errorMsg = t("common.error_occurred");
+        
+        if (responseData.errors && Object.keys(responseData.errors).length > 0) {
+          const firstErrField = Object.values(responseData.errors)[0];
+          errorMsg = Array.isArray(firstErrField) ? firstErrField[0] : firstErrField;
+        } else if (responseData.message) {
+          errorMsg = responseData.message;
+        } else if (responseData.error) {
+          errorMsg = responseData.error;
+        }
+        
+        hotToast.error(errorMsg);
       }
     } catch (error) {
+      console.error("Submission error:", error);
       hotToast.error(t("common.network_error"));
-      console.error(error);
     } finally {
       setIsLoading(false);
     }

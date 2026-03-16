@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import {
   Box, Flex, Text, Badge, useColorModeValue, Spinner, Image,
   Avatar, HStack, VStack, Icon, Container, Divider, IconButton, Tooltip,
-  Menu, MenuButton, MenuList, MenuItem, Button, Input, Skeleton, SkeletonCircle, SkeletonText,
-  Collapse, useDisclosure
+  Menu, MenuButton, MenuList, MenuItem, Button, Skeleton, SkeletonCircle, SkeletonText
 } from '@chakra-ui/react';
 import { useTranslation } from "react-i18next";
 import { 
-  FiClock, FiMoreHorizontal, FiThumbsUp, FiMessageCircle, FiShare2, 
-  FiGlobe, FiSend, FiFlag, FiBookmark, FiXCircle 
+  FiClock, FiMoreHorizontal, FiThumbsUp, 
+  FiGlobe, FiFlag, FiBookmark, FiXCircle 
 } from 'react-icons/fi';
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -31,26 +30,35 @@ export default function TenantAnnouncements() {
   const primaryBlue = "#1877f2"; 
 
   const [likedPosts, setLikedPosts] = useState({});
-  const [openComments, setOpenComments] = useState({});
-  const [comments, setComments] = useState({});
-  const [newComment, setNewComment] = useState("");
 
-  const toggleLike = (id) => {
-    setLikedPosts(prev => ({ ...prev, [id]: !prev[id] }));
-  };
+  const toggleLike = async (id) => {
+    // Optimistic Update
+    const wasLiked = likedPosts[id];
+    setLikedPosts(prev => ({ ...prev, [id]: !wasLiked }));
 
-  const toggleComments = (id) => {
-    setOpenComments(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const handleAddComment = (id) => {
-    if (!newComment.trim()) return;
-    const postComments = comments[id] || [];
-    setComments({
-      ...comments,
-      [id]: [...postComments, { id: Date.now(), text: newComment, user: "You", time: "Just now" }]
-    });
-    setNewComment("");
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API}/tenant/announcements/${id}/like`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (res.ok) {
+        const json = await res.json();
+        // Update the specific announcement object in state
+        setAnnouncements(prev => prev.map(a => 
+          a.id === id ? { ...a, likes_count: json.likes_count, is_liked: json.liked } : a
+        ));
+        // Sync with absolute truth from server
+        setLikedPosts(prev => ({ ...prev, [id]: json.liked }));
+      } else {
+        // Rollback on error
+        setLikedPosts(prev => ({ ...prev, [id]: wasLiked }));
+      }
+    } catch (e) {
+      console.error("Like error:", e);
+      setLikedPosts(prev => ({ ...prev, [id]: wasLiked }));
+    }
   };
 
   const fetchAnnouncements = async () => {
@@ -62,7 +70,15 @@ export default function TenantAnnouncements() {
       });
       if (res.ok) {
         const json = await res.json();
-        setAnnouncements(json.data || json.announcements || json || []); 
+        const data = json.data || json.announcements || json || [];
+        setAnnouncements(data); 
+
+        // Initialize local like state from API
+        const initialLikes = {};
+        data.forEach(a => {
+           if (a.is_liked) initialLikes[a.id] = true;
+        });
+        setLikedPosts(initialLikes);
       }
     } catch (e) {
       console.error("Error fetching announcements:", e);
@@ -106,7 +122,6 @@ export default function TenantAnnouncements() {
       ) : (
         <VStack spacing={8} align="stretch">
           {announcements.length > 0 ? announcements.map(a => {
-            const isScheduled = dayjs(a.published_at).isAfter(dayjs());
             const isLiked = likedPosts[a.id];
             
             return (
@@ -200,27 +215,23 @@ export default function TenantAnnouncements() {
                          <Icon as={FiThumbsUp} color="white" boxSize={2.5} />
                      </Flex>
                      <Text fontSize="xs" color={mutedText} fontWeight="medium">
-                       { (likedPosts[a.id] ? 1 : 0) + (a.likes_count || 0) } People
+                       { a.likes_count ?? (likedPosts[a.id] ? 1 : 0) } People
                      </Text>
                   </HStack>
                   <HStack spacing={3} color={mutedText} fontSize="xs">
-                    <Text display={openComments[a.id] ? "none" : "block"}>
-                      {(comments[a.id]?.length || 0)} Comments
-                    </Text>
                     <Text fontWeight="bold" color={primaryBlue}>OFFICIAL</Text>
                   </HStack>
                 </Flex>
 
                 <Box px={4} pb={1}><Divider borderColor={borderColor} /></Box>
 
-                {/* Post Footer / Social Actions */}
-                <Flex px={2} py={1} gap={1}>
+                <Flex px={2} py={1}>
                    <Button 
                      flex={1} 
                      variant="ghost" 
                      size="sm" 
-                     leftIcon={<Icon as={FiThumbsUp} fill={isLiked ? primaryBlue : "none"} color={isLiked ? primaryBlue : "inherit"} />}
-                     color={isLiked ? primaryBlue : mutedText}
+                     leftIcon={<Icon as={FiThumbsUp} fill={likedPosts[a.id] ? primaryBlue : "none"} color={likedPosts[a.id] ? primaryBlue : "inherit"} />}
+                     color={likedPosts[a.id] ? primaryBlue : mutedText}
                      _hover={{ bg: btnHover }}
                      fontSize="xs"
                      fontWeight="bold"
@@ -228,75 +239,7 @@ export default function TenantAnnouncements() {
                    >
                      Like
                    </Button>
-                   <Button 
-                     flex={1} 
-                     variant="ghost" 
-                     size="sm" 
-                     leftIcon={<FiMessageCircle />}
-                     color={openComments[a.id] ? primaryBlue : mutedText}
-                     _hover={{ bg: btnHover }}
-                     fontSize="xs"
-                     fontWeight="bold"
-                     onClick={() => toggleComments(a.id)}
-                   >
-                     Comment
-                   </Button>
-                   <Button 
-                     flex={1} 
-                     variant="ghost" 
-                     size="sm" 
-                     leftIcon={<FiShare2 />}
-                     color={mutedText}
-                     _hover={{ bg: btnHover }}
-                     fontSize="xs"
-                     fontWeight="bold"
-                   >
-                     Share
-                   </Button>
                 </Flex>
-
-                {/* Comment Section (Collapsible) */}
-                <Collapse in={openComments[a.id]} animateOpacity>
-                  <Box px={4} pb={4}>
-                    <Divider borderColor={borderColor} mb={4} />
-                    
-                    {/* Comment List */}
-                    <VStack align="stretch" spacing={3} mb={4}>
-                      {(comments[a.id] || []).map(comm => (
-                        <HStack key={comm.id} align="start" spacing={2}>
-                          <Avatar size="xs" name={comm.user} />
-                          <Box bg={btnHover} p={2} borderRadius="2xl" flex={1}>
-                            <Text fontSize="xs" fontWeight="bold">{comm.user}</Text>
-                            <Text fontSize="xs">{comm.text}</Text>
-                          </Box>
-                        </HStack>
-                      ))}
-                    </VStack>
-
-                    {/* Write a comment */}
-                    <HStack spacing={2}>
-                      <Avatar size="sm" name="Me" src={localStorage.getItem('avatar')} />
-                      <Input 
-                        placeholder="Write a comment..." 
-                        size="sm" 
-                        bg={btnHover} 
-                        border="none" 
-                        borderRadius="full" 
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddComment(a.id)}
-                      />
-                      <IconButton 
-                        icon={<FiSend />} 
-                        size="sm" 
-                        colorScheme="blue" 
-                        variant="ghost" 
-                        borderRadius="full"
-                        onClick={() => handleAddComment(a.id)}
-                      />
-                    </HStack>
-                  </Box>
-                </Collapse>
               </Box>
             );
           }) : (

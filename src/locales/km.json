@@ -20,6 +20,7 @@
     "announcements": "ការប្រកាស",
     "settings": "ការកំណត់",
     "my_lease": "កិច្ចសន្យារបស់ខ្ញុំ",
+    "lease_history": "ប្រវត្តិជួល",
     "my_billing": "វិក្កយបត្ររបស់ខ្ញុំ",
     "community": "សហគមន៍",
     "tenant_mgmt": "ការគ្រប់គ្រងអ្នកជួល",
@@ -58,6 +59,10 @@
     "total_pages": "សរុប {{count}} ទំព័រ",
     "password": "ពាក្យសម្ងាត់",
     "confirm_password": "បញ្ជាក់ពាក្យសម្ងាត់",
+    "password_mismatch": "ពាក្យសម្ងាត់មិនត្រូវគ្នា",
+    "error_occurred": "មានកំហុសមួយបានកើតឡើង",
+    "network_error": "កំហុសបណ្តាញ សូមព្យាយាមម្តងទៀត",
+    "saving": "កំពុងរក្សាទុក...",
     "view_detail": "មើលលម្អិត"
   },
   "lease": {

@@ -20,6 +20,7 @@
     "announcements": "Announcements",
     "settings": "Settings",
     "my_lease": "My Lease",
+    "lease_history": "Lease History",
     "my_billing": "My Billing",
     "community": "Community",
     "tenant_mgmt": "Tenants Management",
@@ -58,6 +59,10 @@
     "total_pages": "Total {{count}} Pages",
     "password": "Password",
     "confirm_password": "Confirm Password",
+    "password_mismatch": "Passwords do not match",
+    "error_occurred": "An error occurred",
+    "network_error": "Network error, please try again",
+    "saving": "Saving...",
     "view_detail": "View Detail"
   },
   "lease": {

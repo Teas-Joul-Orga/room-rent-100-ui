@@ -5,7 +5,7 @@ import {
   AlertDialogContent, AlertDialogOverlay, useDisclosure, Avatar, HStack,
   VStack, Icon, AspectRatio, Stack, Menu, MenuButton, MenuList, MenuItem, Container
 } from '@chakra-ui/react';
-import { FiPlus, FiTrash2, FiClock, FiMoreHorizontal, FiCalendar, FiAlertCircle } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiClock, FiMoreHorizontal, FiCalendar, FiAlertCircle, FiThumbsUp } from 'react-icons/fi';
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import AddAnnouncementModal from '../Admin/AddAnnouncementModal';
@@ -196,10 +196,14 @@ export default function AdminAnnouncements() {
 
                 {/* Post Footer/Indicators */}
                 <Flex px={6} py={4} bg={footerBg} justify="space-between" align="center">
-                  <HStack spacing={4} color={mutedText} fontSize="xs" fontWeight="bold">
-                     <HStack>
+                  <HStack spacing={6} color={mutedText} fontSize="xs" fontWeight="bold">
+                     <HStack spacing={1}>
                         <Icon as={FiAlertCircle} />
                         <Text textTransform="uppercase" letterSpacing="widest">Official Update</Text>
+                     </HStack>
+                     <HStack spacing={2} color="blue.500">
+                        <Icon as={FiThumbsUp} />
+                        <Text>{a.likes_count || 0} People Reacted</Text>
                      </HStack>
                   </HStack>
                   {isScheduled && (

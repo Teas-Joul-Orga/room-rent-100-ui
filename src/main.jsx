@@ -13,7 +13,7 @@ window.fetch = async (...args) => {
   const url = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url ? args[0].url : Object.prototype.toString.call(args[0]));
   
   // If this is an internal API call to Laravel, intercept and route through Axios
-  if (typeof url === 'string' && (url.includes('localhost:8000/api/v1') || url.startsWith('/'))) {
+  if (typeof url === 'string' && (url.includes('api/v1'))) {
     const options = args[1] || {};
     const method = (options.method || 'GET').toUpperCase();
     const cleanUrl = url.replace('http://localhost:8000/api/v1', '');

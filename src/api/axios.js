@@ -23,11 +23,15 @@ api.interceptors.response.use(
   (error) => {
     if (error.response) {
       if (error.response.status === 401) {
-        // Automatically logout on unauthorized
+        // Automatically logout on unauthorized, but don't redirect if we're already on /login
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('role');
-        window.location.href = '/login';
+        localStorage.setItem('isLoggedIn', 'false');
+        
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
       }
     }
     return Promise.reject(error);

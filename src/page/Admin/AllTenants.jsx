@@ -519,7 +519,7 @@ export default function AllTenants() {
 
                 <Td>
                   <Image
-                    src={tenantItem.photo_path ? `http://localhost:8000/storage/${tenantItem.photo_path}` : "/avatar.png"}
+                    src={tenantItem.photo_path ? `http://localhost:8000/storage/${tenantItem.photo_path}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(tenantItem.name)}&background=random&size=100`}
                     alt="avatar"
                     boxSize="40px"
                     borderRadius="full"
@@ -700,8 +700,8 @@ export default function AllTenants() {
             </Heading>
 
             <Image
-              src={selectedTenant.photo_path ? `http://localhost:8000/storage/${selectedTenant.photo_path}` : "/avatar.png"}
-              fallbackSrc="/avatar.png"
+              src={selectedTenant.photo_path ? `http://localhost:8000/storage/${selectedTenant.photo_path}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedTenant.name)}&background=random&size=100`}
+              fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(selectedTenant.name)}&background=random&size=100`}
               alt="avatar"
               boxSize="80px"
               mx="auto"

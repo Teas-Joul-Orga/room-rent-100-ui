@@ -17,6 +17,19 @@ import {
 
 const API = "http://localhost:8000/api/v1/admin";
 
+const getDefaultRate = (type) => {
+  const rawUSD = type === "electricity" ? localStorage.getItem("utility_rate_electricity")
+                : type === "water"       ? localStorage.getItem("utility_rate_water")
+                : null;
+  if (!rawUSD) return "";
+  const c = localStorage.getItem("currency") || "$";
+  if (c === "៛" || c === "KHR" || c === "Riel") {
+    const rate = Number(localStorage.getItem("exchangeRate") || 4000);
+    return (Number(rawUSD) * rate).toFixed(0);
+  }
+  return rawUSD;
+};
+
 const fmt = (n) => {
   const c = localStorage.getItem("currency") || "$";
   const num = Number(n || 0);
@@ -31,7 +44,7 @@ const fmt = (n) => {
 const toCurrent = (n) => {
   const c = localStorage.getItem("currency") || "$";
   const num = Number(n || 0);
-  if (c === "៛") {
+  if (c === "៛" || c === "KHR" || c === "Riel") {
     const r = Number(localStorage.getItem("exchangeRate") || 4000);
     return Math.round(num * r);
   }
@@ -67,7 +80,7 @@ export default function ViewLease() {
 
   // Bill modal
   const { isOpen: isBillOpen, onOpen: onBillOpen, onClose: onBillClose } = useDisclosure();
-  const [billForm, setBillForm] = useState({ type: "electricity", amount: "", due_date: "", status: "unpaid", description: "", previous_reading: "", current_reading: "", cost_per_unit: "", currency: localStorage.getItem("currency") || "$" });
+  const [billForm, setBillForm] = useState({ type: "electricity", amount: "", due_date: "", status: "unpaid", description: "", previous_reading: "", current_reading: "", cost_per_unit: getDefaultRate("electricity"), currency: localStorage.getItem("currency") || "$" });
   const [isSavingBill, setIsSavingBill] = useState(false);
   const [lastReading, setLastReading] = useState(0);
 
@@ -194,9 +207,16 @@ export default function ViewLease() {
     }
   }, [billForm.current_reading, billForm.previous_reading, billForm.cost_per_unit]);
 
-  // Fetch reading when bill type changes
+  // Fetch reading when bill type changes and auto-populate rate
   useEffect(() => {
-    if (isBillOpen) fetchLastReading(billForm.type);
+    if (isBillOpen) {
+      fetchLastReading(billForm.type);
+      // Auto-fill rate from settings if field is empty
+      const savedRate = getDefaultRate(billForm.type);
+      if (savedRate) {
+        setBillForm(prev => ({ ...prev, cost_per_unit: savedRate }));
+      }
+    }
   }, [billForm.type, isBillOpen]);
 
   const handleSaveBill = async (e) => {
@@ -381,20 +401,44 @@ export default function ViewLease() {
 
   const handlePrintContract = async () => {
     setIsPrintingContract(true);
-    const token = localStorage.getItem("token");
     try {
       const res = await fetch(`${API}/leases/${id}/print`, {
-        headers: headers(),
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          // Don't use the standard headers() here because it forces 'Accept: application/json'
+          // We want the browser to accept the PDF stream
+          Accept: "application/pdf",
+        },
       });
+      
       if (res.ok) {
         const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        window.open(url, "_blank");
+        
+        if (!blob || blob.size === 0) {
+          throw new Error("Received an empty file from the server.");
+        }
+
+        const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+        const newWindow = window.open(url, "_blank");
+        
+        if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+          toast.error("Popup blocked! Please allow popups for this site.");
+        }
+
+        // Cleanup
+        setTimeout(() => window.URL.revokeObjectURL(url), 1000);
       } else {
-        toast.error("Failed to generate contract PDF");
+        const text = await res.text();
+        let errorMessage = "Failed to generate contract PDF";
+        try {
+          const data = JSON.parse(text);
+          errorMessage = data.error || errorMessage;
+        } catch (e) {}
+        toast.error(errorMessage);
       }
     } catch (e) {
-      toast.error("Network error");
+      console.error("Print Error:", e);
+      toast.error(`Error: ${e.message}`);
     } finally {
       setIsPrintingContract(false);
     }
@@ -1083,7 +1127,7 @@ export default function ViewLease() {
               <SimpleGrid columns={1} spacing={4}>
                 <FormControl isRequired>
                   <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Amount to Refund ({localStorage.getItem("currency") || "$"})</FormLabel>
-                  <Input size="md" type="number" step="0.01" max={lease.security_deposit} value={refundForm.amount} onChange={e => setRefundForm({ ...refundForm, amount: e.target.value })} />
+                  <Input size="md" type="number" step="0.01" max={toCurrent(lease.security_deposit)} value={refundForm.amount} onChange={e => setRefundForm({ ...refundForm, amount: e.target.value })} />
                 </FormControl>
                 <FormControl>
                   <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Settlement Notes</FormLabel>

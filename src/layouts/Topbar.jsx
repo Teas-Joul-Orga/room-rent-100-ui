@@ -167,52 +167,56 @@ const Topbar = ({ onOpenSidebar }) => {
 
           {/* Notifications */}
           <Popover placement="bottom-end">
-            <PopoverTrigger>
-              <Box position="relative">
-                <IconButton
-                  variant="ghost"
-                  icon={<IoNotificationsOutline size={20} />}
-                  color="gray.500"
-                  _dark={{ color: "gray.400" }}
-                  _hover={{ bg: hoverBg, color: "gray.700", _dark: { color: "gray.200" } }}
-                  aria-label="Notifications"
-                  borderRadius="xl"
-                  size="sm"
-                />
-                {unreadNotificationCount > 0 && (
-                  <Flex
-                    position="absolute"
-                    top={0}
-                    right={0}
-                    transform="translate(25%, -25%)"
-                    bg="blue.500"
-                    color="white"
-                    fontSize="xs"
-                    fontWeight="bold"
-                    h="4"
-                    w="4"
-                    borderRadius="full"
-                    justify="center"
-                    align="center"
-                    zIndex={1}
-                  >
-                    {unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}
-                  </Flex>
-                )}
-              </Box>
-            </PopoverTrigger>
-            <PopoverContent 
-              width={{ base: "300px", md: "400px" }} 
-              borderRadius="xl" 
-              boxShadow="2xl" 
-              borderColor={borderColor}
-              _focus={{ outline: "none" }}
-            >
-              <PopoverArrow />
-              <PopoverBody p={0}>
-                <Notification />
-              </PopoverBody>
-            </PopoverContent>
+            {({ onClose: closePopover }) => (
+              <>
+                <PopoverTrigger>
+                  <Box position="relative">
+                    <IconButton
+                      variant="ghost"
+                      icon={<IoNotificationsOutline size={20} />}
+                      color="gray.500"
+                      _dark={{ color: "gray.400" }}
+                      _hover={{ bg: hoverBg, color: "gray.700", _dark: { color: "gray.200" } }}
+                      aria-label="Notifications"
+                      borderRadius="xl"
+                      size="sm"
+                    />
+                    {unreadNotificationCount > 0 && (
+                      <Flex
+                        position="absolute"
+                        top={0}
+                        right={0}
+                        transform="translate(25%, -25%)"
+                        bg="blue.500"
+                        color="white"
+                        fontSize="xs"
+                        fontWeight="bold"
+                        h="4"
+                        w="4"
+                        borderRadius="full"
+                        justify="center"
+                        align="center"
+                        zIndex={1}
+                      >
+                        {unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}
+                      </Flex>
+                    )}
+                  </Box>
+                </PopoverTrigger>
+                <PopoverContent 
+                  width={{ base: "300px", md: "400px" }} 
+                  borderRadius="xl" 
+                  boxShadow="2xl" 
+                  borderColor={borderColor}
+                  _focus={{ outline: "none" }}
+                >
+                  <PopoverArrow />
+                  <PopoverBody p={0}>
+                    <Notification onClose={closePopover} />
+                  </PopoverBody>
+                </PopoverContent>
+              </>
+            )}
           </Popover>
 
           {/* User Menu */}

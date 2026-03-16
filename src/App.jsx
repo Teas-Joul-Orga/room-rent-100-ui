@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { Box } from '@chakra-ui/react';
 import DashboardLayout from './layouts/DashboardLayout';
+import ReloadPrompt from './components/ReloadPrompt';
 
 // Admin Pages
 import AdminDashboard from "./page/admin/Dashboard";
@@ -26,6 +27,8 @@ import AdminExpense from "./page/admin/Expense";
 // Tenant Pages
 import TenantDashboard from "./page/tenant/Dashboard";
 import TenantLease from "./page/tenant/Lease";
+import TenantLeaseHistory from "./page/tenant/LeaseHistory";
+import TenantLeaseDetail from "./page/tenant/LeaseDetail";
 import TenantUtility from "./page/tenant/Utility";
 import TenantAnnouncements from "./page/tenant/Announcements";
 import TenantChat from "./page/tenant/Chat";
@@ -86,6 +89,7 @@ function App() {
   return (
     <>
       <Toaster position="top-right" reverseOrder={false} />
+      <ReloadPrompt />
       <BrowserRouter>
         <Routes>
           {/* login page public */}
@@ -153,6 +157,8 @@ function App() {
               <Route path="renew/:id" element={<CreateNewLease />} />
               <Route path="view/:id" element={<ViewLease />} />
               <Route path="my-lease" element={<TenantLease />} />
+              <Route path="history" element={<TenantLeaseHistory />} />
+              <Route path="history/:id" element={<TenantLeaseDetail />} />
             </Route>
 
             {/* Separated Hybrid Pages */}

@@ -15,6 +15,19 @@ import { exportToExcel } from "../../utils/exportExcel";
 import RecordPaymentModal from "../../components/RecordPaymentModal";
 
 const API = "http://localhost:8000/api/v1/admin";
+const getDefaultRate = (type) => {
+  const rawUSD = type === "electricity" ? localStorage.getItem("utility_rate_electricity")
+                : type === "water"       ? localStorage.getItem("utility_rate_water")
+                : null;
+  if (!rawUSD) return "";
+  const c = localStorage.getItem("currency") || "$";
+  if (c === "៛" || c === "KHR" || c === "Riel") {
+    const rate = Number(localStorage.getItem("exchangeRate") || 4000);
+    return (Number(rawUSD) * rate).toFixed(0);
+  }
+  return rawUSD;
+};
+
 const fmt = (n) => {
   const c = localStorage.getItem("currency") || "$";
   const num = Number(n || 0);
@@ -40,7 +53,7 @@ export default function Utility() {
   const { isOpen: isAddOpen, onOpen: onAddOpen, onClose: onAddClose } = useDisclosure();
   const [addForm, setAddForm] = useState({
     room_id: "", type: "electricity", amount: "", due_date: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-    status: "unpaid", description: "", previous_reading: "", current_reading: "", cost_per_unit: ""
+    status: "unpaid", description: "", previous_reading: "", current_reading: "", cost_per_unit: getDefaultRate("electricity")
   });
   const [rooms, setRooms] = useState([]);
   const [isSavingAdd, setIsSavingAdd] = useState(false);
@@ -650,7 +663,7 @@ export default function Utility() {
                   <Text fontSize="sm" fontWeight="bold" color={textColor} mb={3}>2. Bill Type & Pricing</Text>
                   <FormControl isRequired mb={4}>
                     <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Utility Type</FormLabel>
-                    <Select size="md" value={addForm.type} onChange={e => setAddForm({ ...addForm, type: e.target.value })}>
+                    <Select size="md" value={addForm.type} onChange={e => setAddForm({ ...addForm, type: e.target.value, cost_per_unit: getDefaultRate(e.target.value), amount: "" })}>
                       <option value="electricity">Electricity</option>
                       <option value="water">Water</option>
                       <option value="trash">Trash (Fixed)</option>

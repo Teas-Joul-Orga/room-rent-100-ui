@@ -22,7 +22,6 @@ const getSidebarGroups = (role, t) => {
     title: t("sidebar.general"),
     links: [
       { label: t("sidebar.dashboard"), path: "/dashboard", exact: true, pathD: "M3 10.5 12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z" },
-      { label: t("sidebar.notifications"), path: "/dashboard/notifications", exact: false, pathD: "M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6.002 6.002 0 0 0-4-5.659V5a2 2 0 1 0-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9" },
     ]
   };
 
@@ -33,6 +32,7 @@ const getSidebarGroups = (role, t) => {
         title: t("sidebar.tenant"),
         links: [
           { label: t("sidebar.my_lease") || "My Lease", path: "/dashboard/lease/my-lease", exact: false, pathD: ["M7 3h8l4 4v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z", "M9 13h6M9 17h6M9 9h3"] },
+          { label: t("sidebar.lease_history") || "Lease History", path: "/dashboard/lease/history", exact: false, pathD: ["M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"] },
           { label: t("sidebar.my_billing"), path: "/dashboard/utility", exact: false, pathD: ["M7 3h10v18H7z", "M9 7h6M9 11h6M9 15h4"] },
           { label: t("sidebar.maintenance"), path: "/dashboard/maintenance", exact: false, pathD: ["M14.7 6.3a4 4 0 0 0-5.7 5.7l-6.3 6.3 2 2 6.3-6.3a4 4 0 0 0 5.7-5.7Z", "M16 8l4-4"] },
           { label: t("sidebar.community"), path: "/dashboard/chat", exact: false, pathD: ["M4 11v2a1 1 0 0 0 1 1h2l5 5V6L7 11H5a1 1 0 0 0-1 1Z", "M15 9a4 4 0 0 1 0 6"] },
@@ -257,6 +257,9 @@ const Sidebar = ({ isOpen, onClose }) => {
 
     fetchCount(); // Initial fetch
     
+    // Listen for immediate local updates (e.g., when admin resolves a request on this device)
+    window.addEventListener('maintenanceUpdated', fetchCount);
+
     // Initialize WebSockets (Reverb) via shared instance
     const echoInstance = echo();
     if (!echoInstance) return;
@@ -268,6 +271,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       });
 
     return () => {
+      window.removeEventListener('maintenanceUpdated', fetchCount);
       channel.stopListening('.App\\Events\\MaintenanceCountUpdated');
     };
   }, [userRole]);

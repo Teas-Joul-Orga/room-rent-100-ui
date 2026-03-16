@@ -132,6 +132,43 @@ export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initial
       return;
     }
 
+    // Validation: Check if remaining balance is 0 or if amount exceeds balance
+    const selectedLease = leases.find(item => item.id.toString() === formData.lease_id.toString());
+    if (selectedLease) {
+      const amountPaid = Number(formData.amount_paid);
+
+      if (formData.type === 'rent') {
+        const rentTotal = Number(selectedLease.total_contract_value || 0);
+        const rentPaid = Number(selectedLease.payments_sum_amount_paid || 0);
+        const rentDue = Math.max(0, rentTotal - rentPaid);
+        
+        if (rentDue <= 0) {
+          toast.error("Cannot record payment: The outstanding rent balance is already zero.");
+          return;
+        }
+        if (amountPaid > rentDue) {
+          toast.error(`Payment amount exceeds the outstanding rent balance of ${fmt(rentDue)}.`);
+          return;
+        }
+      } else if (formData.type === 'utility' && formData.bill_id) {
+        const selectedBill = utilityBills.find(b => b.id.toString() === formData.bill_id.toString());
+        if (selectedBill) {
+          const billTotal = Number(selectedBill.amount || 0);
+          const billPaid = Number(selectedBill.payments_sum_amount_paid || 0);
+          const billDue = Math.max(0, billTotal - billPaid);
+
+          if (billDue <= 0) {
+            toast.error("Cannot record payment: This utility bill is already fully paid.");
+            return;
+          }
+          if (amountPaid > billDue) {
+            toast.error(`Payment amount exceeds the outstanding bill balance of ${fmt(billDue)}.`);
+            return;
+          }
+        }
+      }
+    }
+
     setIsSaving(true);
     try {
       const token = localStorage.getItem("token");

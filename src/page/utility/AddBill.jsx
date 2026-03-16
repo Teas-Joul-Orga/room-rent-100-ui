@@ -38,6 +38,20 @@ import {
 
 const API = "http://localhost:8000/api/v1/admin";
 
+// Get the saved utility rate from localStorage (set by Settings page)
+const getDefaultRate = (type) => {
+  const rawUSD = type === "electricity" ? localStorage.getItem("utility_rate_electricity")
+                : type === "water"       ? localStorage.getItem("utility_rate_water")
+                : null;
+  if (!rawUSD) return "";
+  const c = localStorage.getItem("currency") || "$";
+  if (c === "៛" || c === "KHR" || c === "Riel") {
+    const rate = Number(localStorage.getItem("exchangeRate") || 4000);
+    return (Number(rawUSD) * rate).toFixed(0); // e.g. 0.25 * 4000 = 1000
+  }
+  return rawUSD; // already in USD
+};
+
 const BILL_TYPES = [
   { value: "electricity", label: "Electricity", icon: FiZap, color: "yellow" },
   { value: "water", label: "Water", icon: FiDroplet, color: "blue" },
@@ -78,7 +92,7 @@ export default function AddBill() {
     description: "",
     previous_reading: "",
     current_reading: "",
-    cost_per_unit: "",
+    cost_per_unit: getDefaultRate("electricity"),
   });
 
   // Theme
@@ -321,7 +335,7 @@ export default function AddBill() {
                             bg={isActive ? useColorModeValue(`${bt.color}.50`, `${bt.color}.900`) : cardBg}
                             _hover={{ borderColor: `${bt.color}.400`, transform: "translateY(-1px)", shadow: "sm" }}
                             transition="all 0.2s"
-                            onClick={() => setFormData({ ...formData, type: bt.value, amount: "", previous_reading: "", current_reading: "", cost_per_unit: "" })}
+                            onClick={() => setFormData({ ...formData, type: bt.value, amount: "", previous_reading: "", current_reading: "", cost_per_unit: getDefaultRate(bt.value) })}
                             position="relative"
                           >
                             {isActive && (

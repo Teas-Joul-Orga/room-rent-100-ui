@@ -16,9 +16,9 @@ import {
   InputGroup,
   InputRightElement,
   IconButton,
-  useToast,
   FormErrorMessage,
 } from "@chakra-ui/react";
+import { toast } from "react-hot-toast";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import loginPic from "./assets/login.jpg";
 import { useNavigate } from "react-router-dom";
@@ -26,7 +26,6 @@ import { useNavigate } from "react-router-dom";
 export default function LoginForm1() {
   const [show, setShow] = useState(false);
   const navigate = useNavigate();
-  const toast = useToast();
 
   const [form, setForm] = useState({
     email: "",
@@ -74,9 +73,9 @@ export default function LoginForm1() {
         }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
-      if (response.ok) {
+      if (response.ok && data?.token) {
         localStorage.setItem("isLoggedIn", "true");
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
@@ -87,35 +86,16 @@ export default function LoginForm1() {
           localStorage.setItem("exchangeRate", data.settings.exchangeRate || "4000");
         }
         
-        toast({
-          title: "Login Successful",
-          description: "Welcome back!",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-          position: "top-right",
-        });
+        toast.success("Welcome back!");
 
         navigate("/dashboard");
       } else {
-        toast({
-          title: "Login Failed",
-          description: data.message || "Invalid email or password.",
-          status: "error",
-          duration: 4000,
-          isClosable: true,
-          position: "top-right",
-        });
+        const errorMsg = data?.message || "Invalid email or password.";
+        toast.error(errorMsg);
+        setErrors({ email: errorMsg });
       }
     } catch (error) {
-      toast({
-        title: "Connection Error",
-        description: "Failed to connect to the server. Please try again.",
-        status: "error",
-        duration: 4000,
-        isClosable: true,
-        position: "top-right",
-      });
+      toast.error("Failed to connect to the server. Please check your internet connection.");
     } finally {
       setIsLoading(false);
     }

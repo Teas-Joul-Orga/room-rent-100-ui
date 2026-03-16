@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   VStack,
@@ -24,11 +25,38 @@ dayjs.extend(relativeTime);
 
 const API = "http://localhost:8000/api/v1";
 
-function Notification() {
+// Map a backend URL or path to a frontend SPA route
+function resolveRoute(url) {
+  if (!url || url === '#') return null;
+  try {
+    // Handle full URLs (e.g. http://localhost:8000/api/v1/...) or relative paths
+    const path = url.startsWith('http') ? new URL(url).pathname : url;
+    // Strip Laravel API prefix if present
+    const clean = path.replace(/^\/api\/v1/, '');
+    // Map backend routes → frontend routes
+    if (clean.includes('maintenance')) return '/dashboard/maintenance';
+    if (clean.includes('payment')) return '/dashboard/payments';
+    if (clean.includes('utility') || clean.includes('bill')) return '/dashboard/utility';
+    if (clean.includes('lease')) return '/dashboard/lease';
+    if (clean.includes('announcement')) return '/dashboard/announcements';
+    if (clean.includes('chat')) return '/dashboard/chat';
+    if (clean.includes('expense')) return '/dashboard/expenses';
+    if (clean.includes('tenant')) return '/dashboard/tenants';
+    if (clean.includes('room')) return '/dashboard/rooms';
+    // If the path itself looks like a frontend route, use it directly
+    if (clean.startsWith('/dashboard')) return clean;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function Notification({ onClose }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const token = localStorage.getItem("token");
   const toast = useToast();
+  const navigate = useNavigate();
 
   const bg = useColorModeValue("white", "#161b22");
   const borderColor = useColorModeValue("gray.100", "#30363d");
@@ -99,6 +127,20 @@ function Notification() {
     }
   };
 
+  const handleNotificationClick = (n, data) => {
+    // Close the popover immediately (if inside Topbar)
+    onClose?.();
+    // Navigate to the relevant page immediately
+    const route = resolveRoute(data?.url || data?.action_url);
+    if (route) {
+      navigate(route);
+    }
+    // Mark as read in the background (non-blocking)
+    if (!n.read_at) {
+      markAsRead(n.id);
+    }
+  };
+
   const markAllAsRead = async () => {
     try {
       const res = await fetch(`${API}/notifications/mark-all-read`, {
@@ -162,7 +204,7 @@ function Notification() {
       </Flex>
 
       {/* Notification List */}
-      <VStack spacing={0} align="stretch" maxH="500px" overflowY="auto" divider={<Divider />}>
+      <VStack spacing={0} align="stretch" maxH="500px" overflowY="auto" overflowX="hidden" divider={<Divider />}>
         {notifications.length === 0 ? (
           <Flex direction="column" align="center" justify="center" py={10} px={4} textAlign="center">
             <Icon as={IoNotificationsOutline} boxSize={10} color="gray.300" mb={2} />
@@ -180,11 +222,15 @@ function Notification() {
                 px={4}
                 py={3}
                 bg={isUnread ? unreadBg : "transparent"}
-                _hover={{ bg: isUnread ? unreadBg : hoverBg }}
-                transition="all 0.2s"
+                borderLeft="3px solid"
+                borderLeftColor={isUnread ? "blue.400" : "transparent"}
+                _hover={{ bg: isUnread ? unreadBg : hoverBg, borderLeftColor: "blue.400" }}
+                transition="all 0.15s ease"
                 cursor="pointer"
-                onClick={() => isUnread && markAsRead(n.id)}
+                onClick={() => handleNotificationClick(n, data)}
                 position="relative"
+                role="button"
+                aria-label={`Notification: ${data?.title || 'View notification'}`}
               >
                 <HStack align="start" spacing={3}>
                   <Flex 
