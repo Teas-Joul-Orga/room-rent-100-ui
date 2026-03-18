@@ -28,6 +28,7 @@ import {
 } from "react-icons/fi";
 import dayjs from "dayjs";
 import toast, { Toaster } from "react-hot-toast";
+import { QRCodeCanvas } from "qrcode.react";
 
 const API = "http://localhost:8000/api/v1/tenant";
 
@@ -55,6 +56,8 @@ export default function TenantUtility() {
   const mutedText = useColorModeValue("gray.500", "gray.400");
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedBill, setSelectedBill] = useState(null);
+  const [qrString, setQrString] = useState(null);
+  const [loadingQr, setLoadingQr] = useState(false);
 
   const fetchBills = async () => {
     try {
@@ -100,6 +103,39 @@ export default function TenantUtility() {
       case 'paid': return 'green';
       case 'unpaid': return 'red';
       default: return 'gray';
+    }
+  };
+
+  const handleGenerateQr = async () => {
+    setLoadingQr(true);
+    try {
+      const rate = localStorage.getItem("exchangeRate") || 4000;
+      const amountKhr = Math.round(selectedBill.amount * rate);
+
+      const res = await fetch(`${API}/payment/bakong/generate-qr`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          type: "utility",
+          id: selectedBill.id,
+          currency: "KHR",
+          amount: amountKhr
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.status === "success") {
+        setQrString(data.data.qrString);
+      } else {
+        toast.error(data.message || "Failed to generate QR Code");
+      }
+    } catch (e) {
+      toast.error("Network error");
+    } finally {
+      setLoadingQr(false);
     }
   };
 
@@ -262,6 +298,7 @@ export default function TenantUtility() {
                   leftIcon={<FiEye />}
                   onClick={() => {
                     setSelectedBill(bill);
+                    setQrString(null);
                     onOpen();
                   }}
                 >
@@ -400,6 +437,57 @@ export default function TenantUtility() {
                         </Flex>
                       ))}
                     </VStack>
+                  </Box>
+                )}
+
+                {/* Bakong KHQR Payment Section */}
+                {selectedBill.status === 'unpaid' && (
+                  <Box mt={4} p={6} bg={useColorModeValue("red.50", "whiteAlpha.50")} border="1px dashed" borderColor="red.200" borderRadius="xl" textAlign="center">
+                    <Heading size="sm" color="red.600" mb={4}>Pay via Bakong KHQR</Heading>
+                    
+                    {!qrString ? (
+                      <Button 
+                        colorScheme="red" 
+                        isLoading={loadingQr} 
+                        onClick={handleGenerateQr}
+                        leftIcon={<FiZap />}
+                        size="lg"
+                        w="full"
+                      >
+                        Generate KHQR to Pay {fmt(selectedBill.amount)}
+                      </Button>
+                    ) : (
+                      <VStack spacing={4}>
+                        <Box p={4} bg="white" borderRadius="xl" display="inline-block" shadow="md">
+                          <QRCodeCanvas value={qrString} size={300} level="M" includeMargin={true} />
+                        </Box>
+                        <Text fontSize="10px" color={useColorModeValue("gray.400", "gray.600")} wordBreak="break-all" maxW="300px">
+                          {qrString}
+                        </Text>
+                        <Text fontSize="sm" color={mutedText} fontWeight="bold">
+                          Scan this QR with your Bank App.
+                        </Text>
+                        
+                        <Divider />
+                        
+                        <Text fontSize="xs" color="gray.500">
+                          After transferring the money, please notify the Admin:
+                        </Text>
+                        <Button
+                          colorScheme="blue"
+                          size="md"
+                          w="full"
+                          variant="outline"
+                          onClick={() => {
+                            toast.success("Receipt uploaded (Simulated)! The Admin will verify it shortly.");
+                            // Future: Open a file picker for the receipt and call API to mark as 'pending_verification'
+                            onClose();
+                          }}
+                        >
+                          I have paid & Upload Receipt
+                        </Button>
+                      </VStack>
+                    )}
                   </Box>
                 )}
               </VStack>

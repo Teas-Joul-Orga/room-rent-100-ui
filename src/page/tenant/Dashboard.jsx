@@ -1,57 +1,71 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
-  Box,
-  Grid,
-  Flex,
-  Text,
-  Heading,
-  Icon,
-  useColorModeValue,
-  useColorMode,
-  VStack,
-  HStack,
-  Spinner,
-  Button,
+  Box, Grid, GridItem, Flex, Text, Heading, Icon, useColorModeValue, useColorMode,
+  VStack, HStack, Spinner, Button, Badge, Avatar, Progress, SimpleGrid,
+  Table, Tbody, Tr, Td, TableContainer, Divider, Center
 } from "@chakra-ui/react";
 import {
-  LuReceipt,
-  LuWrench,
-  LuMessageSquare,
-  LuBellRing,
+  LuReceipt, LuWrench, LuDoorOpen
 } from "react-icons/lu";
+import {
+  FiMessageSquare, FiBell, FiUser, FiZap, FiDroplet, FiCalendar, 
+  FiArrowRight, FiCheckCircle, FiInfo, FiFileText
+} from "react-icons/fi";
+import {
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid
+} from "recharts";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { motion, AnimatePresence } from "framer-motion";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import api from "../../api/axios";
 
 dayjs.extend(relativeTime);
 
-const fmt = (n) => {
-  const c = localStorage.getItem("currency") || "$";
-  const num = Number(n || 0);
-  if (c === "៛" || c === "KHR" || c === "Riel") {
-    const rateItem = localStorage.getItem("exchangeRate");
-    const r = rateItem ? Number(rateItem) : 4000;
-    return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
-  }
-  return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-};
+// Motion components
+const MotionBox = motion(Box);
+const MotionFlex = motion(Flex);
+
+const COLORS = ['#6366f1', '#10b981', '#f43f5e', '#f59e0b', '#8b5cf6'];
 
 export default function TenantDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { t } = useTranslation();
-
   const { colorMode } = useColorMode();
-  const cardBg = colorMode === "light" ? "white" : "#161b22";
-  const cardBorder = colorMode === "light" ? "gray.100" : "gray.700";
-  const textColor = colorMode === "light" ? "gray.900" : "white";
-  const mutedTextColor = colorMode === "light" ? "gray.500" : "gray.400";
-  const itemBorderColor = colorMode === "light" ? "gray.50" : "gray.700";
-  const headerBg = colorMode === "light" ? "gray.50" : "gray.700";
 
-  const token = localStorage.getItem("token");
+  // Aesthetic Colors
+  const bg = useColorModeValue("gray.25", "#0d1117");
+  const cardBg = useColorModeValue("white", "#161b22");
+  const borderColor = useColorModeValue("gray.100", "#30363d");
+  const textColor = useColorModeValue("gray.900", "white");
+  const mutedText = useColorModeValue("gray.500", "gray.400");
+  const annItemBg = useColorModeValue("gray.50", "#21262d");
+  const docHoverBg = useColorModeValue("gray.50", "whiteAlpha.50");
+  const roadmapTextColor = useColorModeValue("gray.900", "white");
+  const roadmapMutedText = useColorModeValue("gray.500", "gray.400");
+  const actionCardBg = useColorModeValue("white", "#161b22");
+  const actionCardBorder = useColorModeValue("gray.100", "#30363d");
+
+  // Cached localization parsing
+  const currencySettings = useMemo(() => {
+    const rateItem = localStorage.getItem("exchangeRate");
+    return {
+      c: localStorage.getItem("currency") || "$",
+      r: rateItem ? Number(rateItem) : 4000
+    };
+  }, []);
+
+  const fmt = React.useCallback((n) => {
+    const num = Number(n || 0);
+    if (currencySettings.c === "៛" || currencySettings.c === "KHR" || currencySettings.c === "Riel") {
+      return "៛" + (num * currencySettings.r).toLocaleString("en-US", { maximumFractionDigits: 0 });
+    }
+    return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }, [currencySettings]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -60,18 +74,8 @@ export default function TenantDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const res = await fetch("http://localhost:8000/api/v1/tenant/dashboard", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-      if (res.ok) {
-        const json = await res.json();
-        setData(json);
-      } else {
-        console.error("Failed to fetch tenant dashboard data");
-      }
+      const res = await api.get("/tenant/dashboard");
+      setData(res.data);
     } catch (err) {
       console.error("API error", err);
     } finally {
@@ -81,247 +85,263 @@ export default function TenantDashboard() {
 
   if (loading) {
     return (
-      <Flex justify="center" align="center" h="64">
-        <Spinner size="xl" color="blue.500" />
-      </Flex>
+      <Center h="70vh">
+        <Spinner size="xl" thickness="4px" speed="0.65s" color="blue.500" />
+      </Center>
     );
   }
 
-  if (!data) {
-    return <Text color="red.500">Error loading dashboard data.</Text>;
-  }
+  if (!data) return <Center h="70vh"><Text color="red.400">Error loading your portal. Please try again.</Text></Center>;
 
-  const { lease, stats, recent_requests, recent_payments, tenant } = data;
-  const userName = JSON.parse(localStorage.getItem("user"))?.name || "Resident";
+  const { lease, stats, recent_requests, recent_payments, tenant, utilityTrends, announcements } = data;
   const totalDue = stats?.total_due || 0;
-  const unpaidCount = stats?.unpaid_bills_count || 0;
+  
+  // Chart Data Preparation
+  const billBreakdownData = lease?.utility_bills?.filter(b => b.status === "unpaid").map(b => ({
+    name: b.type, value: Number(b.amount)
+  })) || [];
+
+  const consumptionData = utilityTrends?.months?.map((m, i) => ({
+    month: m,
+    electric: utilityTrends.electric[i] || 0,
+    water: utilityTrends.water[i] || 0
+  })) || [];
 
   return (
-    <VStack align="stretch" spacing={8} w="full">
-      <Heading size="lg" color={textColor} fontWeight="bold">
-        My Resident Portal
-      </Heading>
-
-      {/* WELCOME & STATUS SECTION */}
-      <Grid templateColumns={{ base: "1fr", lg: "repeat(3, 1fr)" }} gap={6}>
-        {/* Welcome Card */}
-        <Box
-          gridColumn={{ lg: "span 2" }}
-          bgGradient="linear(to-br, blue.600, blue.800)"
-          borderRadius="2xl"
-          p={8}
-          color="white"
-          boxShadow="xl"
-          position="relative"
-          overflow="hidden"
+    <Box p={{ base: 4, md: 8 }} bg={bg} minH="100vh">
+      
+      {/* Header & Resident Profile Card */}
+      <Flex direction={{ base: "column", lg: "row" }} gap={8} mb={10}>
+        
+        {/* Profile Glass Card */}
+        <MotionBox 
+          flex="2" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          p={8} borderRadius="3xl" position="relative" overflow="hidden" boxShadow="2xl"
+          bgGradient="linear(to-br, blue.600, purple.700)" color="white"
         >
-          <Box position="relative" zIndex={10}>
-            <Heading size="xl" fontWeight="black" mb={2}>
-              Welcome back, {userName}!
-            </Heading>
-            {lease ? (
-              <>
-                <Text color="blue.100" fontSize="sm" fontWeight="medium" opacity={0.9}>
-                  Resident of <Text as="span" fontWeight="bold" color="white">{lease.room?.name}</Text>
-                </Text>
-                <Text color="blue.200" fontSize="xs" mt={4} textTransform="uppercase" letterSpacing="widest" fontWeight="bold">
-                  Lease Period: {dayjs(lease.start_date).format('MMM D, YYYY')} — {dayjs(lease.end_date).format('MMM D, YYYY')}
-                </Text>
-              </>
-            ) : (
-              <Text color="blue.100">Your account is active, but no lease is currently assigned.</Text>
-            )}
-          </Box>
-          {/* Decorative Circle */}
-          <Box
-            position="absolute"
-            bottom="-10"
-            right="-10"
-            w="40"
-            h="40"
-            bg="white"
-            opacity={0.1}
-            borderRadius="full"
-            filter="blur(24px)"
-          />
-        </Box>
+          <Flex direction={{ base: "column", sm: "row" }} align="center" gap={8} position="relative" zIndex={2}>
+            <Avatar size="2xl" name={tenant?.name} src={tenant?.profile_image} border="4px solid rgba(255,255,255,0.2)" />
+            <Box textAlign={{ base: "center", sm: "left" }}>
+              <Badge colorScheme="whiteAlpha" mb={2} px={3} py={1} rounded="full">ACTIVE RESIDENT</Badge>
+              <Heading size="xl" fontWeight="900" mb={1}>{tenant?.name}</Heading>
+              <HStack spacing={4} opacity={0.9} justify={{ base: "center", sm: "flex-start" }}>
+                <HStack><Icon as={LuDoorOpen} /><Text fontSize="sm" fontWeight="800">{lease?.room?.name || "No Unit Assigned"}</Text></HStack>
+                <HStack><Icon as={FiCalendar} /><Text fontSize="sm" fontWeight="800">Ends {dayjs(lease?.end_date).format('MMM D, YYYY')}</Text></HStack>
+              </HStack>
+              <Button size="sm" mt={6} variant="outline" colorScheme="whiteAlpha" rounded="full" leftIcon={<FiUser />} onClick={() => navigate("/dashboard/profile")}>
+                View Profile
+              </Button>
+            </Box>
+          </Flex>
+          {/* Decorative Elements */}
+          <Box position="absolute" top="-10" right="-10" w="60" h="60" bg="white" opacity={0.05} borderRadius="full" />
+          <Box position="absolute" bottom="-20" left="10%" w="80" h="80" bg="purple.400" opacity={0.1} borderRadius="full" filter="blur(60px)" />
+        </MotionBox>
 
-        {/* Financial Snapshot */}
-        <Flex
-          direction="column"
-          justify="space-between"
-          bg={cardBg}
-          p={8}
-          borderRadius="2xl"
-          boxShadow="sm"
-          borderWidth="1px"
-          borderColor={cardBorder}
+        {/* Financial Snapshot Card */}
+        <MotionBox 
+          flex="1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}
+          bg={cardBg} p={8} borderRadius="3xl" border="1px" borderColor={borderColor} shadow="xl"
+          display="flex" flexDirection="column" justify="space-between"
         >
           <Box>
-            <Text fontSize="10px" fontWeight="black" color={mutedTextColor} textTransform="uppercase" letterSpacing="widest" mb={1}>
-              Current Balance
-            </Text>
-            <Heading size="2xl" fontWeight="black" color={totalDue > 0 ? (colorMode === 'light' ? 'red.600' : 'red.400') : (colorMode === 'light' ? 'green.600' : 'green.400')}>
+            <Text fontSize="xs" fontWeight="900" color={mutedText} textTransform="uppercase" letterSpacing="widest" mb={1}>Current Balance</Text>
+            <Heading size="2xl" fontWeight="900" color={totalDue > 0 ? "red.500" : "emerald.500"}>
               {fmt(totalDue)}
             </Heading>
-            <Text fontSize="xs" color={mutedTextColor} mt={2} fontWeight="medium">
-              {unpaidCount} Unpaid Bill(s)
+            <Text fontSize="sm" color={mutedText} fontWeight="700" mt={2}>
+              {totalDue > 0 ? `${stats.unpaid_bills_count} bills pending payment` : "Fantastic! You're all settled."}
             </Text>
           </Box>
-          {totalDue > 0 ? (
-            <Button
-              mt={4}
-              w="full"
-              bg={colorMode === 'light' ? "#161b22" : "#1c2333"}
-              color="white"
-              _hover={{ bg: colorMode === 'light' ? "black" : "gray.600" }}
-              fontSize="xs"
-              fontWeight="black"
-              textTransform="uppercase"
-              letterSpacing="widest"
-              onClick={() => navigate("/dashboard/utility")}
-            >
-              {t("common.view_detail")}
-            </Button>
-          ) : (
-            <Box
-              mt={4}
-              w="full"
-              textAlign="center"
-              bg={colorMode === 'light' ? "green.50" : "rgba(39, 103, 73, 0.2)"}
-              color={colorMode === 'light' ? "green.700" : "green.300"}
-              py={2.5}
-              borderRadius="lg"
-              fontSize="xs"
-              fontWeight="black"
-              textTransform="uppercase"
-              letterSpacing="widest"
-              borderWidth="1px"
-              borderColor={colorMode === 'light' ? "green.100" : "green.800"}
-            >
-              All Paid
-            </Box>
-          )}
-        </Flex>
-      </Grid>
-
-      {/* QUICK ACTIONS GRID */}
-      <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(5, 1fr)" }} gap={4}>
-        {[
-          { label: "My Lease", icon: LuReceipt, link: "/dashboard/lease/my-lease", colors: { base: "purple.50", dark: "rgba(128, 90, 213, 0.3)", icon: "purple.600", darkIcon: "purple.400", hoverBg: "purple.600" } },
-          { label: "Billing History", icon: LuReceipt, link: "/dashboard/utility", colors: { base: "blue.50", dark: "rgba(43, 108, 176, 0.3)", icon: "blue.600", darkIcon: "blue.400", hoverBg: "blue.600" } },
-          { label: "Report Issue", icon: LuWrench, link: "/dashboard/maintenance", colors: { base: "red.50", dark: "rgba(197, 48, 48, 0.3)", icon: "red.600", darkIcon: "red.400", hoverBg: "red.600" } },
-          { label: "Community", icon: LuBellRing, link: "/dashboard/notifications", colors: { base: "yellow.50", dark: "rgba(183, 121, 31, 0.3)", icon: "yellow.600", darkIcon: "yellow.400", hoverBg: "yellow.500" } },
-          { label: "Chat Support", icon: LuMessageSquare, link: "/dashboard/chat", colors: { base: "green.50", dark: "rgba(47, 133, 90, 0.3)", icon: "green.600", darkIcon: "green.400", hoverBg: "green.600" } },
-        ].map((action, idx) => (
-          <Box
-            key={idx}
-            as="button"
-            onClick={() => navigate(action.link)}
-            bg={cardBg}
-            p={4}
-            borderRadius="xl"
-            boxShadow="sm"
-            borderWidth="1px"
-            borderColor={cardBorder}
-            _hover={{ boxShadow: "md", transform: "translateY(-2px)", "& .action-icon-container": { bg: action.colors.hoverBg, color: "white" } }}
-            transition="all 0.2s"
-            textAlign="center"
+          <Button 
+            mt={8} size="lg" colorScheme={totalDue > 0 ? "red" : "emerald"} rounded="2xl" w="full" shadow="lg"
+            onClick={() => navigate("/dashboard/utility")}
           >
-            <Flex
-              className="action-icon-container"
-              h={10}
-              w={10}
-              bg={colorMode === 'light' ? action.colors.base : action.colors.dark}
-              color={colorMode === 'light' ? action.colors.icon : action.colors.darkIcon}
-              borderRadius="full"
-              align="center"
-              justify="center"
-              mx="auto"
-              mb={3}
-              transition="all 0.2s"
-            >
-              <Icon as={action.icon} boxSize={5} />
-            </Flex>
-            <Text fontSize="xs" fontWeight="bold" color={textColor} textTransform="uppercase">
-              {action.label}
-            </Text>
-          </Box>
+            {totalDue > 0 ? "PAY NOW" : "BILLING HISTORY"}
+          </Button>
+        </MotionBox>
+      </Flex>
+
+      {/* Action Row */}
+      <SimpleGrid columns={{ base: 2, md: 5 }} spacing={4} mb={10}>
+        {[
+          { label: "Pay Rent", icon: LuReceipt, color: "blue", link: "/dashboard/utility" },
+          { label: "Fix Request", icon: LuWrench, color: "orange", link: "/dashboard/maintenance" },
+          { label: "Messenger", icon: FiMessageSquare, color: "purple", link: "/dashboard/chat" },
+          { label: "My Lease", icon: FiInfo, color: "teal", link: "/dashboard/lease/my-lease" },
+          { label: "Updates", icon: FiBell, color: "pink", link: "/dashboard/notifications" },
+        ].map((act, i) => (
+          <ActionCard key={i} {...act} delay={i * 0.05} />
         ))}
-      </Grid>
+      </SimpleGrid>
 
-      {/* RECENT ACTIVITY FEEDS */}
-      <Grid templateColumns={{ base: "1fr", lg: "repeat(2, 1fr)" }} gap={8}>
+      {/* Main Content Grid */}
+      <Grid templateColumns={{ base: "1fr", lg: "1.8fr 1.2fr" }} gap={8}>
         
-        {/* Recent Payments */}
-        <Box bg={cardBg} borderRadius="2xl" boxShadow="sm" borderWidth="1px" borderColor={cardBorder} overflow="hidden">
-          <Flex p={6} borderBottom="1px" borderColor={itemBorderColor} bg={headerBg} justify="space-between" align="center">
-            <Text fontWeight="black" color={textColor} textTransform="uppercase" letterSpacing="tight" fontSize="sm">
-              Recent Payments
-            </Text>
-          </Flex>
-          <VStack align="stretch" spacing={0} divider={<Box borderBottom="1px" borderColor={itemBorderColor} />}>
-            {recent_payments?.length > 0 ? (
-              recent_payments.map((payment) => (
-                <Flex key={payment.id} p={4} align="center" justify="space-between" _hover={{ bg: colorMode === 'light' ? "gray.50" : "gray.700" }} transition="all 0.2s">
-                  <Box>
-                    <Text fontSize="xs" fontWeight="black" color={textColor} textTransform="uppercase">
-                      {payment.type}
-                    </Text>
-                    <Text fontSize="10px" color={mutedTextColor} fontWeight="bold">
-                      {dayjs(payment.payment_date).format('MMM D, YYYY')}
-                    </Text>
-                  </Box>
-                  <Text fontSize="sm" fontWeight="black" color={colorMode === 'light' ? "green.600" : "green.400"}>
-                    +{fmt(payment.amount_paid)}
-                  </Text>
-                </Flex>
-              ))
-            ) : (
-              <Text p={6} textAlign="center" color={mutedTextColor} fontStyle="italic" fontSize="xs">
-                No recent payments.
-              </Text>
-            )}
-          </VStack>
+        {/* Left Column: Analytics */}
+        <Box>
+          
+          {/* Consumption Trends */}
+          <Box bg={cardBg} p={8} borderRadius="3xl" border="1px" borderColor={borderColor} shadow="md" mb={8}>
+            <Flex justify="space-between" align="center" mb={10}>
+              <Box>
+                <Text fontWeight="900" fontSize="xs" color={mutedText} textTransform="uppercase" letterSpacing="widest">Usage Insights</Text>
+                <Heading size="md" fontWeight="900">Utility Consumption</Heading>
+              </Box>
+              <HStack spacing={4}>
+                <HStack><Box w="3" h="3" rounded="full" bg="blue.400" /><Text fontSize="xs" fontWeight="800">Electric</Text></HStack>
+                <HStack><Box w="3" h="3" rounded="full" bg="cyan.400" /><Text fontSize="xs" fontWeight="800">Water</Text></HStack>
+              </HStack>
+            </Flex>
+            <Box h="300px" minWidth={0}>
+              {consumptionData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={consumptionData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={borderColor} />
+                    <XAxis dataKey="month" tick={{fontSize: 10, fill: mutedText}} axisLine={false} tickLine={false} dy={10} />
+                    <YAxis tick={{fontSize: 10, fill: mutedText}} axisLine={false} tickLine={false} />
+                    <RechartsTooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '15px', border: 'none', shadow: 'xl', background: cardBg }} />
+                    <Bar dataKey="electric" fill="#3182ce" radius={[4, 4, 0, 0]} barSize={12} />
+                    <Bar dataKey="water" fill="#0bc5ea" radius={[4, 4, 0, 0]} barSize={12} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <Center h="full"><Text fontSize="sm" color={mutedText}>No usage data yet.</Text></Center>
+              )}
+            </Box>
+          </Box>
+
+          {/* Billboard / Announcements */}
+          <Box bg={cardBg} p={8} borderRadius="3xl" border="1px" borderColor={borderColor} shadow="md">
+            <Text fontWeight="900" fontSize="xs" color={mutedText} textTransform="uppercase" letterSpacing="widest" mb={6}>Community Hub</Text>
+            <VStack spacing={6} align="stretch">
+               {announcements?.slice(0, 3).map((anc, i) => (
+                 <Flex key={i} gap={4} p={6} bg={annItemBg} borderRadius="2xl" border="1px" borderColor={borderColor}>
+                    <Center w="12" h="12" bg="brand.50" color="brand.600" rounded="xl" flexShrink={0}>
+                       <Icon as={FiBell} boxSize={5} />
+                    </Center>
+                    <Box>
+                       <Text fontSize="sm" fontWeight="900" mb={1}>{anc.title}</Text>
+                       <Text fontSize="xs" color={mutedText} mb={3} noOfLines={2}>{anc.content}</Text>
+                       <Text fontSize="10px" fontWeight="900" color="brand.500">{dayjs(anc.created_at).fromNow()}</Text>
+                    </Box>
+                 </Flex>
+               ))}
+               {!announcements?.length && <Text fontSize="sm" color={mutedText} textAlign="center">No community news at the moment.</Text>}
+            </VStack>
+          </Box>
+
         </Box>
 
-        {/* Recent Maintenance */}
-        <Box bg={cardBg} borderRadius="2xl" boxShadow="sm" borderWidth="1px" borderColor={cardBorder} overflow="hidden">
-          <Flex p={6} borderBottom="1px" borderColor={itemBorderColor} bg={headerBg} justify="space-between" align="center">
-            <Text fontWeight="black" color={textColor} textTransform="uppercase" letterSpacing="tight" fontSize="sm">
-              Repair Status
-            </Text>
-          </Flex>
-          <VStack align="stretch" spacing={0} divider={<Box borderBottom="1px" borderColor={itemBorderColor} />}>
-            {recent_requests?.length > 0 ? (
-              recent_requests.map((req) => (
-                <Flex key={req.id} p={4} align="center" justify="space-between" _hover={{ bg: colorMode === 'light' ? "gray.50" : "gray.700" }} transition="all 0.2s">
-                  <Box>
-                    <Text fontSize="xs" fontWeight="black" color={textColor} textTransform="uppercase">
-                      {req.title}
-                    </Text>
-                    <Text fontSize="10px" color={mutedTextColor} fontWeight="bold">
-                      {dayjs(req.created_at).format('MMM D')}
-                    </Text>
-                  </Box>
-                  <Text 
-                    px={2} py={0.5} borderRadius="md" fontSize="9px" fontWeight="black" textTransform="uppercase"
-                    bg={req.status === 'resolved' ? (colorMode === 'light' ? "green.100" : "rgba(198, 246, 213, 0.3)") : (colorMode === 'light' ? "yellow.100" : "rgba(254, 235, 200, 0.3)")}
-                    color={req.status === 'resolved' ? (colorMode === 'light' ? "green.700" : "green.300") : (colorMode === 'light' ? "yellow.700" : "yellow.300")}
-                  >
-                    {req.status.replace('_', ' ')}
-                  </Text>
-                </Flex>
-              ))
-            ) : (
-              <Text p={6} textAlign="center" color={mutedTextColor} fontStyle="italic" fontSize="xs">
-                No recent requests.
-              </Text>
-            )}
-          </VStack>
+        {/* Right Column: Next Steps & Breakdown */}
+        <Box>
+          
+          {/* Next Steps Guide */}
+          <Box bg={cardBg} p={8} borderRadius="3xl" border="1px" borderColor={borderColor} shadow="md" mb={8}>
+            <Heading size="sm" fontWeight="900" mb={8}>Resident Roadmap</Heading>
+            <VStack spacing={8} align="stretch" position="relative">
+               <Box position="absolute" left="15px" top="10px" bottom="10px" w="2px" bg={borderColor} />
+               <StepItem title="Monthly Rent" desc="Payment due by the 5th" active icon={FiZap} color="orange" />
+               <StepItem title="Utility Reading" desc="Recorded on 1st of month" active icon={FiDroplet} color="blue" />
+               <StepItem title="Lease Check" desc="Ends in 120 days" icon={FiCheckCircle} color="green" />
+            </VStack>
+          </Box>
+
+          {/* Unpaid Breakdown Pie */}
+          <Box bg={cardBg} p={8} borderRadius="3xl" border="1px" borderColor={borderColor} shadow="md" mb={8}>
+            <Heading size="sm" fontWeight="900" mb={6}>Balance Breakdown</Heading>
+            <Box h="250px" mb={6} minWidth={0}>
+              {billBreakdownData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={billBreakdownData} innerRadius={60} outerRadius={90} paddingAngle={8} dataKey="value" stroke="none">
+                      {billBreakdownData.map((e, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    </Pie>
+                    <RechartsTooltip contentStyle={{ borderRadius: '15px', border: 'none', shadow: 'xl', background: cardBg }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                 <Center h="full" flexDir="column" gap={2}>
+                   <Icon as={FiCheckCircle} boxSize={8} color="emerald.500" />
+                   <Text fontSize="sm" fontWeight="800" color="emerald.500">All cleared!</Text>
+                </Center>
+              )}
+            </Box>
+            <VStack spacing={2} align="stretch">
+               {billBreakdownData.map((b, i) => (
+                 <Flex key={i} justify="space-between" align="center" fontSize="xs" fontWeight="700">
+                    <HStack><Box w="2" h="2" rounded="full" bg={COLORS[i % COLORS.length]} /><Text color={mutedText}>{b.name}</Text></HStack>
+                    <Text>{fmt(b.value)}</Text>
+                 </Flex>
+               ))}
+            </VStack>
+          </Box>
+
+          {/* My Documents Section */}
+          <Box bg={cardBg} p={8} borderRadius="3xl" border="1px" borderColor={borderColor} shadow="md">
+            <Text fontWeight="900" fontSize="xs" color={mutedText} textTransform="uppercase" letterSpacing="widest" mb={6}>My Documents</Text>
+            <VStack spacing={4} align="stretch">
+               {[
+                 { name: "Lease Agreement", size: "2.4 MB", date: "Mar 12, 2026" },
+                 { name: "House Rules & Policies", size: "1.1 MB", date: "Jan 05, 2026" },
+                 { name: "Utility Rate Chart", size: "0.5 MB", date: "Feb 20, 2026" }
+               ].map((doc, i) => (
+                 <Flex key={i} align="center" justify="space-between" p={3} borderRadius="xl" _hover={{ bg: docHoverBg }} cursor="pointer">
+                    <HStack spacing={3}>
+                       <Center w="10" h="10" bg="blue.50" color="blue.500" rounded="lg">
+                          <Icon as={FiFileText} boxSize={5} />
+                       </Center>
+                       <Box>
+                          <Text fontSize="xs" fontWeight="800">{doc.name}</Text>
+                          <Text fontSize="10px" color={mutedText}>{doc.size} • {doc.date}</Text>
+                       </Box>
+                    </HStack>
+                    <Icon as={FiArrowRight} color={mutedText} />
+                 </Flex>
+               ))}
+            </VStack>
+          </Box>
+
         </Box>
 
       </Grid>
-    </VStack>
+      
+
+    </Box>
+  );
+}
+
+function ActionCard({ label, icon, color, link, delay }) {
+  const navigate = useNavigate();
+  return (
+    <MotionBox 
+      whileHover={{ y: -5, shadow: "xl" }} whileActive={{ scale: 0.95 }}
+      initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay }}
+      bg={actionCardBg} p={6} borderRadius="2xl" border="1px" borderColor={actionCardBorder} shadow="sm"
+      cursor="pointer" onClick={() => navigate(link)} textAlign="center"
+    >
+      <Center w="12" h="12" bg={`${color}.50`} color={`${color}.500`} _dark={{ bg: `${color}.900`, color: `${color}.300` }} rounded="2xl" mx="auto" mb={4}>
+        <Icon as={icon} boxSize={6} />
+      </Center>
+      <Text fontSize="xs" fontWeight="900" textTransform="uppercase" letterSpacing="wide">{label}</Text>
+    </MotionBox>
+  );
+}
+
+function StepItem({ title, desc, active, icon, color }) {
+  const iconColor = active ? `${color}.500` : "gray.400";
+  const textColor = roadmapTextColor;
+  const mutedText = roadmapMutedText;
+
+  return (
+    <Flex align="flex-start" gap={4} position="relative">
+      <Center w="8" h="8" rounded="full" bg={active ? "white" : "gray.100"} border="2px solid" borderColor={active ? iconColor : "gray.200"} zIndex={2} shadow={active ? "md" : "none"}>
+        <Icon as={icon} color={iconColor} boxSize={4} />
+      </Center>
+      <Box>
+        <Text fontSize="sm" fontWeight="900" color={active ? textColor : "gray.400"}>{title}</Text>
+        <Text fontSize="xs" fontWeight="600" color={mutedText}>{desc}</Text>
+      </Box>
+    </Flex>
   );
 }

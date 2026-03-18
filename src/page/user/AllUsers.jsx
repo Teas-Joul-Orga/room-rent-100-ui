@@ -176,7 +176,9 @@ export default function AllUsers() {
         setFormData(initialForm);
         fetchUsers();
       } else {
-        toast({ title: "Error", description: result.message || "Failed to create user.", status: "error", duration: 3000 });
+        
+        //TODO: check error
+        toast({ title: "Error", description: result.errors.toString() || "Failed to create user.", status: "error", duration: 3000 });
       }
     } catch(err) {
       toast({ title: "Network Error", status: "error", duration: 3000 });

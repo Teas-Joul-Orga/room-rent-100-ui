@@ -6,7 +6,7 @@ import {
   AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader,
   AlertDialogContent, AlertDialogOverlay, Tag, Badge
 } from '@chakra-ui/react';
-import { FiSend, FiMoreVertical, FiEdit2, FiTrash2, FiMessageSquare, FiArrowLeft } from 'react-icons/fi';
+import { FiSend, FiMoreVertical, FiEdit2, FiTrash2, FiMessageSquare, FiArrowLeft, FiImage, FiX } from 'react-icons/fi';
 import dayjs from 'dayjs';
 import echo from '../../lib/echo';
 
@@ -28,6 +28,11 @@ export default function TenantChat() {
   // Delete State
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
   const [messageToDelete, setMessageToDelete] = useState(null);
+
+  // Image State
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const fileInputRef = useRef(null);
 
   const messagesEndRef = useRef(null);
   const toast = useToast();
@@ -149,23 +154,48 @@ export default function TenantChat() {
     scrollToBottom();
   }, [messages]);
 
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Image must be under 5MB", status: "error" });
+      return;
+    }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const clearImage = () => {
+    setImageFile(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const handleSendMessage = async (e) => {
     e?.preventDefault();
-    if (!newMessage.trim() || !selectedContact) return;
+    if (!newMessage.trim() && !imageFile) return;
+    if (!selectedContact) return;
 
     setIsSending(true);
     const tempText = newMessage;
+    const tempImage = imageFile;
     setNewMessage('');
+    clearImage();
 
     try {
+      const formData = new FormData();
+      if (tempText.trim()) formData.append('message', tempText);
+      formData.append('receiver_id', selectedContact.id);
+      if (tempImage) formData.append('image', tempImage);
+
       const res = await fetch(`${API}/messages/send`, {
         method: 'POST',
         headers: { 
           Authorization: `Bearer ${token}`, 
-          'Content-Type': 'application/json',
           'Accept': 'application/json' 
         },
-        body: JSON.stringify({ message: tempText, receiver_id: selectedContact.id })
+        body: formData
       });
       
       if (!res.ok) throw new Error("Failed to send");
@@ -318,7 +348,12 @@ export default function TenantChat() {
                                </Flex>
                              ) : (
                                <Box p={3} bg={isMe ? myMessageBg : otherMessageBg} color={isMe ? "white" : otherMessageTextColor} borderRadius="2xl" borderTopRightRadius={isMe ? "sm" : "2xl"} borderTopLeftRadius={!isMe ? "sm" : "2xl"} boxShadow="sm">
-                                 <Text>{msg.message}</Text>
+                                 {msg.image_path && (
+                                   <Box as="a" href={`http://localhost:8000/storage/${msg.image_path}`} target="_blank" rel="noopener noreferrer" display="block" mb={msg.message ? 2 : 0} borderRadius="lg" overflow="hidden" cursor="pointer">
+                                     <Box as="img" src={`http://localhost:8000/storage/${msg.image_path}`} alt="Shared image" maxH="250px" maxW="100%" objectFit="cover" borderRadius="lg" _hover={{ opacity: 0.9 }} />
+                                   </Box>
+                                 )}
+                                 {msg.message && <Text>{msg.message}</Text>}
                                </Box>
                              )}
                           </HStack>
@@ -333,10 +368,21 @@ export default function TenantChat() {
                <div ref={messagesEndRef} />
             </Box>
             <Box p={4} borderTop="1px solid" borderColor={borderColor}>
+              {imagePreview && (
+                <Flex mb={3} p={2} bg={inputBg} borderRadius="xl" align="center" gap={3}>
+                  <Box borderRadius="lg" overflow="hidden" position="relative">
+                    <Box as="img" src={imagePreview} alt="Preview" maxH="80px" maxW="120px" objectFit="cover" borderRadius="lg" />
+                  </Box>
+                  <Text fontSize="sm" color="gray.500" flex="1" isTruncated>{imageFile?.name}</Text>
+                  <IconButton size="sm" icon={<FiX />} variant="ghost" colorScheme="red" onClick={clearImage} aria-label="Remove image" isRound />
+                </Flex>
+              )}
               <form onSubmit={handleSendMessage}>
                 <Flex gap={2}>
+                  <input type="file" accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={handleImageSelect} />
+                  <IconButton icon={<FiImage />} variant="ghost" colorScheme="blue" onClick={() => fileInputRef.current?.click()} aria-label="Attach image" isRound />
                   <Input placeholder="Type your message..." value={newMessage} onChange={(e) => setNewMessage(e.target.value)} borderRadius="full" bg={inputBg} border="none" _focus={{ ring: 2, ringColor: "blue.400" }} />
-                  <IconButton type="submit" colorScheme="blue" icon={<FiSend />} isRound isLoading={isSending} isDisabled={!newMessage.trim()} aria-label="Send" />
+                  <IconButton type="submit" colorScheme="blue" icon={<FiSend />} isRound isLoading={isSending} isDisabled={!newMessage.trim() && !imageFile} aria-label="Send" />
                 </Flex>
               </form>
             </Box>
