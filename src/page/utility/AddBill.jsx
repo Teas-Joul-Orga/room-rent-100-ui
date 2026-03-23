@@ -71,6 +71,16 @@ const fmt = (n) => {
   return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+const toUSD = (n) => {
+  const c = localStorage.getItem("currency") || "$";
+  const num = Number(n || 0);
+  if (c === "៛" || c === "KHR" || c === "Riel") {
+    const r = Number(localStorage.getItem("exchangeRate") || 4000);
+    return (num / r).toFixed(2);
+  }
+  return num;
+};
+
 export default function AddBill() {
   const navigate = useNavigate();
   const curr = localStorage.getItem("currency") || "$";
@@ -93,6 +103,7 @@ export default function AddBill() {
     previous_reading: "",
     current_reading: "",
     cost_per_unit: getDefaultRate("electricity"),
+    payment_method: "cash",
   });
 
   // Theme
@@ -164,6 +175,9 @@ export default function AddBill() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isMetered && Number(formData.current_reading) < Number(formData.previous_reading)) {
+      return toast.error("Current reading cannot be lower than previous reading");
+    }
     if (!formData.room_id || !formData.amount || !formData.due_date) {
       return toast.error("Please fill all required fields");
     }
@@ -173,7 +187,11 @@ export default function AddBill() {
       const res = await fetch(`${API}/utility-bills`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          amount: toUSD(formData.amount),
+          cost_per_unit: toUSD(formData.cost_per_unit),
+        }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -403,10 +421,10 @@ export default function AddBill() {
                       <SimpleGrid columns={3} spacing={4}>
                         <FormControl>
                           <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Previous</FormLabel>
-                          <Input size="md" type="number" step="0.01" bg={useColorModeValue("gray.100", "gray.600")} value={formData.previous_reading}
-                            isReadOnly
+                          <Input size="md" type="number" step="0.01" bg={inputBg} value={formData.previous_reading}
+                            onChange={(e) => setFormData({ ...formData, previous_reading: e.target.value })}
                             placeholder="0" />
-                          <Text fontSize="10px" color={mutedText} mt={1}>Auto-fetched</Text>
+                          <Text fontSize="10px" color={mutedText} mt={1}>Auto-fetched, but editable</Text>
                         </FormControl>
                         <FormControl>
                           <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Current</FormLabel>
@@ -473,6 +491,16 @@ export default function AddBill() {
                         </Button>
                       ))}
                     </SimpleGrid>
+                    {formData.status === "paid" && (
+                      <Box mt={4}>
+                        <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Payment Method</FormLabel>
+                        <Select size="md" bg={inputBg} value={formData.payment_method} onChange={e => setFormData({ ...formData, payment_method: e.target.value })}>
+                          <option value="cash">Cash</option>
+                          <option value="bank">Bank / ABA</option>
+                          <option value="bakong">Bakong</option>
+                        </Select>
+                      </Box>
+                    )}
                   </Box>
 
                   {/* Notes */}

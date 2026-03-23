@@ -19,8 +19,10 @@ import {
   Spinner,
 } from "@chakra-ui/react";
 import { FiX, FiPlus, FiImage } from "react-icons/fi";
+import { useTranslation } from "react-i18next";
 
 export default function AddNewRoom() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
@@ -78,7 +80,7 @@ export default function AddNewRoom() {
         };
         reader.readAsDataURL(file);
       } else {
-        toast.error("Maximum 5 photos allowed");
+        toast.error(t("room.max_photos"));
       }
     });
   };
@@ -91,7 +93,7 @@ export default function AddNewRoom() {
     e.preventDefault();
 
     if (!form.name || !form.base_rent_price) {
-      toast.error("Room name and base rent are required");
+      toast.error(t("room.name_rent_required"));
       return;
     }
 
@@ -127,7 +129,7 @@ export default function AddNewRoom() {
       const data = await res.json();
 
       if (res.ok) {
-        toast.success(data.message || "Room created successfully");
+        toast.success(data.message || t("room.create_success"));
         setTimeout(() => navigate("/dashboard/rooms"), 800);
       } else {
         if (data.errors) {
@@ -135,13 +137,13 @@ export default function AddNewRoom() {
             errArray.forEach(err => toast.error(err));
           });
         } else {
-          toast.error(data.error || "Failed to create room");
+          toast.error(data.error || t("room.create_failed"));
         }
         setIsLoading(false);
       }
     } catch (err) {
       console.error(err);
-      toast.error("A network error occurred.");
+      toast.error(t("room.network_error"));
       setIsLoading(false);
     }
   };
@@ -164,10 +166,10 @@ export default function AddNewRoom() {
         {/* HEADER */}
         <Box mb={8}>
           <Heading size="lg" color={headerTextColor} mb={2}>
-            Add New Room
+            {t("room.add_new")}
           </Heading>
           <Text fontSize="sm" color={mutedText}>
-            Fill in the room details, upload photos, and assign available furniture
+            {t("room.add_subtitle")}
           </Text>
         </Box>
 
@@ -177,7 +179,7 @@ export default function AddNewRoom() {
             {/* LEFT: PHOTOS */}
             <Box>
               <Text fontSize="sm" fontWeight="bold" color={textColor} mb={3}>
-                Room Photos (Max 5)
+                {t("room.room_photos")}
               </Text>
               
               <SimpleGrid columns={3} spacing={4}>
@@ -210,7 +212,7 @@ export default function AddNewRoom() {
                       color="gray.400"
                     >
                       <Icon as={FiImage} boxSize={6} mb={1} />
-                      <Text fontSize="xs" fontWeight="medium">Add Photo</Text>
+                      <Text fontSize="xs" fontWeight="medium">{t("room.add_photo")}</Text>
                     </Flex>
                     <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} style={{ display: "none" }} />
                   </label>
@@ -221,11 +223,11 @@ export default function AddNewRoom() {
             {/* RIGHT: DETAILS */}
             <Box>
               <Box mb={5}>
-                <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>Room Name *</Text>
+                <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>{t("room.room_name")} *</Text>
                 <Input
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="e.g. Room A1"
+                  placeholder={t("room.room_name_placeholder")}
                   size="md"
                   borderColor={borderColor}
                   _hover={{ borderColor: "blue.400" }}
@@ -235,7 +237,7 @@ export default function AddNewRoom() {
 
               <SimpleGrid columns={2} spacing={4} mb={5}>
                 <Box>
-                  <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>Base Rent ($) *</Text>
+                  <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>{t("room.base_rent_usd")} *</Text>
                   <Input
                     type="number"
                     value={form.base_rent_price}
@@ -248,11 +250,11 @@ export default function AddNewRoom() {
                   />
                 </Box>
                 <Box>
-                  <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>Size (optional)</Text>
+                  <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>{t("room.size_optional")}</Text>
                   <Input
                     value={form.size}
                     onChange={(e) => setForm({ ...form, size: e.target.value })}
-                    placeholder="e.g. 5m x 5m"
+                    placeholder={t("room.size_placeholder")}
                     size="md"
                     borderColor={borderColor}
                     _hover={{ borderColor: "blue.400" }}
@@ -262,7 +264,7 @@ export default function AddNewRoom() {
               </SimpleGrid>
 
               <Box mb={5}>
-                <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>Status</Text>
+                <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>{t("room.status")}</Text>
                 <Select
                   value={form.status}
                   onChange={(e) => setForm({ ...form, status: e.target.value })}
@@ -271,21 +273,21 @@ export default function AddNewRoom() {
                   _hover={{ borderColor: "blue.400" }}
                   _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
                 >
-                  <option value="available">Available (Free)</option>
-                  <option value="occupied">Occupied</option>
-                  <option value="maintenance">Maintenance</option>
+                  <option value="available">{t("room.available_free")}</option>
+                  <option value="occupied">{t("room.occupied")}</option>
+                  <option value="maintenance">{t("room.maintenance")}</option>
                 </Select>
               </Box>
             </Box>
 
             {/* BOTTOM: DESCRIPTION */}
             <Box gridColumn={{ md: "span 2" }}>
-              <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>Description (optional)</Text>
+              <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>{t("room.description_optional")}</Text>
               <Textarea
                 rows={3}
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                placeholder="Details about the room..."
+                placeholder={t("room.description_placeholder")}
                 borderColor={borderColor}
                 _hover={{ borderColor: "blue.400" }}
                 _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
@@ -296,15 +298,15 @@ export default function AddNewRoom() {
 
           {/* FURNITURE SECTION */}
           <Box bg={furnitureBg} border="1px solid" borderColor={furnitureBorder} borderRadius="2xl" p={6} mt={8}>
-            <Heading size="sm" color={headerTextColor} mb={1}>Assign Furniture</Heading>
-            <Text fontSize="sm" color={mutedText} mb={4}>Select items included in this room</Text>
+            <Heading size="sm" color={headerTextColor} mb={1}>{t("room.assign_furniture")}</Heading>
+            <Text fontSize="sm" color={mutedText} mb={4}>{t("room.select_furniture")}</Text>
 
             {fetchingFurniture ? (
               <Flex justify="center" py={4}>
                 <Spinner color="blue.500" />
               </Flex>
             ) : allFurniture.length === 0 ? (
-              <Text fontSize="sm" color={mutedText} fontStyle="italic">No furniture available in inventory.</Text>
+              <Text fontSize="sm" color={mutedText} fontStyle="italic">{t("room.no_furniture")}</Text>
             ) : (
               <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} spacing={3}>
                 {allFurniture.map((f) => {
@@ -356,16 +358,16 @@ export default function AddNewRoom() {
               borderColor={borderColor}
               isDisabled={isLoading}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               type="submit"
               colorScheme="blue"
               isLoading={isLoading}
-              loadingText="Saving..."
+              loadingText={t("room.saving")}
               px={8}
             >
-              Save Room
+              {t("room.save_room")}
             </Button>
           </Flex>
 

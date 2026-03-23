@@ -58,6 +58,19 @@ function MaintenanceRoom() {
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [reportForm, setReportForm] = useState({ title: "", description: "", priority: "normal", photo: null });
 
+  // Admin Manual Create Modal
+  const [isAdminCreateOpen, setIsAdminCreateOpen] = useState(false);
+  const [rooms, setRooms] = useState([]);
+  const [adminCreateForm, setAdminCreateForm] = useState({ 
+    room_id: "", 
+    tenant_id: "", 
+    title: "", 
+    description: "", 
+    priority: "normal", 
+    status: "pending", 
+    photo: null 
+  });
+
   // Refs for real-time fetch to avoid stale closure in socket listener
   const searchRef = React.useRef(search);
   const statusFilterRef = React.useRef(statusFilter);
@@ -112,6 +125,23 @@ function MaintenanceRoom() {
       setLoading(false);
     }
   };
+
+  const fetchRooms = async () => {
+    if (role !== 'admin') return;
+    try {
+      const res = await fetch(`${API}/admin/rooms?minimal=true&limit=all`, { headers: headers() });
+      if (res.ok) {
+        const data = await res.json();
+        setRooms(data || []);
+      }
+    } catch (e) {
+      console.error("Failed to fetch rooms:", e);
+    }
+  };
+
+  useEffect(() => {
+    if (role === 'admin') fetchRooms();
+  }, [role]);
 
   useEffect(() => {
     const delay = setTimeout(fetchRequests, 400); // 400ms debounce
@@ -183,6 +213,38 @@ function MaintenanceRoom() {
     } catch (e) { toast.error("Network error"); }
   };
 
+  const handleAdminCreateSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const formData = new FormData();
+      Object.keys(adminCreateForm).forEach(key => {
+        if (adminCreateForm[key] !== null) {
+          formData.append(key, adminCreateForm[key]);
+        }
+      });
+
+      const res = await fetch(`${API}/admin/maintenance`, {
+        method: "POST",
+        headers: { ...headers(), Accept: "application/json" },
+        body: formData
+      });
+
+      if (res.ok) {
+        toast.success("Maintenance record created manually");
+        setIsAdminCreateOpen(false);
+        setAdminCreateForm({ 
+          room_id: "", tenant_id: "", title: "", description: "", 
+          priority: "normal", status: "pending", photo: null 
+        });
+        fetchRequests();
+        window.dispatchEvent(new CustomEvent('maintenanceUpdated'));
+      } else {
+        const d = await res.json();
+        toast.error(d.message || d.error || "Failed to create");
+      }
+    } catch (e) { toast.error("Network error"); }
+  };
+
   const statusColor = { pending: "yellow", in_progress: "blue", resolved: "green", cancelled: "red" };
   const priorityColor = { normal: "gray", urgent: "orange", emergency: "red" };
 
@@ -228,24 +290,12 @@ function MaintenanceRoom() {
             {role === 'admin' && (
               <Button
                 size="sm"
-                colorScheme="green"
-                variant="outline"
-                leftIcon={<FiDownload />}
+                colorScheme="blue"
+                leftIcon={<FiTool />}
                 flexShrink={0}
-                onClick={() => {
-                  const dataToExport = requests.map(r => ({
-                    "Tenant": r.tenant?.name || "Unknown",
-                    "Room": r.room?.name || "Unknown",
-                    "Title": r.title,
-                    "Priority": r.priority,
-                    "Status": r.status,
-                    "Cost": r.status === 'resolved' && r.expenses?.length > 0 ? Number(r.expenses[0].amount) : 0,
-                    "Reported At": new Date(r.created_at).toLocaleString()
-                  }));
-                  exportToExcel(dataToExport, "Maintenance_Requests_" + new Date().toISOString().split('T')[0]);
-                }}
+                onClick={() => setIsAdminCreateOpen(true)}
               >
-                Export
+                Manual Entry
               </Button>
             )}
           </HStack>
@@ -538,6 +588,101 @@ function MaintenanceRoom() {
             </ModalBody>
             <ModalFooter>
               <Button size="sm" colorScheme="blue" type="submit" w={{ base: "full", md: "auto" }}>{t("maintenance.submit")}</Button>
+            </ModalFooter>
+          </form>
+        </ModalContent>
+      </Modal>
+
+      {/* Admin Create Modal */}
+      <Modal isOpen={isAdminCreateOpen} onClose={() => setIsAdminCreateOpen(false)} isCentered size="lg">
+        <ModalOverlay bg="blackAlpha.600" />
+        <ModalContent bg={bg} mx={4}>
+          <form onSubmit={handleAdminCreateSubmit}>
+            <ModalHeader>Manual Maintenance Entry</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
+                <FormControl isRequired>
+                  <FormLabel fontSize="sm" color={mutedText}>Select Room</FormLabel>
+                  <Select 
+                    size="sm" 
+                    placeholder="Choose Room"
+                    value={adminCreateForm.room_id} 
+                    onChange={e => {
+                      const roomId = e.target.value;
+                      const selectedRoom = rooms.find(rm => rm.id === Number(roomId));
+                      const activeLease = selectedRoom?.leases?.find(l => l.status === 'active');
+                      setAdminCreateForm({ 
+                        ...adminCreateForm, 
+                        room_id: roomId, 
+                        tenant_id: activeLease?.tenant?.id || "" 
+                      });
+                    }}
+                  >
+                    {rooms.map(rm => (
+                      <option key={rm.id} value={rm.id}>{rm.name} - {rm.status}</option>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <FormControl isRequired>
+                  <FormLabel fontSize="sm" color={mutedText}>Tenant (Auto-linked)</FormLabel>
+                  <Select 
+                    size="sm" 
+                    placeholder="No Tenant Linked"
+                    value={adminCreateForm.tenant_id} 
+                    onChange={e => setAdminCreateForm({ ...adminCreateForm, tenant_id: e.target.value })}
+                  >
+                    {/* Populated based on room selection above or all tenants if flexible */}
+                    {rooms.find(rm => rm.id === Number(adminCreateForm.room_id))?.leases
+                      ?.filter(l => l.status === 'active')
+                      .map(l => (
+                        <option key={l.tenant.id} value={l.tenant.id}>{l.tenant.name}</option>
+                      ))
+                    }
+                  </Select>
+                  {adminCreateForm.room_id && !adminCreateForm.tenant_id && (
+                    <Text fontSize="10px" color="red.400" mt={1}>This room has no active lease.</Text>
+                  )}
+                </FormControl>
+              </SimpleGrid>
+
+              <FormControl isRequired mb={4}>
+                <FormLabel fontSize="sm" color={mutedText}>Issue Title</FormLabel>
+                <Input size="sm" bg={bg} placeholder="e.g. Broken AC, Leaking Pipe" value={adminCreateForm.title} onChange={e => setAdminCreateForm({ ...adminCreateForm, title: e.target.value })} />
+              </FormControl>
+
+              <SimpleGrid columns={2} spacing={4} mb={4}>
+                <FormControl isRequired>
+                  <FormLabel fontSize="sm" color={mutedText}>Priority</FormLabel>
+                  <Select size="sm" value={adminCreateForm.priority} onChange={e => setAdminCreateForm({ ...adminCreateForm, priority: e.target.value })}>
+                    <option value="normal">Normal</option>
+                    <option value="urgent">Urgent</option>
+                    <option value="emergency">Emergency</option>
+                  </Select>
+                </FormControl>
+                <FormControl isRequired>
+                  <FormLabel fontSize="sm" color={mutedText}>Initial Status</FormLabel>
+                  <Select size="sm" value={adminCreateForm.status} onChange={e => setAdminCreateForm({ ...adminCreateForm, status: e.target.value })}>
+                    <option value="pending">Pending</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="resolved">Resolved</option>
+                  </Select>
+                </FormControl>
+              </SimpleGrid>
+
+              <FormControl isRequired mb={4}>
+                <FormLabel fontSize="sm" color={mutedText}>Maintenance Description</FormLabel>
+                <Textarea size="sm" bg={bg} rows={3} placeholder="Describe the issue or work done..." value={adminCreateForm.description} onChange={e => setAdminCreateForm({ ...adminCreateForm, description: e.target.value })} />
+              </FormControl>
+
+              <FormControl mb={2}>
+                <FormLabel fontSize="sm" color={mutedText}>Attach Evidence (Optional)</FormLabel>
+                <Input type="file" size="sm" accept="image/*" onChange={e => setAdminCreateForm({ ...adminCreateForm, photo: e.target.files[0] })} sx={{ '::file-selector-button': { height: '8', padding: '0 4', background: 'gray.100', border: 'none', borderRadius: 'md', fontSize: 'sm', cursor: 'pointer' } }} />
+              </FormControl>
+            </ModalBody>
+            <ModalFooter>
+              <Button size="sm" colorScheme="blue" type="submit" w={{ base: "full", md: "auto" }}>Add Record</Button>
             </ModalFooter>
           </form>
         </ModalContent>

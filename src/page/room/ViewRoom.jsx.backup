@@ -26,13 +26,8 @@ import {
   ModalCloseButton,
   useDisclosure,
   Icon,
-  IconButton, Tooltip, FormControl, FormLabel, Input, Select, Textarea, ModalHeader, ModalFooter, Divider, SimpleGrid
 } from "@chakra-ui/react";
-import { FiEdit2, FiArrowLeft, FiZap, FiDroplet, FiImage, FiPlus, FiCreditCard } from "react-icons/fi";
-import toast, { Toaster } from "react-hot-toast";
-import RecordPaymentModal from "../../components/RecordPaymentModal";
-
-const API = "http://localhost:8000/api/v1/admin";
+import { FiEdit2, FiArrowLeft, FiZap, FiDroplet, FiImage } from "react-icons/fi";
 
 export default function ViewRoom() {
   const { id } = useParams();
@@ -45,21 +40,6 @@ export default function ViewRoom() {
   const [activePhoto, setActivePhoto] = useState("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // Pay Modal State
-  const { isOpen: isPayOpen, onOpen: onPayOpen, onClose: onPayClose } = useDisclosure();
-  const [payTarget, setPayTarget] = useState(null);
-
-  // Add Utility Modal State
-  const { isOpen: isAddOpen, onOpen: onAddOpen, onClose: onAddClose } = useDisclosure();
-  const [addForm, setAddForm] = useState({
-    type: "electricity", amount: "", due_date: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-    status: "unpaid", description: "", previous_reading: "", current_reading: "", cost_per_unit: "", payment_method: "cash"
-  });
-  const [isSavingAdd, setIsSavingAdd] = useState(false);
-
-  const isMetered = ["electricity", "water"].includes(addForm.type);
-  const usage = isMetered ? Math.max(0, Number(addForm.current_reading || 0) - Number(addForm.previous_reading || 0)) : 0;
-
   const bg = useColorModeValue("sky.50", "#0d1117");
   const cardBg = useColorModeValue("white", "#161b22");
   const textColor = useColorModeValue("gray.800", "white");
@@ -70,130 +50,28 @@ export default function ViewRoom() {
   const headerTextColor = useColorModeValue("sky.900", "white");
   const hoverBg = useColorModeValue("gray.50", "whiteAlpha.100");
 
-  const fetchRoom = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API}/rooms/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-      const result = await res.json();
-      if (res.ok) {
-        setData(result);
-      }
-    } catch (err) {
-      console.error("Error fetching room", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchRoom = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`http://localhost:8000/api/v1/admin/rooms/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        });
+        const result = await res.json();
+        if (res.ok) {
+          setData(result);
+        }
+      } catch (err) {
+        console.error("Error fetching room", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
     fetchRoom();
   }, [id]);
-
-  const getDefaultRate = (type) => {
-    const rawUSD = type === "electricity" ? localStorage.getItem("utility_rate_electricity") : type === "water" ? localStorage.getItem("utility_rate_water") : null;
-    if (!rawUSD) return "";
-    const c = localStorage.getItem("currency") || "$";
-    if (c === "៛" || c === "KHR" || c === "Riel") {
-      const rate = Number(localStorage.getItem("exchangeRate") || 4000);
-      return (Number(rawUSD) * rate).toFixed(0);
-    }
-    return rawUSD;
-  };
-
-  const toUSD = (n) => {
-    const c = localStorage.getItem("currency") || "$";
-    const num = Number(n || 0);
-    if (c === "៛" || c === "KHR" || c === "Riel") {
-      const r = Number(localStorage.getItem("exchangeRate") || 4000);
-      return (num / r).toFixed(2);
-    }
-    return num;
-  };
-
-  const formatCurrency = (amount) => {
-    const c = localStorage.getItem("currency") || "$";
-    const r = Number(localStorage.getItem("exchangeRate") || 4000);
-    const num = Number(amount || 0);
-
-    if (c === "៛" || c === "KHR" || c === "Riel") {
-      return `៛${Math.round(num * r).toLocaleString()}`;
-    }
-    return `$${num.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
-  };
-
-  const fetchReading = async (roomId, type) => {
-    if (!roomId || !["electricity", "water"].includes(type)) return;
-    try {
-      const res = await fetch(`${API}/utility-bills/last-reading/${roomId}?type=${type}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-      });
-      if (res.ok) {
-        const d = await res.json();
-        setAddForm(prev => ({ ...prev, previous_reading: d.reading || 0 }));
-      }
-    } catch (e) {}
-  };
-
-  useEffect(() => {
-    if (isAddOpen && data?.room) {
-      fetchReading(data.room.id, addForm.type);
-    }
-  }, [isAddOpen, addForm.type, data]);
-
-  useEffect(() => {
-    if (isMetered && addForm.cost_per_unit) {
-      const amt = (usage * Number(addForm.cost_per_unit)).toFixed(2);
-      setAddForm(prev => ({ ...prev, amount: amt }));
-    }
-  }, [usage, addForm.cost_per_unit, addForm.type]);
-
-  const handleSaveBill = async (e) => {
-    e.preventDefault();
-    if (isMetered && Number(addForm.current_reading) < Number(addForm.previous_reading)) {
-      toast.error("Current reading cannot be lower than previous reading");
-      return;
-    }
-    if (!addForm.type || !addForm.amount) {
-      toast.error("Please fill all required fields");
-      return;
-    }
-    setIsSavingAdd(true);
-    try {
-      const res = await fetch(`${API}/utility-bills`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-          Accept: "application/json"
-        },
-        body: JSON.stringify({
-          ...addForm,
-          room_id: data.room.id,
-          amount: toUSD(addForm.amount),
-          cost_per_unit: toUSD(addForm.cost_per_unit),
-        }),
-      });
-      if (res.ok) {
-        toast.success("Utility bill added successfully");
-        onAddClose();
-        fetchRoom(); // Refresh room data
-      } else {
-        const d = await res.json();
-        toast.error(d.message || "Failed to add bill");
-      }
-    } catch (e) { toast.error("Network error"); }
-    finally { setIsSavingAdd(false); }
-  };
-
-  const openAddUtility = () => {
-    setAddForm(prev => ({ ...prev, cost_per_unit: getDefaultRate(prev.type) }));
-    onAddOpen();
-  };
 
   if (isLoading)
     return (
@@ -211,7 +89,6 @@ export default function ViewRoom() {
   const { room, utilityStats } = data;
   const assignedFurniture = room.furniture || [];
   const roomImages = room.images || [];
-  const activeLease = room.leases?.find(l => l.status === 'active' || (l.end_date && new Date(l.end_date) >= new Date()));
 
   const handleOpenGallery = (path) => {
     setActivePhoto(`http://localhost:8000/storage/${path}`);
@@ -235,7 +112,6 @@ export default function ViewRoom() {
 
   return (
     <Box p={6} bg={bg} minH="100vh">
-      <Toaster position="top-right" />
       <Box maxW="7xl" mx="auto">
         {/* HEADER */}
         <Flex
@@ -398,39 +274,13 @@ export default function ViewRoom() {
                     </Badge>
                   </Flex>
 
-                  {activeLease && (
-                    <Box bg="green.50" border="1px solid" borderColor="green.200" p={4} borderRadius="xl" mb={6}>
-                      <Flex justify="space-between" align="center">
-                        <Box>
-                          <Text fontSize="xs" fontWeight="black" color="green.700" textTransform="uppercase" letterSpacing="widest" mb={1}>
-                            Current Tenant
-                          </Text>
-                          <Text fontSize="md" fontWeight="bold" color="green.900">
-                            {activeLease.tenant?.name || "Unknown"}
-                          </Text>
-                          <Text fontSize="xs" color="green.700">
-                            {activeLease.tenant?.phone_number || activeLease.tenant?.email}
-                          </Text>
-                        </Box>
-                        <Box textAlign="right">
-                          <Text fontSize="xs" fontWeight="black" color="green.700" textTransform="uppercase" mb={1}>
-                            Lease Period
-                          </Text>
-                          <Text fontSize="sm" fontWeight="bold" color="green.900">
-                            {new Date(activeLease.start_date).toLocaleDateString()} - {new Date(activeLease.end_date).toLocaleDateString()}
-                          </Text>
-                        </Box>
-                      </Flex>
-                    </Box>
-                  )}
-
                   <Grid templateColumns="repeat(2, 1fr)" gap={4} mb={8}>
                     <Box bg="blue.50" borderLeft="4px" borderColor="blue.500" p={5} borderRadius="md">
                       <Text fontSize="2xs" fontWeight="black" color="blue.600" textTransform="uppercase" letterSpacing="widest" mb={1}>
                         Base Monthly Rent
                       </Text>
                       <Text fontSize="3xl" fontWeight="black" color="gray.900" lineHeight="1">
-                        {formatCurrency(room.base_rent_price)}
+                        ${parseFloat(room.base_rent_price).toLocaleString("en-US", { minimumFractionDigits: 2 })}
                       </Text>
                     </Box>
 
@@ -535,7 +385,7 @@ export default function ViewRoom() {
                             </Td>
                             <Td py={4} isNumeric>
                               <Text fontSize="sm" fontWeight="black" color={textColor}>
-                                {formatCurrency(lease.rent_amount)}
+                                ${parseFloat(lease.rent_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}
                               </Text>
                             </Td>
                           </Tr>
@@ -556,14 +406,9 @@ export default function ViewRoom() {
 
           {/* Utility Consumption */}
           <Box bg={cardBg} p={8} borderRadius="2xl" shadow="sm" border="1px" borderColor={borderColor}>
-            <Flex justify="space-between" align="center" mb={6} pb={3} borderBottom="1px" borderColor="gray.100">
-              <Text fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="widest" color="gray.400">
-                Utility Consumption (All Time)
-              </Text>
-              <Button size="sm" colorScheme="blue" leftIcon={<FiPlus />} onClick={openAddUtility}>
-                Add Utility
-              </Button>
-            </Flex>
+            <Text fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="widest" color="gray.400" mb={6} pb={3} borderBottom="1px" borderColor="gray.100">
+              Utility Consumption (All Time)
+            </Text>
 
             <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={6} mb={8}>
               <Box bg="yellow.50" p={6} borderRadius="xl" border="1px" borderColor="yellow.100">
@@ -620,12 +465,11 @@ export default function ViewRoom() {
                     <Th color="gray.400" fontSize="2xs" letterSpacing="widest">Usage</Th>
                     <Th color="gray.400" fontSize="2xs" letterSpacing="widest" isNumeric>Amount</Th>
                     <Th color="gray.400" fontSize="2xs" letterSpacing="widest" isNumeric>Status</Th>
-                    <Th></Th>
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {room.utility_bills && room.utility_bills.length > 0 ? (
-                    [...room.utility_bills]
+                  {room.utilityBills && room.utilityBills.length > 0 ? (
+                    [...room.utilityBills]
                       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
                       .slice(0, 5)
                       .map((bill) => (
@@ -652,34 +496,13 @@ export default function ViewRoom() {
                           </Td>
                           <Td py={3} isNumeric>
                             <Text fontSize="xs" fontWeight="black" color={textColor}>
-                              {formatCurrency(bill.amount)}
+                              ${parseFloat(bill.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}
                             </Text>
                           </Td>
                           <Td py={3} isNumeric>
                             <Badge fontSize="2xs" colorScheme={bill.status === "paid" ? "green" : "red"}>
                               {bill.status}
                             </Badge>
-                          </Td>
-                          <Td py={3} isNumeric>
-                            {bill.status === "unpaid" && (
-                              <Tooltip label="Pay Bill" hasArrow>
-                                <IconButton 
-                                  icon={<FiCreditCard />} 
-                                  size="md" colorScheme="green" variant="ghost" 
-                                  onClick={() => {
-                                    setPayTarget({
-                                      lease_id: bill.lease_id || (activeLease ? activeLease.id : ""),
-                                      bill_id: bill.id,
-                                      amount: bill.amount,
-                                      type: "utility",
-                                      notes: `Payment for ${bill.type} bill`
-                                    });
-                                    onPayOpen();
-                                  }} 
-                                  aria-label="Pay" 
-                                />
-                              </Tooltip>
-                            )}
                           </Td>
                         </Tr>
                       ))
@@ -696,106 +519,6 @@ export default function ViewRoom() {
           </Box>
         </Flex>
       </Box>
-
-      <RecordPaymentModal 
-        isOpen={isPayOpen} 
-        onClose={onPayClose} 
-        onSuccess={() => fetchRoom()} 
-        initialData={payTarget} 
-      />
-
-      {/* ===== ADD UTILITY BILL MODAL ===== */}
-      <Modal isOpen={isAddOpen} onClose={onAddClose} isCentered size="2xl" scrollBehavior="inside">
-        <ModalOverlay bg="blackAlpha.600" />
-        <ModalContent bg={cardBg} borderRadius="xl">
-          <form onSubmit={handleSaveBill}>
-            <ModalHeader color={textColor} fontSize="lg" fontWeight="black" textTransform="uppercase" letterSpacing="tight">
-              Add New Utility Bill for {room.name}
-            </ModalHeader>
-            <ModalCloseButton />
-            <ModalBody pb={6}>
-              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-                <Box>
-                  <Text fontSize="sm" fontWeight="bold" color={textColor} mb={3}>1. Bill Type & Pricing</Text>
-                  <FormControl isRequired mb={4}>
-                    <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Utility Type</FormLabel>
-                    <Select size="md" value={addForm.type} onChange={e => setAddForm({ ...addForm, type: e.target.value, cost_per_unit: getDefaultRate(e.target.value), amount: "" })}>
-                      <option value="electricity">Electricity</option>
-                      <option value="water">Water</option>
-                      <option value="trash">Trash (Fixed)</option>
-                      <option value="internet">Internet (Fixed)</option>
-                      <option value="other">Other</option>
-                    </Select>
-                  </FormControl>
-
-                  {isMetered && (
-                    <Box bg={bg} p={4} borderRadius="lg" border="1px solid" borderColor={borderColor} mb={4}>
-                      <SimpleGrid columns={2} spacing={4}>
-                        <FormControl>
-                          <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Previous</FormLabel>
-                          <Input size="sm" bg="white" type="number" step="0.01" value={addForm.previous_reading} onChange={e => setAddForm({ ...addForm, previous_reading: e.target.value })} />
-                        </FormControl>
-                        <FormControl isRequired>
-                          <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Current</FormLabel>
-                          <Input size="sm" bg="white" type="number" step="0.01" value={addForm.current_reading} onChange={e => setAddForm({ ...addForm, current_reading: e.target.value })} />
-                        </FormControl>
-                        <FormControl isRequired>
-                          <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Rate ({localStorage.getItem("currency") || "$"})</FormLabel>
-                          <Input size="sm" bg="white" type="number" step="0.01" value={addForm.cost_per_unit} onChange={e => setAddForm({ ...addForm, cost_per_unit: e.target.value })} />
-                        </FormControl>
-                        <Box display="flex" flexDirection="column" justifyContent="center">
-                          <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase">Usage</Text>
-                          <Text fontWeight="black" fontSize="sm" color="blue.600">{usage.toFixed(2)} units</Text>
-                        </Box>
-                      </SimpleGrid>
-                    </Box>
-                  )}
-
-                  <SimpleGrid columns={2} spacing={4}>
-                    <FormControl isRequired>
-                      <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Total Amount</FormLabel>
-                      <Input size="sm" type="number" step="0.01" value={addForm.amount} onChange={e => setAddForm({ ...addForm, amount: e.target.value })} bg="yellow.50" fontWeight="bold" />
-                    </FormControl>
-                    <FormControl isRequired>
-                      <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Due Date</FormLabel>
-                      <Input size="sm" type="date" value={addForm.due_date} onChange={e => setAddForm({ ...addForm, due_date: e.target.value })} />
-                    </FormControl>
-                  </SimpleGrid>
-                </Box>
-
-                <Box>
-                  <Text fontSize="sm" fontWeight="bold" color={textColor} mb={3}>2. Status & Remarks</Text>
-                  <FormControl mb={4}>
-                    <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Initial Status</FormLabel>
-                    <Select size="sm" value={addForm.status} onChange={e => setAddForm({ ...addForm, status: e.target.value })}>
-                      <option value="unpaid">Unpaid</option>
-                      <option value="paid">Paid</option>
-                    </Select>
-                  </FormControl>
-                  {addForm.status === "paid" && (
-                    <FormControl mb={4}>
-                      <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Payment Method</FormLabel>
-                      <Select size="sm" value={addForm.payment_method} onChange={e => setAddForm({ ...addForm, payment_method: e.target.value })}>
-                        <option value="cash">Cash</option>
-                        <option value="bank">Bank / ABA</option>
-                        <option value="bakong">Bakong</option>
-                      </Select>
-                    </FormControl>
-                  )}
-                  <FormControl>
-                    <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Description</FormLabel>
-                    <Textarea size="sm" rows={4} placeholder="e.g. Utility for room" value={addForm.description} onChange={e => setAddForm({ ...addForm, description: e.target.value })} />
-                  </FormControl>
-                </Box>
-              </SimpleGrid>
-            </ModalBody>
-            <ModalFooter borderTop="1px solid" borderColor={borderColor}>
-              <Button onClick={onAddClose} variant="ghost" mr={3} size="sm" fontWeight="bold">Cancel</Button>
-              <Button colorScheme="blue" type="submit" size="sm" isLoading={isSavingAdd} fontWeight="bold" px={8}>Save Bill</Button>
-            </ModalFooter>
-          </form>
-        </ModalContent>
-      </Modal>
 
       {/* Lightbox Modal */}
       <Modal isOpen={isOpen} onClose={onClose} size="6xl" isCentered motionPreset="scale">

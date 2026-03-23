@@ -3,7 +3,8 @@ import toast, { Toaster } from "react-hot-toast";
 import {
   Box, Flex, Button, Input, Table, Thead, Tbody, Tr, Th, Td,
   TableContainer, Badge, Select, useColorModeValue, Spinner, Text,
-  SimpleGrid, IconButton, Tooltip, Heading, useDisclosure
+  SimpleGrid, IconButton, Tooltip, Heading, useDisclosure,
+  Tabs, TabList, Tab, TabPanels, TabPanel
 } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next";
 import { FiArrowUp, FiArrowDown, FiTrash2, FiPrinter, FiChevronLeft, FiChevronRight, FiPlus, FiSearch, FiDownload } from "react-icons/fi";
@@ -34,8 +35,17 @@ export default function Payment() {
 
   // Filters
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [methodFilter, setMethodFilter] = useState("");
+  const [paymentGroup, setPaymentGroup] = useState("admin");
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [search]);
 
   // Sorting
   const [sortField, setSortField] = useState("payment_date");
@@ -69,9 +79,10 @@ export default function Payment() {
         sort: sortField,
         direction: sortOrder
       });
-      if (search) params.append("search", search);
+      if (debouncedSearch) params.append("search", debouncedSearch);
       if (typeFilter) params.append("type", typeFilter);
       if (methodFilter) params.append("payment_method", methodFilter);
+      if (paymentGroup) params.append("payment_group", paymentGroup);
 
       const res = await fetch(`${API}/payments?${params}`, { headers: h });
       if (res.ok) {
@@ -97,11 +108,8 @@ export default function Payment() {
       toast.error("Session expired. Please login again.");
       return;
     }
-    const handler = setTimeout(() => {
-      fetchPayments(); 
-    }, 400);
-    return () => clearTimeout(handler);
-  }, [search, typeFilter, methodFilter, sortField, sortOrder, currentPage]);
+    fetchPayments(); 
+  }, [debouncedSearch, typeFilter, methodFilter, sortField, sortOrder, currentPage, paymentGroup]);
 
   const handleDelete = async (p) => {
     if (!window.confirm(`Delete this ${p.type} payment of ${fmt(p.amount_paid)}?`)) return;
@@ -234,6 +242,17 @@ export default function Payment() {
           </Box>
         </SimpleGrid>
 
+        <Tabs variant="enclosed" colorScheme="blue" onChange={(index) => {
+          setPaymentGroup(index === 0 ? "admin" : "bakong");
+          setCurrentPage(1);
+          setMethodFilter("");
+        }} mb={4}>
+          <TabList>
+            <Tab fontWeight="bold">{t("payment.admin_payments", "Admin Payments")}</Tab>
+            <Tab fontWeight="bold">{t("payment.bakong_payments", "Bakong Payments")}</Tab>
+          </TabList>
+        </Tabs>
+
         {/* Filters */}
         <Flex gap={3} mb={4} flexWrap="wrap" align="center">
           <Box position="relative" maxW="300px" flex="1">
@@ -255,11 +274,13 @@ export default function Payment() {
             <option value="deposit">{t("payment.deposit")}</option>
             <option value="other">{t("payment.other")}</option>
           </Select>
-          <Select size="md" bg={cardBg} borderColor={borderColor} maxW="160px" value={methodFilter} onChange={e => setMethodFilter(e.target.value)}>
-            <option value="">{t("payment.all_methods")}</option>
-            <option value="cash">{t("payment.cash")}</option>
-            <option value="bank">{t("payment.bank")}</option>
-          </Select>
+          {paymentGroup === "admin" && (
+            <Select size="md" bg={cardBg} borderColor={borderColor} maxW="160px" value={methodFilter} onChange={e => setMethodFilter(e.target.value)}>
+              <option value="">{t("payment.all_methods")}</option>
+              <option value="cash">{t("payment.cash")}</option>
+              <option value="bank">{t("payment.bank")}</option>
+            </Select>
+          )}
         </Flex>
 
         {/* Table */}

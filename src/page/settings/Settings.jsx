@@ -210,6 +210,53 @@ export default function Settings() {
                     <FormHelperText fontSize="xs">{t('settings_page.general.company_name_helper')}</FormHelperText>
                   </FormControl>
                 </Stack>
+
+                {/* System Data Backup */}
+                <Box bg={mainBg} p={8} borderRadius="2xl" border="1px dashed" borderColor={borderColor} mt={10}>
+                   <HStack spacing={3} mb={4}>
+                      <Icon as={FiSave} boxSize={5} color="blue.500" />
+                      <Heading size="sm" color={textColor} textTransform="uppercase" letterSpacing="widest">System Backup</Heading>
+                   </HStack>
+                   <Text fontSize="sm" color={mutedText} mb={6}>
+                     Download a complete backup of your system's database, including all rooms, leases, and financial records. Keep this file secure to prevent data loss.
+                   </Text>
+                   <Button 
+                      colorScheme="blue" 
+                      onClick={async () => {
+                          try {
+                            const token = localStorage.getItem('token');
+                            const res = await fetch(`${API}/admin/settings/backup`, {
+                              headers: { Authorization: `Bearer ${token}` }
+                            });
+                            
+                            if (!res.ok) {
+                              const errorData = await res.json().catch(() => ({ error: 'Unknown server error' }));
+                              console.error('Backup API Error:', {
+                                status: res.status,
+                                statusText: res.statusText,
+                                error: errorData
+                              });
+                              throw new Error(errorData.error || `Server returned ${res.status}`);
+                            }
+                            
+                            const blob = await res.blob();
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `tesjul_backup_${new Date().toISOString().split('T')[0]}.sql`;
+                            document.body.appendChild(a);
+                            a.click();
+                            window.URL.revokeObjectURL(url);
+                            toast({ title: 'Backup downloaded successfully', status: 'success', position: 'top-right' });
+                          } catch (e) {
+                            console.error('Frontend Backup Exception:', e);
+                            toast({ title: `Backup failed: ${e.message}`, status: 'error', position: 'top-right' });
+                          }
+                      }}
+                   >
+                     Download Backup
+                   </Button>
+                </Box>
               </Box>
             )}
 

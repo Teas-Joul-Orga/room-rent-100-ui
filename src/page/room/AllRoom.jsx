@@ -21,13 +21,23 @@ import {
   Select,
   Text,
   HStack,
+  SimpleGrid,
+  Icon,
   useColorModeValue,
   IconButton,
   Tooltip,
   Spinner,
 } from "@chakra-ui/react";
-import { FiEdit2, FiTrash2, FiEye, FiPlus, FiDownload } from "react-icons/fi";
+import { FiEdit2, FiTrash2, FiEye, FiPlus, FiDownload, FiLayout, FiBriefcase, FiStar, FiAward, FiUser, FiUserX, FiBellOff, FiDroplet } from "react-icons/fi";
 import { exportToExcel } from "../../utils/exportExcel";
+
+const getRoomIcon = (name = "") => {
+  const lowerName = name.toLowerCase();
+  if (lowerName.includes('10')) return FiBriefcase;
+  if (lowerName.includes('3')) return FiStar;
+  if (lowerName.includes('4')) return FiAward;
+  return FiLayout;
+};
 
 export default function AllRoom() {
   const navigate = useNavigate();
@@ -36,28 +46,7 @@ export default function AllRoom() {
   const [rooms, setRooms] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [totalPages, setTotalPages] = useState(1);
-
-  useEffect(() => {
-    const calculatePerPage = () => {
-      // similar to AllUsers
-      const availableHeight = window.innerHeight - 440;
-      let calculated = Math.floor(availableHeight / 70);
-      if (calculated < 5) calculated = 5;
-      setRowsPerPage(calculated);
-    };
-    calculatePerPage();
-
-    let timeoutId;
-    const handleResize = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(calculatePerPage, 150);
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  // No pagination state
   const [selectedIds, setSelectedIds] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [showBulkDelete, setShowBulkDelete] = useState(false);
@@ -74,12 +63,12 @@ export default function AllRoom() {
     }, 400);
     return () => clearTimeout(handler);
     // eslint-disable-next-line
-  }, [currentPage, rowsPerPage, search, sortField, sortDir]);
+  }, [search, sortField, sortDir]);
 
   const fetchRooms = async () => {
     setIsLoading(true);
     try {
-      let url = `http://localhost:8000/api/v1/admin/rooms?page=${currentPage}&limit=${rowsPerPage}&search=${search}`;
+      let url = `http://localhost:8000/api/v1/admin/rooms?page=1&limit=1000&search=${search}`;
       if (sortField) url += `&sort=${sortField}&direction=${sortDir}`;
       const res = await fetch(url, {
         headers: {
@@ -90,7 +79,6 @@ export default function AllRoom() {
       const data = await res.json();
       if (res.ok) {
         setRooms(data.data || []);
-        setTotalPages(data.last_page || 1);
       } else {
         toast.error("Failed to fetch rooms.");
       }
@@ -233,217 +221,242 @@ export default function AllRoom() {
         />
       </Flex>
 
-      {/* ===== SEARCH ===== */}
-      <Box bg={cardBg} p={4} borderRadius="xl" shadow="sm" mb={6} flexShrink={0}>
-        <Input
-          placeholder={t("room.search")}
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setCurrentPage(1);
-          }}
-          borderColor={borderColor}
-          _hover={{ borderColor: "blue.400" }}
-          _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
-        />
+      {/* ===== SEARCH & FILTER ===== */}
+      <Flex direction={{ base: "column", md: "row" }} gap={4} mb={6} flexShrink={0}>
+        <Box bg={cardBg} p={2} borderRadius="xl" shadow="sm" flex={1}>
+          <Input
+            placeholder={t("room.search")}
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+            }}
+            variant="unstyled"
+            px={4} py={2}
+          />
+        </Box>
+        <HStack bg={cardBg} p={2} borderRadius="xl" shadow="sm" spacing={4} flexShrink={0}>
+          <Text fontSize="sm" fontWeight="bold" color={mutedText} pl={2} whiteSpace="nowrap">Sort by:</Text>
+          <Select 
+            variant="unstyled" 
+            fontWeight="bold" 
+            w="160px"
+            cursor="pointer"
+            value={`${sortField || 'name'}_${sortDir}`}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val) {
+                const [field, dir] = val.split('_');
+                setSortField(field);
+                setSortDir(dir);
+              }
+            }}
+          >
+            <option value="name_asc">Name (A-Z)</option>
+            <option value="name_desc">Name (Z-A)</option>
+            <option value="base_rent_price_asc">Price (Low-High)</option>
+            <option value="base_rent_price_desc">Price (High-Low)</option>
+            <option value="status_asc">Status</option>
+          </Select>
+        </HStack>
+      </Flex>
+
+      {/* ===== GRID ===== */}
+      <Box flex={1} overflowY="auto" pb={4} minH={0} className="hide-scroll">
+        {isLoading ? (
+          <Flex justify="center" align="center" h="full" minH="200px">
+            <Spinner size="xl" color="blue.500" />
+          </Flex>
+        ) : rooms.length > 0 ? (
+          <SimpleGrid columns={{ base: 1, sm: 2, lg: 3, xl: 4, "2xl": 5 }} spacing={6} pb={6}>
+            {rooms.map((r) => {
+              const activeLease = r.leases?.find(l => l.status === 'active');
+              const tenantName = activeLease?.tenant?.name;
+              let sinceDate = '';
+              if (activeLease && activeLease.start_date) {
+                const start = new Date(activeLease.start_date);
+                sinceDate = `${String(start.getMonth() + 1).padStart(2,'0')}/${String(start.getDate()).padStart(2,'0')}`;
+              }
+
+              // Card theme based on mockup
+              let theme = { bg: "white", color: "gray.800", priceColor: "gray.800", badgeBg: "gray.100", badgeColor: "gray.600", border: "1px solid", borderColor: "gray.200", watermarkColor: "gray.100" };
+              
+              if (r.status === 'occupied') {
+                theme = { bg: "teal.500", color: "white", priceColor: "white", badgeBg: "white", badgeColor: "teal.500", border: "none", borderColor: "transparent", watermarkColor: "whiteAlpha.200" };
+              } else if (r.status === 'available') {
+                theme = { bg: "white", color: "gray.800", priceColor: "purple.600", badgeBg: "purple.50", badgeColor: "purple.600", border: "1px dashed", borderColor: "purple.200", watermarkColor: "purple.50" };
+              } else if (r.status === 'maintenance') {
+                theme = { bg: "white", color: "gray.800", priceColor: "gray.800", badgeBg: "orange.50", badgeColor: "orange.500", border: "1px solid", borderColor: "orange.200", watermarkColor: "orange.50" };
+              }
+
+              const RoomIcon = getRoomIcon(r.name);
+              const WatermarkIcon = (r.status === 'occupied' && tenantName) ? FiUser : RoomIcon;
+
+              return (
+              <Box 
+                key={r.uid} 
+                bg={theme.bg} 
+                color={theme.color}
+                borderRadius="2xl" 
+                shadow="sm" 
+                border={theme.border} 
+                borderColor={selectedIds.includes(r.uid) ? "blue.500" : theme.borderColor}
+                position="relative"
+                overflow="hidden"
+                transition="all 0.2s"
+                _hover={{ shadow: "md", transform: "translateY(-4px)" }}
+                cursor="pointer"
+                onClick={() => navigate(`/dashboard/rooms/viewroom/${r.uid}`)}
+                minH="150px"
+                p={4}
+                display="flex"
+                flexDirection="column"
+                justifyContent="space-between"
+              >
+                {/* Watermark Background */}
+                <Icon 
+                  as={WatermarkIcon} 
+                  position="absolute" 
+                  bottom="-10px" 
+                  right="-10px" 
+                  w={32} 
+                  h={32} 
+                  color={theme.watermarkColor} 
+                  zIndex={0} 
+                  transform="rotate(-15deg)" 
+                />
+                
+                {/* Content */}
+                <Box position="relative" zIndex={1} h="full" display="flex" flexDirection="column" justifyContent="space-between">
+                  {/* Top Bar */}
+                  <Flex justify="space-between" align="flex-start">
+                    {/* Badge */}
+                    <Flex 
+                      bg={theme.badgeBg} 
+                      color={theme.badgeColor} 
+                      pl={1.5} pr={3} py={1.5} 
+                      borderRadius="full" 
+                      align="center" 
+                      gap={2} 
+                      fontWeight="bold" 
+                      fontSize="sm" 
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Checkbox 
+                        isChecked={selectedIds.includes(r.uid)} 
+                        onChange={(e) => {
+                          if (e.target.checked) setSelectedIds([...selectedIds, r.uid]);
+                          else setSelectedIds(selectedIds.filter((id) => id !== r.uid));
+                        }} 
+                        colorScheme="blue" 
+                        borderColor={theme.badgeColor} 
+                        size="md"
+                        bg="white"
+                        borderRadius="sm"
+                      />
+                      <Flex align="center" gap={1}>
+                        <Icon as={RoomIcon} />
+                        <Text>{r.name}</Text>
+                      </Flex>
+                    </Flex>
+
+                    {/* Price */}
+                    <Flex align="center" gap={2}>
+                      {r.status === 'occupied' && (
+                        <Badge bg="green.400" color="white" border="none" borderRadius="md" px={2} py={0.5} fontSize="xs">-10%</Badge>
+                      )}
+                      <Text fontSize="xl" fontWeight="black" color={theme.priceColor}>${r.base_rent_price}</Text>
+                    </Flex>
+                  </Flex>
+
+                  {/* Middle/Bottom */}
+                  <Flex justify="space-between" align="flex-end" mt={8}>
+                    {/* Left Icons */}
+                    <Flex gap={2}>
+                      {r.status === 'occupied' ? (
+                        <>
+                          <Flex align="center" justify="center" bg="white" w={7} h={7} borderRadius="full" color="teal.500">
+                            <Icon as={FiBellOff} boxSize={3.5} />
+                          </Flex>
+                          <Flex align="center" justify="center" bg="white" w={7} h={7} borderRadius="full" color="teal.500">
+                            <Icon as={FiDroplet} boxSize={3.5} />
+                          </Flex>
+                          <Flex align="center" justify="center" bg="white" w={7} h={7} borderRadius="full" color="teal.500" fontSize="xs" fontWeight="bold">
+                            2
+                          </Flex>
+                        </>
+                      ) : (
+                        <Box />
+                      )}
+                    </Flex>
+
+                    {/* Right Info */}
+                    <Box textAlign="right">
+                      {tenantName ? (
+                        <>
+                          <Text fontWeight="bold" fontSize="md" noOfLines={1} align="right">{tenantName}</Text>
+                          <Text fontSize="10px" opacity={0.9} textTransform="uppercase" letterSpacing="wide" align="right" mt={0.5}>SINCE {sinceDate}</Text>
+                        </>
+                      ) : (
+                        <Flex align="center" justify="center" bg={theme.badgeBg} w={8} h={8} borderRadius="full" color={theme.badgeColor} display="inline-flex">
+                          <Icon as={FiUserX} boxSize={4} />
+                        </Flex>
+                      )}
+                    </Box>
+                  </Flex>
+
+                  {/* Absolute Edit Button */}
+                  <Box position="absolute" bottom={0} left="120px" onClick={(e) => e.stopPropagation()}>
+                     <Tooltip label="Edit Room" hasArrow>
+                        <IconButton
+                          icon={<FiEdit2 />}
+                          size="sm"
+                          colorScheme="blue"
+                          css={{
+                            background: "transparent",
+                            color: theme.color,
+                            opacity: 0.3,
+                            _hover: { opacity: 1, background: "rgba(0,0,0,0.1)" }
+                          }}
+                          onClick={() => navigate(`/dashboard/rooms/edit/${r.uid}`)}
+                          aria-label="Edit room"
+                          borderRadius="full"
+                        />
+                      </Tooltip>
+                  </Box>
+                </Box>
+              </Box>
+              );
+            })}
+          </SimpleGrid>
+        ) : (
+          <Flex justify="center" align="center" h="full" minH="300px" color={mutedText} bg={cardBg} borderRadius="2xl" border="2px dashed" borderColor={borderColor}>
+            <VStack spacing={4}>
+              <Box p={4} bg={bg} borderRadius="full">
+                <FiEye size={40} color="gray.400" />
+              </Box>
+              <Text fontWeight="bold" fontSize="lg">{t("room.no_found")}</Text>
+            </VStack>
+          </Flex>
+        )}
       </Box>
 
-      {/* ===== TABLE ===== */}
-      <TableContainer bg={cardBg} borderRadius="xl" shadow="sm" mb={4} display="flex" flexDirection="column" flex={1} minH={0} overflowY="auto">
-        <Box overflowX="auto" flex={1}>
-          <Table variant="simple">
-            <Thead bg={tableHeaderBg} position="sticky" top={0} zIndex={2}>
-              <Tr>
-               <Th w="50px">{t("room.check_box")}</Th>
-               <Th>{t("room.photo")}</Th>
-               <Th cursor="pointer" onClick={() => handleSort('name')}>
-                 <Flex align="center" gap={1}>{t("room.name")} <Text as="span" color={sortField === 'name' ? "inherit" : "gray.400"}>{sortField === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</Text></Flex>
-               </Th>
-               <Th cursor="pointer" onClick={() => handleSort('base_rent_price')}>
-                 <Flex align="center" gap={1}>{t("room.base_rent")} <Text as="span" color={sortField === 'base_rent_price' ? "inherit" : "gray.400"}>{sortField === 'base_rent_price' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</Text></Flex>
-               </Th>
-               <Th cursor="pointer" onClick={() => handleSort('status')}>
-                 <Flex align="center" gap={1}>{t("room.status")} <Text as="span" color={sortField === 'status' ? "inherit" : "gray.400"}>{sortField === 'status' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</Text></Flex>
-               </Th>
-               <Th>{t("room.active")}</Th>
-               <Th textAlign="center">{t("room.action")}</Th>
-            </Tr>
-          </Thead>
-
-          <Tbody>
-            {isLoading ? (
-              <Tr>
-                <Td colSpan={6} textAlign="center" py={10}>
-                  <Spinner size="lg" color="blue.500" />
-                </Td>
-              </Tr>
-            ) : rooms.length > 0 ? (
-            rooms.map((r) => (
-              <Tr key={r.uid} _hover={{ bg: hoverBg }} transition="all 0.2s">
-                <Td>
-                  <Checkbox
-                    isChecked={selectedIds.includes(r.uid)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedIds([...selectedIds, r.uid]);
-                      } else {
-                        setSelectedIds(selectedIds.filter((id) => id !== r.uid));
-                      }
-                    }}
-                    colorScheme="blue"
-                  />
-                </Td>
-
-                {/* PHOTO */}
-                <Td>
-                  <Image
-                    src={r.images?.length > 0 ? `http://localhost:8000/storage/${r.images[0].path}` : "https://via.placeholder.com/80"}
-                    alt="room"
-                    boxSize="50px"
-                    objectFit="cover"
-                    borderRadius="lg"
-                    border="1px solid"
-                    borderColor={borderColor}
-                  />
-                </Td>
-
-                {/* NAME */}
-                <Td fontWeight="medium" color={textColor}>
-                  {r.name}
-                </Td>
-
-                {/* RENT */}
-                <Td color={useColorModeValue("gray.700", "gray.300")}>
-                  ${r.base_rent_price}
-                </Td>
-
-                {/* STATUS */}
-                <Td>
-                  <Badge
-                    colorScheme={r.status === "available" ? "green" : r.status === "occupied" ? "red" : "orange"}
-                    px={3}
-                    py={1.5}
-                    borderRadius="full"
-                    textTransform="uppercase"
-                    fontSize="xs"
-                    fontWeight="bold"
-                    letterSpacing="wider"
-                    boxShadow="sm"
-                    display="inline-flex"
-                    alignItems="center"
-                  >
-                     {t(`room.${r.status}`)}
-                  </Badge>
-                </Td>
-
-                {/* ACTIVE TOGGLE */}
-                <Td p={3}>
-                  <Select
-                    size="xs"
-                    fontWeight="bold"
-                    w="110px"
-                    bg={r.deleted_at ? "red.50" : "green.50"}
-                    color={r.deleted_at ? "red.700" : "green.700"}
-                    borderColor={r.deleted_at ? "red.200" : "green.200"}
-                    value={r.deleted_at ? "disabled" : "enabled"}
-                    onChange={(e) => handleToggleActive(r, e.target.value)}
-                    cursor="pointer"
-                  >
-                     <option value="enabled">{t("room.enabled")}</option>
-                     <option value="disabled">{t("room.disabled")}</option>
-                  </Select>
-                </Td>
-
-                {/* ACTION */}
-                <Td>
-                  <Flex justify="center" gap={2}>
-                    <Tooltip label="View Room" hasArrow>
-                      <IconButton
-                        icon={<FiEye />}
-                        size="sm"
-                        colorScheme="green"
-                        variant="ghost"
-                        onClick={() => navigate(`/dashboard/rooms/viewroom/${r.uid}`)}
-                        aria-label="View room"
-                      />
-                    </Tooltip>
-                    <Tooltip label="Edit Room" hasArrow>
-                      <IconButton
-                        icon={<FiEdit2 />}
-                        size="sm"
-                        colorScheme="blue"
-                        variant="ghost"
-                        onClick={() => navigate(`/dashboard/rooms/edit/${r.uid}`)}
-                        aria-label="Edit room"
-                      />
-                    </Tooltip>
-                  </Flex>
-                </Td>
-              </Tr>
-            ))
-            ) : (
-              <Tr>
-                <Td colSpan={6} textAlign="center" py={10} color={mutedText}>
-                   {t("room.no_found")}
-                </Td>
-              </Tr>
-            )}
-          </Tbody>
-        </Table>
-        </Box>
-
-        {/* Bulk Disable */}
-        {selectedIds.length > 0 && (
-          <Box p={4} borderTop="1px solid" borderColor={borderColor} flexShrink={0}>
+      {/* Bulk Disable */}
+      {selectedIds.length > 0 && (
+        <Box p={4} mt={4} mb={4} bg={cardBg} borderRadius="2xl" shadow="md" border="1px solid" borderColor="red.200" flexShrink={0}>
+          <Flex justify="space-between" align="center">
+            <Text fontWeight="bold" color="red.500">{selectedIds.length} rooms selected</Text>
             <Button
               colorScheme="red"
               onClick={() => setShowBulkDelete(true)}
               leftIcon={<FiTrash2 />}
+              borderRadius="xl"
             >
-              Disable Selected ({selectedIds.length})
+              Disable Selected
             </Button>
-          </Box>
-        )}
-      </TableContainer>
+          </Flex>
+        </Box>
+      )}
 
-      {/* ===== PAGINATION ===== */}
-      <Flex direction={{ base: "column", sm: "row" }} justify="space-between" align="center" gap={4} flexShrink={0}>
-        <Flex align="center" gap={2} fontSize="sm" color={textColor}>
-           <Text>{t("common.total_pages", { count: totalPages })}</Text>
-        </Flex>
-
-        <Flex align="center" gap={2}>
-          <Button
-            size="sm"
-            variant="outline"
-            isDisabled={currentPage === 1}
-            onClick={() => setCurrentPage((p) => p - 1)}
-          >
-             {t("common.back")}
-          </Button>
-
-          {[...Array(totalPages)].map((_, i) => (
-            <Button
-              key={i}
-              size="sm"
-              variant={currentPage === i + 1 ? "solid" : "outline"}
-              colorScheme={currentPage === i + 1 ? "blue" : "gray"}
-              onClick={() => setCurrentPage(i + 1)}
-            >
-              {i + 1}
-            </Button>
-          ))}
-
-          <Button
-            size="sm"
-            variant="outline"
-            isDisabled={currentPage === totalPages || totalPages === 0}
-            onClick={() => setCurrentPage((p) => p + 1)}
-          >
-             {t("common.next")}
-          </Button>
-        </Flex>
-      </Flex>
 
       {/* SINGLE DISABLE MODAL */}
       {showModal && selectedItem && (

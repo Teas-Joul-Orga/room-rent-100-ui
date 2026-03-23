@@ -35,25 +35,72 @@ export default function Profile() {
   const mutedText = useColorModeValue("gray.500", "gray.400");
 
   useEffect(() => {
-    // Load user from localStorage
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
+    const fetchProfile = async () => {
       try {
-        const parsed = JSON.parse(storedUser);
-        setUser(parsed);
-        setFormData({
-          name: parsed.name || "",
-          email: parsed.email || "",
-          phone: parsed.phone || "",
-          occupation: parsed.occupation || parsed.job || "",
-          address: parsed.address || ""
+        // Optimistically load from localStorage first
+        const storedUser = localStorage.getItem("user");
+        let initialUser = null;
+        if (storedUser) {
+          initialUser = JSON.parse(storedUser);
+          setUser(initialUser);
+        }
+
+        if (!token) {
+          setLoading(false);
+          return;
+        }
+
+        const res = await fetch("http://localhost:8000/api/v1/me", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json"
+          }
         });
+
+        if (res.ok) {
+          const data = await res.json();
+          const userObj = data.user;
+          
+          // Flatten tenant data into user object if present
+          const flattenedUser = {
+            ...userObj,
+            phone: userObj.tenant?.phone || userObj.phone || "",
+            occupation: userObj.tenant?.job || userObj.tenant?.occupation || userObj.occupation || userObj.job || "",
+            address: userObj.tenant?.address || userObj.address || "",
+            photo_path: userObj.tenant?.photo_path || userObj.profile_photo_path || ""
+          };
+
+          setUser(flattenedUser);
+          
+          setFormData({
+            name: flattenedUser.name || "",
+            email: flattenedUser.email || "",
+            phone: flattenedUser.phone || "",
+            occupation: flattenedUser.occupation || "",
+            address: flattenedUser.address || ""
+          });
+
+          // Update localStorage so other parts of the app have fresh data
+          localStorage.setItem("user", JSON.stringify(flattenedUser));
+        } else if (initialUser) {
+          // Fallback if fetch fails but we had local storage
+          setFormData({
+            name: initialUser.name || "",
+            email: initialUser.email || "",
+            phone: initialUser.phone || "",
+            occupation: initialUser.occupation || initialUser.job || "",
+            address: initialUser.address || ""
+          });
+        }
       } catch (e) {
-        console.error("Failed to parse user", e);
+        console.error("Failed to fetch profile", e);
+      } finally {
+        setLoading(false);
       }
-    }
-    setLoading(false);
-  }, []);
+    };
+    
+    fetchProfile();
+  }, [token]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -68,8 +115,8 @@ export default function Profile() {
 
     setSaving(true);
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/admin/users/${user.uid}`, {
-        method: 'PUT',
+      const res = await fetch(`http://localhost:8000/api/v1/profile`, {
+        method: 'POST',
         headers: { 
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',

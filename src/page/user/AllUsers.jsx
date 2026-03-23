@@ -39,8 +39,10 @@ import {
 } from "@chakra-ui/react";
 import { FiSearch, FiPlus, FiMoreVertical, FiEdit2, FiTrash2, FiUserCheck, FiUserX, FiChevronLeft, FiChevronRight, FiDownload } from "react-icons/fi";
 import { exportToExcel } from "../../utils/exportExcel";
+import { useTranslation } from "react-i18next";
 
 export default function AllUsers() {
+  const { t } = useTranslation();
   const [users, setUsers] = useState([]);
   const [tenants, setTenants] = useState([]); // For unlinked tenants
   const [isLoading, setIsLoading] = useState(true);
@@ -89,7 +91,7 @@ export default function AllUsers() {
   const { isOpen: isDeleteOpen, onOpen: onOpenDelete, onClose: onCloseDelete } = useDisclosure();
   
   // Form State
-  const initialForm = { name: "", email: "", password: "", password_confirmation: "", role: "tenant", tenant_id: "" };
+  const initialForm = { name: "", username: "", email: "", password: "", password_confirmation: "", role: "tenant", tenant_id: "" };
   const [formData, setFormData] = useState(initialForm);
   const [selectedUser, setSelectedUser] = useState(null);
 
@@ -121,10 +123,10 @@ export default function AllUsers() {
           total: data.total
         }));
       } else {
-        toast({ title: "Error", description: "Failed to fetch users.", status: "error", duration: 3000 });
+        toast({ title: t("users.error"), description: t("users.failed_fetch"), status: "error", duration: 3000 });
       }
     } catch (err) {
-      toast({ title: "Error", description: "Network error occurred.", status: "error", duration: 3000 });
+      toast({ title: t("users.error"), description: t("users.network_error"), status: "error", duration: 3000 });
     } finally {
       setIsLoading(false);
     }
@@ -155,7 +157,7 @@ export default function AllUsers() {
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     if (formData.password !== formData.password_confirmation) {
-      toast({ title: "Error", description: "Passwords do not match.", status: "error", duration: 3000 });
+      toast({ title: t("users.error"), description: t("users.password_mismatch"), status: "error", duration: 3000 });
       return;
     }
     setIsSubmitLoading(true);
@@ -171,17 +173,17 @@ export default function AllUsers() {
       });
       const result = await res.json();
       if (res.ok) {
-        toast({ title: "Success", description: result.message || "User created.", status: "success", duration: 3000 });
+        toast({ title: t("users.success"), description: result.message || t("users.user_created"), status: "success", duration: 3000 });
         onCloseCreate();
         setFormData(initialForm);
         fetchUsers();
       } else {
         
         //TODO: check error
-        toast({ title: "Error", description: result.errors.toString() || "Failed to create user.", status: "error", duration: 3000 });
+        toast({ title: t("users.error"), description: result.errors.toString() || t("users.failed_create"), status: "error", duration: 3000 });
       }
     } catch(err) {
-      toast({ title: "Network Error", status: "error", duration: 3000 });
+      toast({ title: t("users.network_error"), status: "error", duration: 3000 });
     } finally {
       setIsSubmitLoading(false);
     }
@@ -190,7 +192,7 @@ export default function AllUsers() {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (formData.password && formData.password !== formData.password_confirmation) {
-      toast({ title: "Error", description: "Passwords do not match.", status: "error", duration: 3000 });
+      toast({ title: t("users.error"), description: t("users.password_mismatch"), status: "error", duration: 3000 });
       return;
     }
     setIsSubmitLoading(true);
@@ -204,6 +206,7 @@ export default function AllUsers() {
         },
         body: JSON.stringify({
           name: formData.name,
+          username: formData.username || undefined,
           email: formData.email,
           role: formData.role,
           password: formData.password || undefined,
@@ -212,14 +215,14 @@ export default function AllUsers() {
       });
       const result = await res.json();
       if (res.ok) {
-        toast({ title: "Success", description: result.message || "User updated.", status: "success", duration: 3000 });
+        toast({ title: t("users.success"), description: result.message || t("users.user_updated"), status: "success", duration: 3000 });
         onCloseEdit();
         fetchUsers();
       } else {
-        toast({ title: "Error", description: result.message || "Failed to update user.", status: "error", duration: 3000 });
+        toast({ title: t("users.error"), description: result.message || t("users.failed_update"), status: "error", duration: 3000 });
       }
     } catch(err) {
-      toast({ title: "Network Error", status: "error", duration: 3000 });
+      toast({ title: t("users.network_error"), status: "error", duration: 3000 });
     } finally {
       setIsSubmitLoading(false);
     }
@@ -236,12 +239,12 @@ export default function AllUsers() {
       });
       if (res.ok) {
         fetchUsers();
-        toast({ title: "Success", description: "User status toggled.", status: "success", duration: 3000 });
+        toast({ title: t("users.success"), description: t("users.status_toggled"), status: "success", duration: 3000 });
       } else {
-        toast({ title: "Error", description: "Failed to toggle status.", status: "error", duration: 3000 });
+        toast({ title: t("users.error"), description: t("users.failed_toggle"), status: "error", duration: 3000 });
       }
     } catch (err) {
-      toast({ title: "Network Error", status: "error", duration: 3000 });
+      toast({ title: t("users.network_error"), status: "error", duration: 3000 });
     }
   };
 
@@ -255,20 +258,20 @@ export default function AllUsers() {
         }
       });
       if (res.ok) {
-        toast({ title: "Success", description: "User deleted.", status: "info", duration: 3000 });
+        toast({ title: t("users.success"), description: t("users.user_deleted"), status: "info", duration: 3000 });
         onCloseDelete();
         fetchUsers();
       } else {
-        toast({ title: "Error", description: "Failed to delete user.", status: "error", duration: 3000 });
+        toast({ title: t("users.error"), description: t("users.failed_delete"), status: "error", duration: 3000 });
       }
     } catch(err) {
-      toast({ title: "Network Error", status: "error", duration: 3000 });
+      toast({ title: t("users.network_error"), status: "error", duration: 3000 });
     }
   };
 
   const openEditModal = (user) => {
     setSelectedUser(user);
-    setFormData({ ...initialForm, name: user.name, email: user.email, role: user.role });
+    setFormData({ ...initialForm, name: user.name, username: user.username || "", email: user.email, role: user.role });
     onOpenEdit();
   };
 
@@ -282,10 +285,10 @@ export default function AllUsers() {
       <Flex justify="space-between" align="center" mb={6} flexShrink={0}>
         <Box>
           <Heading size="lg" color={textColor} fontWeight="extrabold" letterSpacing="tight">
-            System Users
+            {t("users.title")}
           </Heading>
           <Text color={mutedTextColor} mt={1} fontSize="sm">
-            Manage administrative access and tenant portal accounts.
+            {t("users.subtitle")}
           </Text>
         </Box>
 
@@ -296,11 +299,12 @@ export default function AllUsers() {
             variant="outline"
             onClick={() => {
               const dataToExport = users.map(u => ({
-                "Name": u.name,
-                "Email": u.email,
-                "Role": u.role,
-                "Status": u.is_active ? "Active" : "Disabled",
-                "Created At": new Date(u.created_at).toLocaleDateString()
+                [t("users.name")]: u.name,
+                [t("users.username")]: u.username || "-",
+                [t("users.email")]: u.email,
+                [t("users.role")]: u.role,
+                [t("users.status")]: u.is_active ? t("users.active") : t("users.disabled"),
+                [t("common.date")]: new Date(u.created_at).toLocaleDateString()
               }));
               exportToExcel(dataToExport, "System_Users_" + new Date().toISOString().split('T')[0]);
             }}
@@ -308,7 +312,7 @@ export default function AllUsers() {
             px={6}
             shadow="sm"
           >
-            Export Excel
+            {t("users.export_excel")}
           </Button>
           <Button 
             leftIcon={<FiPlus />} 
@@ -318,7 +322,7 @@ export default function AllUsers() {
             px={6}
             shadow="md"
           >
-            Add User
+            {t("users.add_user")}
           </Button>
         </HStack>
       </Flex>
@@ -329,7 +333,7 @@ export default function AllUsers() {
           <InputGroup maxW="320px">
             <InputLeftElement pointerEvents="none"><Icon as={FiSearch} color="gray.400" /></InputLeftElement>
             <Input 
-              placeholder="Search by name or email..." 
+              placeholder={t("users.search_placeholder")} 
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setPagination(prev => ({ ...prev, current_page: 1 })) }}
               focusBorderColor="blue.500"
@@ -344,9 +348,9 @@ export default function AllUsers() {
             value={roleFilter}
             onChange={(e) => { setRoleFilter(e.target.value); setPagination(prev => ({ ...prev, current_page: 1 })) }}
           >
-            <option value="">All Roles</option>
-            <option value="admin">Administrator</option>
-            <option value="tenant">Tenant</option>
+            <option value="">{t("users.all_roles")}</option>
+            <option value="admin">{t("users.administrator")}</option>
+            <option value="tenant">{t("users.tenant")}</option>
           </Select>
         </Flex>
 
@@ -356,10 +360,10 @@ export default function AllUsers() {
             <Thead bg={useColorModeValue("gray.50", "#1c2333")} position="sticky" top={0} zIndex={2} boxShadow="sm">
               <Tr>
                 <Th w="20px"></Th>
-                <Th color={thColor}>User Details</Th>
-                <Th color={thColor}>Role</Th>
-                <Th color={thColor}>Status</Th>
-                <Th isNumeric color={thColor}>Actions</Th>
+                <Th color={thColor}>{t("users.user_details")}</Th>
+                <Th color={thColor}>{t("users.role")}</Th>
+                <Th color={thColor}>{t("users.status")}</Th>
+                <Th isNumeric color={thColor}>{t("users.actions")}</Th>
               </Tr>
             </Thead>
             <Tbody>
@@ -384,6 +388,7 @@ export default function AllUsers() {
                     <Td>
                       <Flex direction="column">
                         <Text fontWeight="bold" color={textColor}>{user.name}</Text>
+                        {user.username && <Text fontSize="xs" color="blue.500" fontWeight="medium">@{user.username}</Text>}
                         <Text fontSize="sm" color={mutedTextColor}>{user.email}</Text>
                       </Flex>
                     </Td>
@@ -394,7 +399,7 @@ export default function AllUsers() {
                         px={3} py={1}
                         textTransform="capitalize"
                       >
-                        {user.role}
+                        {user.role === 'admin' ? t("users.administrator") : t("users.tenant")}
                       </Badge>
                     </Td>
                     <Td>
@@ -419,22 +424,22 @@ export default function AllUsers() {
                           opacity: 0.9
                         }}
                       >
-                        {user.is_active ? "Active" : "Disabled"}
+                        {user.is_active ? t("users.active") : t("users.disabled")}
                       </Badge>
                     </Td>
                     <Td isNumeric>
                       <Menu>
                         <MenuButton as={IconButton} icon={<FiMoreVertical />} variant="ghost" size="sm" />
                         <MenuList shadow="lg" border={`1px solid`} borderColor={borderColor} p={1}>
-                          <MenuItem icon={<FiEdit2 />} onClick={() => openEditModal(user)} borderRadius="md">Edit details</MenuItem>
+                          <MenuItem icon={<FiEdit2 />} onClick={() => openEditModal(user)} borderRadius="md">{t("users.edit_details")}</MenuItem>
                           <MenuItem 
                             icon={user.is_active ? <FiUserX /> : <FiUserCheck />} 
                             onClick={() => handleToggleStatus(user)}
                             borderRadius="md"
                           >
-                            {user.is_active ? "Disable account" : "Enable account"}
+                            {user.is_active ? t("users.disable_account") : t("users.enable_account")}
                           </MenuItem>
-                          <MenuItem icon={<FiTrash2 />} onClick={() => openDeleteModal(user)} color="red.500" borderRadius="md">Delete</MenuItem>
+                          <MenuItem icon={<FiTrash2 />} onClick={() => openDeleteModal(user)} color="red.500" borderRadius="md">{t("common.delete")}</MenuItem>
                         </MenuList>
                       </Menu>
                     </Td>
@@ -443,7 +448,7 @@ export default function AllUsers() {
               ) : (
                 <Tr>
                   <Td colSpan={5} textAlign="center" py={10} color={mutedTextColor}>
-                    No users found.
+                    {t("users.no_users")}
                   </Td>
                 </Tr>
               )}
@@ -455,7 +460,7 @@ export default function AllUsers() {
         {users.length > 0 && (
           <Flex p={4} borderTopWidth="1px" borderColor={borderColor} justify="space-between" align="center" flexShrink={0}>
             <Text fontSize="sm" color={mutedTextColor}>
-              Total {pagination.total} users
+              {t("users.total_users", { count: pagination.total })}
             </Text>
             <HStack>
               <Button 
@@ -465,7 +470,7 @@ export default function AllUsers() {
                 isDisabled={pagination.current_page === 1}
                 onClick={() => setPagination(prev => ({ ...prev, current_page: prev.current_page - 1 }))}
               >
-                Previous
+                {t("users.previous")}
               </Button>
               <Button 
                 size="sm" 
@@ -474,7 +479,7 @@ export default function AllUsers() {
                 isDisabled={pagination.current_page === pagination.last_page}
                 onClick={() => setPagination(prev => ({ ...prev, current_page: prev.current_page + 1 }))}
               >
-                Next
+                {t("users.next")}
               </Button>
             </HStack>
           </Flex>
@@ -486,33 +491,37 @@ export default function AllUsers() {
         <ModalOverlay />
         <ModalContent borderRadius="xl" bg={cardBg}>
           <form onSubmit={handleCreateSubmit}>
-            <ModalHeader>Create New User</ModalHeader>
+            <ModalHeader>{t("users.create_title")}</ModalHeader>
             <ModalCloseButton />
             <ModalBody>
               <FormControl isRequired mb={4}>
-                <FormLabel>Name</FormLabel>
+                <FormLabel>{t("users.name")}</FormLabel>
                 <Input name="name" value={formData.name} onChange={handleInputChange} />
               </FormControl>
+              <FormControl mb={4}>
+                <FormLabel>{t("users.username")}</FormLabel>
+                <Input name="username" value={formData.username} onChange={handleInputChange} placeholder={t("users.username_placeholder")} />
+              </FormControl>
               <FormControl isRequired mb={4}>
-                <FormLabel>Email Address</FormLabel>
+                <FormLabel>{t("users.email")}</FormLabel>
                 <Input type="email" name="email" value={formData.email} onChange={handleInputChange} />
               </FormControl>
               
               <HStack mb={4} align="flex-start">
                 <FormControl isRequired>
-                  <FormLabel>Role</FormLabel>
+                  <FormLabel>{t("users.role")}</FormLabel>
                   <Select name="role" value={formData.role} onChange={handleInputChange}>
-                    <option value="tenant">Tenant</option>
-                    <option value="admin">Administrator</option>
+                    <option value="tenant">{t("users.tenant")}</option>
+                    <option value="admin">{t("users.administrator")}</option>
                   </Select>
                 </FormControl>
                 
                 {formData.role === "tenant" && (
                   <FormControl>
-                    <FormLabel>Link to Tenant (Optional)</FormLabel>
+                    <FormLabel>{t("users.link_tenant")}</FormLabel>
                     <Select name="tenant_id" value={formData.tenant_id} onChange={handleInputChange}>
-                      <option value="">-- No Link --</option>
-                      {tenants.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      <option value="">{t("users.no_link")}</option>
+                      {tenants.map(t2 => <option key={t2.id} value={t2.id}>{t2.name}</option>)}
                     </Select>
                   </FormControl>
                 )}
@@ -520,18 +529,18 @@ export default function AllUsers() {
 
               <HStack mb={4}>
                 <FormControl isRequired>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel>{t("users.password")}</FormLabel>
                   <Input type="password" name="password" value={formData.password} onChange={handleInputChange} />
                 </FormControl>
                 <FormControl isRequired>
-                  <FormLabel>Confirm</FormLabel>
+                  <FormLabel>{t("users.confirm")}</FormLabel>
                   <Input type="password" name="password_confirmation" value={formData.password_confirmation} onChange={handleInputChange} />
                 </FormControl>
               </HStack>
             </ModalBody>
             <ModalFooter>
-              <Button variant="ghost" mr={3} onClick={onCloseCreate}>Cancel</Button>
-              <Button colorScheme="blue" type="submit" isLoading={isSubmitLoading}>Create User</Button>
+              <Button variant="ghost" mr={3} onClick={onCloseCreate}>{t("users.cancel")}</Button>
+              <Button colorScheme="blue" type="submit" isLoading={isSubmitLoading}>{t("users.create_user")}</Button>
             </ModalFooter>
           </form>
         </ModalContent>
@@ -542,40 +551,44 @@ export default function AllUsers() {
         <ModalOverlay />
         <ModalContent borderRadius="xl" bg={cardBg}>
           <form onSubmit={handleEditSubmit}>
-            <ModalHeader>Edit User</ModalHeader>
+            <ModalHeader>{t("users.edit_title")}</ModalHeader>
             <ModalCloseButton />
             <ModalBody>
               <FormControl isRequired mb={4}>
-                <FormLabel>Name</FormLabel>
+                <FormLabel>{t("users.name")}</FormLabel>
                 <Input name="name" value={formData.name} onChange={handleInputChange} />
               </FormControl>
+              <FormControl mb={4}>
+                <FormLabel>{t("users.username")}</FormLabel>
+                <Input name="username" value={formData.username} onChange={handleInputChange} placeholder={t("users.username_placeholder")} />
+              </FormControl>
               <FormControl isRequired mb={4}>
-                <FormLabel>Email Address</FormLabel>
+                <FormLabel>{t("users.email")}</FormLabel>
                 <Input type="email" name="email" value={formData.email} onChange={handleInputChange} />
               </FormControl>
               <FormControl isRequired mb={4}>
-                <FormLabel>Role</FormLabel>
+                <FormLabel>{t("users.role")}</FormLabel>
                 <Select name="role" value={formData.role} onChange={handleInputChange}>
-                  <option value="tenant">Tenant</option>
-                  <option value="admin">Administrator</option>
+                  <option value="tenant">{t("users.tenant")}</option>
+                  <option value="admin">{t("users.administrator")}</option>
                 </Select>
               </FormControl>
 
               <Box mt={6} pt={4} borderTopWidth="1px" borderColor={borderColor}>
-                <FormLabel color={mutedTextColor} fontSize="sm" fontWeight="bold">Change Password (Optional)</FormLabel>
+                <FormLabel color={mutedTextColor} fontSize="sm" fontWeight="bold">{t("users.change_password")}</FormLabel>
                 <HStack mb={4}>
                   <FormControl>
-                    <Input type="password" placeholder="New Password" name="password" value={formData.password} onChange={handleInputChange} />
+                    <Input type="password" placeholder={t("users.new_password")} name="password" value={formData.password} onChange={handleInputChange} />
                   </FormControl>
                   <FormControl>
-                    <Input type="password" placeholder="Confirm New" name="password_confirmation" value={formData.password_confirmation} onChange={handleInputChange} />
+                    <Input type="password" placeholder={t("users.confirm_new")} name="password_confirmation" value={formData.password_confirmation} onChange={handleInputChange} />
                   </FormControl>
                 </HStack>
               </Box>
             </ModalBody>
             <ModalFooter>
-              <Button variant="ghost" mr={3} onClick={onCloseEdit}>Cancel</Button>
-              <Button colorScheme="blue" type="submit" isLoading={isSubmitLoading}>Save Changes</Button>
+              <Button variant="ghost" mr={3} onClick={onCloseEdit}>{t("users.cancel")}</Button>
+              <Button colorScheme="blue" type="submit" isLoading={isSubmitLoading}>{t("users.save_changes")}</Button>
             </ModalFooter>
           </form>
         </ModalContent>
@@ -585,16 +598,14 @@ export default function AllUsers() {
       <Modal isOpen={isDeleteOpen} onClose={onCloseDelete} isCentered>
         <ModalOverlay backdropFilter="blur(5px)" bg="blackAlpha.600" />
         <ModalContent borderRadius="xl" bg={cardBg}>
-          <ModalHeader color="red.500">Delete User</ModalHeader>
+          <ModalHeader color="red.500">{t("users.delete_title")}</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <Text color={textColor}>
-              Are you sure you want to permanently delete <strong>{selectedUser?.name}</strong>? This action cannot be undone and will revoke their system access immediately.
-            </Text>
+            <Text color={textColor} dangerouslySetInnerHTML={{ __html: t("users.delete_confirm", { name: selectedUser?.name }) }} />
           </ModalBody>
           <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onCloseDelete}>Cancel</Button>
-            <Button colorScheme="red" onClick={handleDelete}>Delete Permanently</Button>
+            <Button variant="ghost" mr={3} onClick={onCloseDelete}>{t("users.cancel")}</Button>
+            <Button colorScheme="red" onClick={handleDelete}>{t("users.delete_permanently")}</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

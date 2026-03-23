@@ -165,17 +165,21 @@ export default function AllTenants() {
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [accountPassword, setAccountPassword] = useState("");
   const [accountConfirmPassword, setAccountConfirmPassword] = useState("");
+  const [accountUsername, setAccountUsername] = useState("");
 
   const [form, setForm] = useState({
     name: "",
     email: "",
     phone: "",
-    dob: "",
+    dob_day: "",
+    dob_month: "",
+    dob_year: "",
     job: "",
     photo: "",
     idFront: "",
     idBack: "",
     createAccount: false,
+    username: "",
     password: "",
     confirmPassword: "",
   });
@@ -225,7 +229,11 @@ export default function AllTenants() {
     formData.append("name", form.name);
     formData.append("email", form.email);
     formData.append("phone", form.phone);
-    formData.append("dob", form.dob);
+    if (form.dob_year && form.dob_month && form.dob_day) {
+      formData.append("dob", `${form.dob_year}-${form.dob_month.padStart(2, '0')}-${form.dob_day.padStart(2, '0')}`);
+    } else {
+      formData.append("dob", "");
+    }
     formData.append("job", form.job);
     
     // Status is only required for updating, but API expects it for update
@@ -245,6 +253,7 @@ export default function AllTenants() {
         return;
       }
       formData.append("create_account", "1");
+      if (form.username) formData.append("username", form.username);
       formData.append("password", form.password);
       formData.append("password_confirmation", form.confirmPassword);
     }
@@ -301,6 +310,7 @@ export default function AllTenants() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          username: accountUsername || undefined,
           password: accountPassword,
           password_confirmation: accountConfirmPassword,
         }),
@@ -571,13 +581,17 @@ export default function AllTenants() {
                         onClick={() => {
                           setIsEdit(true);
                           setSelectedTenant(tenantItem);
+                          const dobParts = tenantItem.dob ? tenantItem.dob.split('-') : ["", "", ""];
                           setForm({
                             name: tenantItem.name || "",
                             email: tenantItem.email || "",
                             phone: tenantItem.phone || "",
-                            dob: tenantItem.dob || "",
+                            dob_year: dobParts.length === 3 ? dobParts[0] : "",
+                            dob_month: dobParts.length === 3 ? dobParts[1] : "",
+                            dob_day: dobParts.length === 3 ? dobParts[2] : "",
                             job: tenantItem.occupation || tenantItem.job || "",
                             photo: tenantItem.photo || "",
+                            username: "",
                             idFront: { preview: tenantItem.id_photo_path ? `http://localhost:8000/storage/${tenantItem.id_photo_path}` : null, file: null },
                             idBack: { preview: tenantItem.id_card_back_path ? `http://localhost:8000/storage/${tenantItem.id_card_back_path}` : null, file: null },
                           });
@@ -597,6 +611,7 @@ export default function AllTenants() {
                         onClick={() => {
                           if (!tenantItem.user_id) {
                             setSelectedTenant(tenantItem);
+                            setAccountUsername("");
                             setAccountPassword("");
                             setAccountConfirmPassword("");
                             setShowAccountModal(true);
@@ -874,15 +889,46 @@ export default function AllTenants() {
                   {/* Date of Birth */}
                   <Box>
                     <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>Date of Birth</Text>
-                    <Input
-                      type="date"
-                      size="md"
-                      value={form.dob}
-                      onChange={(e) => setForm({ ...form, dob: e.target.value })}
-                      borderColor={borderColor}
-                      _hover={{ borderColor: "blue.400" }}
-                      _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
-                    />
+                    <HStack spacing={2}>
+                      <Select 
+                        placeholder="Day" 
+                        size="md" 
+                        value={form.dob_day} 
+                        onChange={(e) => setForm({ ...form, dob_day: e.target.value })}
+                        borderColor={borderColor} _hover={{ borderColor: "blue.400" }} _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                      >
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
+                          <option key={d} value={d.toString().padStart(2, '0')}>{d}</option>
+                        ))}
+                      </Select>
+                      <Select 
+                        placeholder="Month" 
+                        size="md" 
+                        value={form.dob_month} 
+                        onChange={(e) => setForm({ ...form, dob_month: e.target.value })}
+                        borderColor={borderColor} _hover={{ borderColor: "blue.400" }} _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                      >
+                        {[
+                          {v: '01', l: 'Jan'}, {v: '02', l: 'Feb'}, {v: '03', l: 'Mar'},
+                          {v: '04', l: 'Apr'}, {v: '05', l: 'May'}, {v: '06', l: 'Jun'},
+                          {v: '07', l: 'Jul'}, {v: '08', l: 'Aug'}, {v: '09', l: 'Sep'},
+                          {v: '10', l: 'Oct'}, {v: '11', l: 'Nov'}, {v: '12', l: 'Dec'}
+                        ].map(m => (
+                          <option key={m.v} value={m.v}>{m.l}</option>
+                        ))}
+                      </Select>
+                      <Select 
+                        placeholder="Year" 
+                        size="md" 
+                        value={form.dob_year} 
+                        onChange={(e) => setForm({ ...form, dob_year: e.target.value })}
+                        borderColor={borderColor} _hover={{ borderColor: "blue.400" }} _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                      >
+                        {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                          <option key={y} value={y}>{y}</option>
+                        ))}
+                      </Select>
+                    </HStack>
                   </Box>
                 </Box>
               </Flex>
@@ -942,6 +988,18 @@ export default function AllTenants() {
 
                   {form.createAccount && (
                     <Box mt={3} p={4} bg="gray.50" border="1px solid" borderColor="gray.200" borderRadius="lg">
+                      <Box mb={4}>
+                        <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>Username</Text>
+                        <Input
+                          placeholder="e.g. john_doe"
+                          size="md"
+                          value={form.username || ""}
+                          onChange={(e) => setForm({ ...form, username: e.target.value })}
+                          borderColor={borderColor}
+                          _hover={{ borderColor: "blue.400" }}
+                          _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                        />
+                      </Box>
                       <SimpleGrid columns={2} spacing={4}>
                         <Box>
                           <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>Password</Text>
@@ -1009,6 +1067,15 @@ export default function AllTenants() {
               value={selectedTenant.email}
               isReadOnly
               borderColor={borderColor}
+            />
+            <Input
+              placeholder="Username"
+              mb={4}
+              value={accountUsername}
+              onChange={(e) => setAccountUsername(e.target.value)}
+              borderColor={borderColor}
+              _hover={{ borderColor: "green.400" }}
+              _focus={{ borderColor: "green.500", boxShadow: "0 0 0 1px #38a169" }}
             />
             <Input
               placeholder="Password"

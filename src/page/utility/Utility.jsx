@@ -38,6 +38,17 @@ const fmt = (n) => {
   }
   return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
+
+const toUSD = (n) => {
+  const c = localStorage.getItem("currency") || "$";
+  const num = Number(n || 0);
+  if (c === "៛" || c === "KHR" || c === "Riel") {
+    const r = Number(localStorage.getItem("exchangeRate") || 4000);
+    return (num / r).toFixed(2);
+  }
+  return num;
+};
+
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
 
 export default function Utility() {
@@ -53,7 +64,7 @@ export default function Utility() {
   const { isOpen: isAddOpen, onOpen: onAddOpen, onClose: onAddClose } = useDisclosure();
   const [addForm, setAddForm] = useState({
     room_id: "", type: "electricity", amount: "", due_date: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-    status: "unpaid", description: "", previous_reading: "", current_reading: "", cost_per_unit: getDefaultRate("electricity")
+    status: "unpaid", description: "", previous_reading: "", current_reading: "", cost_per_unit: getDefaultRate("electricity"), payment_method: "cash"
   });
   const [rooms, setRooms] = useState([]);
   const [isSavingAdd, setIsSavingAdd] = useState(false);
@@ -172,6 +183,10 @@ export default function Utility() {
 
   const handleSaveBill = async (e) => {
     e.preventDefault();
+    if (isMetered && Number(addForm.current_reading) < Number(addForm.previous_reading)) {
+      toast.error("Current reading cannot be lower than previous reading");
+      return;
+    }
     if (!addForm.room_id || !addForm.type || !addForm.amount) {
       toast.error("Please fill all required fields");
       return;
@@ -181,7 +196,11 @@ export default function Utility() {
       const res = await fetch(`${API}/utility-bills`, {
         method: "POST",
         headers: headers(),
-        body: JSON.stringify(addForm),
+        body: JSON.stringify({
+          ...addForm,
+          amount: toUSD(addForm.amount),
+          cost_per_unit: toUSD(addForm.cost_per_unit),
+        }),
       });
       if (res.ok) {
         toast.success("Utility bill added successfully");
@@ -677,7 +696,7 @@ export default function Utility() {
                       <SimpleGrid columns={2} spacing={4}>
                         <FormControl>
                           <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Previous Reading</FormLabel>
-                          <Input size="sm" bg="gray.100" type="number" step="0.01" value={addForm.previous_reading} isReadOnly />
+                          <Input size="sm" bg="white" type="number" step="0.01" value={addForm.previous_reading} onChange={e => setAddForm({ ...addForm, previous_reading: e.target.value })} />
                         </FormControl>
                         <FormControl isRequired>
                           <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Current Reading</FormLabel>
@@ -717,6 +736,16 @@ export default function Utility() {
                       <option value="paid">Paid (Auto-record payment)</option>
                     </Select>
                   </FormControl>
+                  {addForm.status === "paid" && (
+                    <FormControl mb={4}>
+                      <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Payment Method</FormLabel>
+                      <Select size="sm" value={addForm.payment_method} onChange={e => setAddForm({ ...addForm, payment_method: e.target.value })}>
+                        <option value="cash">Cash</option>
+                        <option value="bank">Bank / ABA</option>
+                        <option value="bakong">Bakong</option>
+                      </Select>
+                    </FormControl>
+                  )}
                   <FormControl>
                     <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Description (Optional)</FormLabel>
                     <Textarea size="sm" rows={4} placeholder="e.g. September Usage for Room 101" value={addForm.description} onChange={e => setAddForm({ ...addForm, description: e.target.value })} />

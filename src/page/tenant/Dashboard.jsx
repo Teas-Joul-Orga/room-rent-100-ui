@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Box, Grid, GridItem, Flex, Text, Heading, Icon, useColorModeValue, useColorMode,
   VStack, HStack, Spinner, Button, Badge, Avatar, Progress, SimpleGrid,
-  Table, Tbody, Tr, Td, TableContainer, Divider, Center
+  Table, Tbody, Tr, Td, TableContainer, Divider, Center,
+  Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
+  useDisclosure, Checkbox, Image
 } from "@chakra-ui/react";
 import {
   LuReceipt, LuWrench, LuDoorOpen
@@ -21,6 +23,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import api from "../../api/axios";
+import { QRCodeCanvas } from "qrcode.react";
+import toast, { Toaster } from "react-hot-toast";
 
 dayjs.extend(relativeTime);
 
@@ -29,6 +33,8 @@ const MotionBox = motion(Box);
 const MotionFlex = motion(Flex);
 
 const COLORS = ['#6366f1', '#10b981', '#f43f5e', '#f59e0b', '#8b5cf6'];
+const KHQR_LOGO = "https://upload.wikimedia.org/wikipedia/commons/e/e8/KHQR_Logo.png";
+const BAKONG_LOGO_RED = "https://bakong.nbc.gov.kh/images/bakong-logo.png";
 
 export default function TenantDashboard() {
   const [data, setData] = useState(null);
@@ -36,6 +42,15 @@ export default function TenantDashboard() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { colorMode } = useColorMode();
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  
+  // Payment States
+  const [selectedItems, setSelectedItems] = useState({ rent: true, utilities: [] });
+  const [qrString, setQrString] = useState(null);
+  const [qrMd5, setQrMd5] = useState(null);
+  const [loadingQr, setLoadingQr] = useState(false);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const pollingRef = useRef(null);
 
   // Aesthetic Colors
   const bg = useColorModeValue("gray.25", "#0d1117");
@@ -83,6 +98,89 @@ export default function TenantDashboard() {
     }
   };
 
+  const handleToggleRent = () => {
+    setSelectedItems(prev => ({ ...prev, rent: !prev.rent }));
+  };
+
+  const handleToggleUtility = (id) => {
+    setSelectedItems(prev => {
+      const utilities = prev.utilities.includes(id)
+        ? prev.utilities.filter(i => i !== id)
+        : [...prev.utilities, id];
+      return { ...prev, utilities };
+    });
+  };
+
+  const calculateSubtotal = () => {
+    let total = 0;
+    if (selectedItems.rent && data?.lease?.rent_amount) {
+      total += Number(data.lease.rent_amount);
+    }
+    const unpaidBills = data?.lease?.utility_bills?.filter(b => b.status === "unpaid") || [];
+    unpaidBills.forEach(b => {
+      if (selectedItems.utilities.includes(b.id)) {
+        total += Number(b.amount);
+      }
+    });
+    return total;
+  };
+
+  const generateBakongQr = async () => {
+    setLoadingQr(true);
+    setPaymentConfirmed(false);
+    try {
+      const res = await api.post("/tenant/payment/bakong/generate-qr", {
+        type: "bundle",
+        id: data.lease.id,
+        rent: selectedItems.rent,
+        utility_ids: selectedItems.utilities
+      });
+      
+      const resData = res.data;
+      if (resData.status === "success") {
+        setQrString(resData.data.qrString);
+        setQrMd5(resData.data.md5);
+        startPolling(resData.data.md5);
+      }
+    } catch (err) {
+      console.error("QR Generation failed", err);
+    } finally {
+      setLoadingQr(false);
+    }
+  };
+
+  const startPolling = (md5) => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    pollingRef.current = setInterval(async () => {
+      try {
+        const res = await api.post("/tenant/payment/bakong/check-transaction", { md5 });
+        if (res.data.status === "success" && res.data.paid === true) {
+          clearInterval(pollingRef.current);
+          setPaymentConfirmed(true);
+          toast.success("🎉 Payment Successful! Balance updated.", { duration: 6000 });
+          setTimeout(() => {
+            fetchDashboardData();
+            handleClosePayment();
+          }, 3000);
+        }
+      } catch (_) {}
+    }, 5000);
+  };
+
+  const handleOpenPayment = () => {
+    const unpaidBills = data?.lease?.utility_bills?.filter(b => b.status === "unpaid") || [];
+    setSelectedItems({ rent: true, utilities: unpaidBills.map(b => b.id) });
+    setQrString(null);
+    setQrMd5(null);
+    setPaymentConfirmed(false);
+    onOpen();
+  };
+
+  const handleClosePayment = () => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    onClose();
+  };
+
   if (loading) {
     return (
       <Center h="70vh">
@@ -109,6 +207,7 @@ export default function TenantDashboard() {
 
   return (
     <Box p={{ base: 4, md: 8 }} bg={bg} minH="100vh">
+      <Toaster position="top-right" />
       
       {/* Header & Resident Profile Card */}
       <Flex direction={{ base: "column", lg: "row" }} gap={8} mb={10}>
@@ -155,9 +254,9 @@ export default function TenantDashboard() {
           </Box>
           <Button 
             mt={8} size="lg" colorScheme={totalDue > 0 ? "red" : "emerald"} rounded="2xl" w="full" shadow="lg"
-            onClick={() => navigate("/dashboard/utility")}
+            onClick={totalDue > 0 ? handleOpenPayment : () => navigate("/dashboard/utility")}
           >
-            {totalDue > 0 ? "PAY NOW" : "BILLING HISTORY"}
+            {totalDue > 0 ? "PAY SELECTED" : "BILLING HISTORY"}
           </Button>
         </MotionBox>
       </Flex>
@@ -307,12 +406,131 @@ export default function TenantDashboard() {
       </Grid>
       
 
+
+      <Modal isOpen={isOpen} onClose={handleClosePayment} size="xl" isCentered scrollBehavior="inside">
+        <ModalOverlay backdropFilter="blur(5px)" bg="blackAlpha.700" />
+        <ModalContent borderRadius="3xl" bg={cardBg} overflow="hidden">
+          <ModalHeader py={6} borderBottom="1px solid" borderColor={borderColor}>
+            <Heading size="md" fontWeight="900" color={textColor}>Checkout & Pay</Heading>
+            <Text fontSize="xs" color={mutedText} fontWeight="bold">Select the items you wish to pay now</Text>
+          </ModalHeader>
+          <ModalCloseButton mt={2} />
+          
+          <ModalBody py={8}>
+            {!qrString ? (
+              <VStack align="stretch" spacing={6}>
+                 <Box>
+                    <Text fontSize="xs" fontWeight="900" color={mutedText} textTransform="uppercase" letterSpacing="widest" mb={4}>Select Line Items</Text>
+                    <VStack align="stretch" spacing={3}>
+                       {/* Rent Item */}
+                       <Flex align="center" justify="space-between" p={4} bg={annItemBg} borderRadius="2xl" border="1px" borderColor={borderColor}>
+                          <HStack spacing={4}>
+                             <Checkbox colorScheme="blue" isChecked={selectedItems.rent} onChange={handleToggleRent} size="lg" />
+                             <VStack align="flex-start" spacing={0}>
+                                <Text fontWeight="900" fontSize="sm">Monthly Rent</Text>
+                                <Text fontSize="xs" color={mutedText}>Monthly housing agreement</Text>
+                             </VStack>
+                          </HStack>
+                          <Text fontWeight="900" fontSize="sm">{fmt(data?.lease?.rent_amount)}</Text>
+                       </Flex>
+                       
+                       {/* Utility Items */}
+                       {data?.lease?.utility_bills?.filter(b => b.status === "unpaid").map(bill => (
+                          <Flex key={bill.id} align="center" justify="space-between" p={4} bg={annItemBg} borderRadius="2xl" border="1px" borderColor={borderColor}>
+                             <HStack spacing={4}>
+                                <Checkbox colorScheme="blue" isChecked={selectedItems.utilities.includes(bill.id)} onChange={() => handleToggleUtility(bill.id)} size="lg" />
+                                <VStack align="flex-start" spacing={0}>
+                                   <Text fontWeight="900" fontSize="sm" textTransform="capitalize">{bill.type} Bill</Text>
+                                   <Text fontSize="xs" color={mutedText}>Cycle end: {dayjs(bill.due_date).format('MMM D')}</Text>
+                                </VStack>
+                             </HStack>
+                             <Text fontWeight="900" fontSize="sm">{fmt(bill.amount)}</Text>
+                          </Flex>
+                       ))}
+                    </VStack>
+                 </Box>
+
+                 <Divider borderColor={borderColor} />
+
+                 <Flex justify="space-between" align="center">
+                    <Box>
+                       <Text fontSize="xs" fontWeight="900" color={mutedText} textTransform="uppercase">Selected Total</Text>
+                       <Heading size="lg" fontWeight="900" color="blue.500">{fmt(calculateSubtotal())}</Heading>
+                    </Box>
+                    <Button 
+                       size="lg" colorScheme="blue" rounded="2xl" px={8} fontWeight="900" 
+                       isDisabled={calculateSubtotal() <= 0} isLoading={loadingQr}
+                       onClick={generateBakongQr}
+                    >
+                       CONTINUE TO PAY
+                    </Button>
+                 </Flex>
+              </VStack>
+            ) : (
+                <Box 
+                  p={0} borderRadius="2xl" overflow="hidden" border="2px solid"
+                  borderColor={paymentConfirmed ? "green.400" : "blue.300"}
+                  transition="all 0.5s ease"
+                  shadow={qrString && !paymentConfirmed ? "0 0 30px -5px rgba(66,153,225,0.4)" : paymentConfirmed ? "0 0 30px -5px rgba(72,187,120,0.5)" : "none"}
+                >
+                  {paymentConfirmed ? (
+                    <Box bgGradient="linear(to-br, green.400, green.600, teal.500)" p={10} textAlign="center">
+                      <Flex w={20} h={20} mx="auto" mb={4} bg="whiteAlpha.300" borderRadius="full" align="center" justify="center">
+                        <Icon as={FiCheckCircle} boxSize={10} color="white" />
+                      </Flex>
+                      <Heading size="lg" color="white" mb={2}>Payment Received!</Heading>
+                      <Text color="whiteAlpha.900" fontWeight="bold">Items marked as paid successfully.</Text>
+                      <Badge mt={6} bg="whiteAlpha.200" color="white" px={4} py={2} borderRadius="full">✓ Transaction Confirmed</Badge>
+                    </Box>
+                  ) : (
+                    <VStack spacing={0} align="stretch">
+                       <Box bg="blue.500" px={5} py={3}>
+                          <Flex align="center" justify="space-between">
+                             <HStack><Icon as={FiZap} color="white" /><Text fontSize="sm" fontWeight="900" color="white">SCAN TO PAY</Text></HStack>
+                             <Badge bg="whiteAlpha.200" color="white" rounded="full">{fmt(calculateSubtotal())}</Badge>
+                          </Flex>
+                       </Box>
+                       <Box p={8} bg={bg} textAlign="center">
+                          <VStack spacing={6}>
+                             <Box w="280px" bg="white" p={4} borderRadius="2xl" shadow="xl" border="1px solid" borderColor="gray.100">
+                                <Box bg="#005EAA" p={3} mb={3} borderTopRadius="xl">
+                                  <Image src={KHQR_LOGO} h="20px" mx="auto" />
+                                </Box>
+                                <Center>
+                                  <QRCodeCanvas 
+                                    value={qrString} size={220} level="H" 
+                                    imageSettings={{ src: BAKONG_LOGO_RED, height: 40, width: 40, excavate: true }}
+                                  />
+                                </Center>
+                             </Box>
+                             <Box p={3} bg="blue.50" rounded="xl" w="full">
+                                <HStack justify="center" spacing={3}>
+                                   <Spinner size="xs" color="blue.500" />
+                                   <Text fontSize="xs" fontWeight="900" color="blue.700">Awaiting your payment confirm...</Text>
+                                </HStack>
+                             </Box>
+                             <Button variant="ghost" size="sm" color={mutedText} onClick={() => setQrString(null)}>← Edit Selection</Button>
+                          </VStack>
+                       </Box>
+                    </VStack>
+                  )}
+                </Box>
+            )}
+          </ModalBody>
+          <ModalFooter borderTop="1px solid" borderColor={borderColor} bg={annItemBg}>
+            <Button w="full" variant="ghost" onClick={handleClosePayment} fontWeight="900">CANCEL</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 }
 
 function ActionCard({ label, icon, color, link, delay }) {
   const navigate = useNavigate();
+  const actionCardBg = useColorModeValue("white", "#161b22");
+  const actionCardBorder = useColorModeValue("gray.100", "#30363d");
+
   return (
     <MotionBox 
       whileHover={{ y: -5, shadow: "xl" }} whileActive={{ scale: 0.95 }}
@@ -330,8 +548,8 @@ function ActionCard({ label, icon, color, link, delay }) {
 
 function StepItem({ title, desc, active, icon, color }) {
   const iconColor = active ? `${color}.500` : "gray.400";
-  const textColor = roadmapTextColor;
-  const mutedText = roadmapMutedText;
+  const textColor = useColorModeValue("gray.900", "white");
+  const mutedText = useColorModeValue("gray.500", "gray.400");
 
   return (
     <Flex align="flex-start" gap={4} position="relative">

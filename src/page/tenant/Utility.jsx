@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
+  HStack,
   Box,
   Flex,
   Text,
@@ -20,6 +21,7 @@ import {
   ModalBody,
   ModalCloseButton,
   useDisclosure,
+  Image,
 } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next";
 import { 
@@ -29,6 +31,9 @@ import {
 import dayjs from "dayjs";
 import toast, { Toaster } from "react-hot-toast";
 import { QRCodeCanvas } from "qrcode.react";
+
+const KHQR_LOGO = "https://upload.wikimedia.org/wikipedia/commons/e/e8/KHQR_Logo.png";
+const BAKONG_LOGO_RED = "https://bakong.nbc.gov.kh/images/bakong-logo.png";
 
 const API = "http://localhost:8000/api/v1/tenant";
 
@@ -57,7 +62,10 @@ export default function TenantUtility() {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedBill, setSelectedBill] = useState(null);
   const [qrString, setQrString] = useState(null);
+  const [qrMd5, setQrMd5] = useState(null);
   const [loadingQr, setLoadingQr] = useState(false);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const pollingRef = useRef(null);
 
   const fetchBills = async () => {
     try {
@@ -106,11 +114,12 @@ export default function TenantUtility() {
     }
   };
 
-  const handleGenerateQr = async () => {
+  const generateQrForBill = async (bill) => {
     setLoadingQr(true);
+    setPaymentConfirmed(false);
     try {
       const rate = localStorage.getItem("exchangeRate") || 4000;
-      const amountKhr = Math.round(selectedBill.amount * rate);
+      const amountKhr = Math.round(bill.amount * rate);
 
       const res = await fetch(`${API}/payment/bakong/generate-qr`, {
         method: "POST",
@@ -121,14 +130,20 @@ export default function TenantUtility() {
         },
         body: JSON.stringify({
           type: "utility",
-          id: selectedBill.id,
+          id: bill.id,
           currency: "KHR",
           amount: amountKhr
         })
       });
       const data = await res.json();
+      console.log(data);
       if (res.ok && data.status === "success") {
         setQrString(data.data.qrString);
+        const md5 = data.data.md5;
+        if (md5) {
+          setQrMd5(md5);
+          startPolling(md5, bill);
+        }
       } else {
         toast.error(data.message || "Failed to generate QR Code");
       }
@@ -137,6 +152,55 @@ export default function TenantUtility() {
     } finally {
       setLoadingQr(false);
     }
+  };
+
+  const handleGenerateQr = () => generateQrForBill(selectedBill);
+
+  const startPolling = (md5, bill) => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    pollingRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`${API}/payment/bakong/check-transaction`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({ md5, bill_id: bill.id, type: "utility" })
+        });
+        const data = await res.json();
+        if (res.ok && data.status === "success" && data.paid === true) {
+          clearInterval(pollingRef.current);
+          setPaymentConfirmed(true);
+          toast.success("🎉 Payment Successful! Your bill has been paid.", { duration: 6000 });
+          fetchBills();
+          // Auto-close modal after 3s so user sees the success animation
+          setTimeout(() => {
+            handleClose();
+          }, 3000);
+        }
+      } catch (_) {}
+    }, 5000);
+  };
+
+  const handleOpenBill = (bill) => {
+    setSelectedBill(bill);
+    setQrString(null);
+    setQrMd5(null);
+    setPaymentConfirmed(false);
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    onOpen();
+    if (bill.status === 'unpaid') {
+      generateQrForBill(bill);
+    }
+  };
+
+  const handleClose = () => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    setQrString(null);
+    setQrMd5(null);
+    onClose();
   };
 
   if (loading) {
@@ -296,11 +360,7 @@ export default function TenantUtility() {
                   colorScheme={bill.status === 'unpaid' ? "blue" : "gray"} 
                   variant={bill.status === 'unpaid' ? "solid" : "outline"}
                   leftIcon={<FiEye />}
-                  onClick={() => {
-                    setSelectedBill(bill);
-                    setQrString(null);
-                    onOpen();
-                  }}
+                  onClick={() => handleOpenBill(bill)}
                 >
                   {t("common.view_detail")}
                 </Button>
@@ -312,7 +372,7 @@ export default function TenantUtility() {
     </SimpleGrid>
 
       {/* View Detail Modal */}
-      <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered scrollBehavior="inside">
+      <Modal isOpen={isOpen} onClose={handleClose} size="lg" isCentered scrollBehavior="inside">
         <ModalOverlay backdropFilter="blur(5px)" bg="blackAlpha.700" />
         <ModalContent borderRadius="2xl" bg={bg} overflow="hidden">
           <ModalHeader py={6} borderBottom="1px solid" borderColor={borderColor}>
@@ -384,9 +444,9 @@ export default function TenantUtility() {
 
                 {/* Dates */}
                 <Box>
-                    <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={3} letterSpacing="wider">
-                      {t("utility.timeline")}
-                    </Text>
+                  <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={3} letterSpacing="wider">
+                    {t("utility.timeline")}
+                  </Text>
                   <SimpleGrid columns={2} spacing={4}>
                     <Flex align="center" gap={3}>
                       <Icon as={FiCalendar} color="blue.500" />
@@ -442,51 +502,219 @@ export default function TenantUtility() {
 
                 {/* Bakong KHQR Payment Section */}
                 {selectedBill.status === 'unpaid' && (
-                  <Box mt={4} p={6} bg={useColorModeValue("red.50", "whiteAlpha.50")} border="1px dashed" borderColor="red.200" borderRadius="xl" textAlign="center">
-                    <Heading size="sm" color="red.600" mb={4}>Pay via Bakong KHQR</Heading>
-                    
-                    {!qrString ? (
-                      <Button 
-                        colorScheme="red" 
-                        isLoading={loadingQr} 
-                        onClick={handleGenerateQr}
-                        leftIcon={<FiZap />}
-                        size="lg"
-                        w="full"
+                  <Box 
+                    mt={4} 
+                    p={0} 
+                    borderRadius="2xl" 
+                    overflow="hidden"
+                    border="2px solid"
+                    borderColor={paymentConfirmed ? "green.400" : qrString ? "blue.300" : "red.200"}
+                    transition="all 0.5s ease"
+                    shadow={qrString && !paymentConfirmed ? "0 0 30px -5px rgba(66,153,225,0.4)" : paymentConfirmed ? "0 0 30px -5px rgba(72,187,120,0.5)" : "none"}
+                  >
+                    {paymentConfirmed ? (
+                      /* ═══ SUCCESS STATE ═══ */
+                      <Box 
+                        bgGradient="linear(to-br, green.400, green.600, teal.500)" 
+                        p={10} 
+                        textAlign="center" 
+                        position="relative"
+                        overflow="hidden"
                       >
-                        Generate KHQR to Pay {fmt(selectedBill.amount)}
-                      </Button>
-                    ) : (
-                      <VStack spacing={4}>
-                        <Box p={4} bg="white" borderRadius="xl" display="inline-block" shadow="md">
-                          <QRCodeCanvas value={qrString} size={300} level="M" includeMargin={true} />
+                        {/* Confetti dots */}
+                        {[...Array(12)].map((_, i) => (
+                          <Box
+                            key={i}
+                            position="absolute"
+                            w={`${6 + Math.random() * 8}px`}
+                            h={`${6 + Math.random() * 8}px`}
+                            borderRadius="full"
+                            bg={["yellow.300", "pink.300", "cyan.200", "orange.300", "purple.300"][i % 5]}
+                            top={`${Math.random() * 100}%`}
+                            left={`${Math.random() * 100}%`}
+                            opacity={0.7}
+                            animation={`confettiFall ${1.5 + Math.random() * 2}s ease-in-out infinite`}
+                            style={{ animationDelay: `${Math.random() * 2}s` }}
+                          />
+                        ))}
+
+                        <Box animation="successBounce 0.6s ease-out">
+                          <Flex 
+                            w={20} h={20} 
+                            mx="auto" 
+                            mb={4} 
+                            bg="whiteAlpha.300" 
+                            borderRadius="full" 
+                            align="center" 
+                            justify="center"
+                            shadow="0 0 40px rgba(255,255,255,0.3)"
+                          >
+                            <Icon as={FiCheckCircle} boxSize={10} color="white" />
+                          </Flex>
+                          <Heading size="lg" color="white" mb={2}>Payment Received!</Heading>
+                          <Text fontSize="md" color="whiteAlpha.900" fontWeight="semibold">
+                            {fmt(selectedBill.amount)} paid successfully
+                          </Text>
+                          <Text fontSize="xs" color="whiteAlpha.700" mt={2}>
+                            Your bill has been automatically marked as paid
+                          </Text>
                         </Box>
-                        <Text fontSize="10px" color={useColorModeValue("gray.400", "gray.600")} wordBreak="break-all" maxW="300px">
-                          {qrString}
-                        </Text>
-                        <Text fontSize="sm" color={mutedText} fontWeight="bold">
-                          Scan this QR with your Bank App.
-                        </Text>
-                        
-                        <Divider />
-                        
-                        <Text fontSize="xs" color="gray.500">
-                          After transferring the money, please notify the Admin:
-                        </Text>
-                        <Button
-                          colorScheme="blue"
-                          size="md"
-                          w="full"
-                          variant="outline"
-                          onClick={() => {
-                            toast.success("Receipt uploaded (Simulated)! The Admin will verify it shortly.");
-                            // Future: Open a file picker for the receipt and call API to mark as 'pending_verification'
-                            onClose();
-                          }}
+
+                        <Badge 
+                          mt={6} 
+                          bg="whiteAlpha.200" 
+                          color="white" 
+                          px={4} py={2} 
+                          borderRadius="full" 
+                          fontSize="xs" 
+                          fontWeight="black"
+                          textTransform="uppercase"
+                          letterSpacing="wider"
                         >
-                          I have paid & Upload Receipt
-                        </Button>
-                      </VStack>
+                          ✓ Transaction Confirmed
+                        </Badge>
+                      </Box>
+                    ) : (
+                      <>
+                        {/* ═══ HEADER BAR ═══ */}
+                        <Box bg={qrString ? "blue.500" : "red.500"} px={5} py={3} transition="background 0.4s">
+                          <Flex align="center" justify="space-between">
+                            <HStack spacing={2}>
+                              <Icon as={FiZap} color="white" />
+                              <Text fontSize="sm" fontWeight="black" color="white" textTransform="uppercase" letterSpacing="wider">
+                                {qrString ? "Scan & Pay" : "Bakong KHQR"}
+                              </Text>
+                            </HStack>
+                            <Badge bg="whiteAlpha.200" color="white" fontSize="10px" fontWeight="bold" px={3} py={1} borderRadius="full">
+                              {fmt(selectedBill.amount)}
+                            </Badge>
+                          </Flex>
+                        </Box>
+
+                        <Box p={6} bg={useColorModeValue("gray.50", "whiteAlpha.50")} textAlign="center">
+                          {loadingQr ? (
+                            /* ═══ LOADING STATE ═══ */
+                            <VStack spacing={4} py={8}>
+                              <Box position="relative">
+                                <Spinner size="xl" color="blue.500" thickness="4px" speed="0.8s" />
+                                <Box position="absolute" inset={0} borderRadius="full" animation="qrGlow 2s ease-in-out infinite" />
+                              </Box>
+                              <VStack spacing={1}>
+                                <Text fontSize="sm" fontWeight="bold" color={textColor}>Generating Secure QR Code</Text>
+                                <Text fontSize="xs" color={mutedText}>Connecting to Bakong gateway...</Text>
+                              </VStack>
+                            </VStack>
+                          ) : qrString ? (
+                            /* ═══ QR DISPLAYED + POLLING STATE ═══ */
+                            <VStack spacing={5}>
+                              {/* ═══ Branded KHQR Template ═══ */}
+                              <Box 
+                                w="320px" 
+                                bg="white" 
+                                borderRadius="2xl" 
+                                overflow="hidden" 
+                                shadow="2xl" 
+                                border="1px solid" 
+                                borderColor="gray.200"
+                                animation="qrGlow 3s ease-in-out infinite"
+                              >
+                                {/* KHQR Header */}
+                                <Box bg="#005EAA" p={4}>
+                                  <Flex align="center" justify="space-between">
+                                    <Image src={KHQR_LOGO} h="24px" alt="KHQR" fallback={<Text color="white" fontWeight="black">KHQR</Text>} />
+                                    <Text fontSize="10px" fontWeight="black" color="whiteAlpha.800" textTransform="uppercase">Scan to Pay</Text>
+                                  </Flex>
+                                </Box>
+
+                                {/* QR Code Area with Bakong Center Logo */}
+                                <Box p={4} bg="white" position="relative">
+                                  <Flex justify="center" align="center" py={2}>
+                                    <QRCodeCanvas 
+                                      value={qrString} 
+                                      size={240} 
+                                      level="H" 
+                                      includeMargin={false}
+                                      imageSettings={{
+                                        src: BAKONG_LOGO_RED,
+                                        x: undefined,
+                                        y: undefined,
+                                        height: 44,
+                                        width: 44,
+                                        excavate: true,
+                                      }}
+                                    />
+                                  </Flex>
+                                </Box>
+
+                                {/* Merchant Info Footer */}
+                                <Box px={5} pb={5} pt={2} textAlign="center">
+                                  <VStack spacing={0}>
+                                    <Text fontSize="md" fontWeight="black" color="gray.800">PHEAK SIEVTHAI</Text>
+                                    <Text fontSize="sm" fontWeight="bold" color="blue.600">
+                                      {selectedBill.currency === "KHR" ? `${Number(selectedBill.amount * (localStorage.getItem("exchangeRate") || 4000)).toLocaleString()} KHR` : `$${Number(selectedBill.amount).toFixed(2)}`}
+                                    </Text>
+                                  </VStack>
+                                  <Divider my={3} />
+                                  <Text fontSize="9px" fontWeight="bold" color="gray.400" textTransform="uppercase" letterSpacing="widest">
+                                    Powered by Bakong
+                                  </Text>
+                                </Box>
+                              </Box>
+
+                              {/* Step Progress Tracker */}
+                              <Box w="full" px={2}>
+                                <Flex justify="space-between" align="center" position="relative">
+                                  <Box position="absolute" top="14px" left="15%" right="15%" h="3px" bg={useColorModeValue("gray.200", "gray.600")} borderRadius="full">
+                                    <Box h="full" bg="blue.400" borderRadius="full" w="33%" transition="width 0.5s" />
+                                  </Box>
+                                  <VStack spacing={1} zIndex={1}>
+                                    <Flex w={7} h={7} borderRadius="full" bg="blue.500" align="center" justify="center" shadow="sm">
+                                      <Icon as={FiCheckCircle} color="white" boxSize={3.5} />
+                                    </Flex>
+                                    <Text fontSize="9px" fontWeight="black" color="blue.600" textTransform="uppercase">Generated</Text>
+                                  </VStack>
+                                  <VStack spacing={1} zIndex={1}>
+                                    <Flex w={7} h={7} borderRadius="full" bg="orange.400" align="center" justify="center" animation="stepPulse 2s ease-in-out infinite" shadow="0 0 12px rgba(237,137,54,0.5)">
+                                      <Spinner size="xs" color="white" speed="1.2s" />
+                                    </Flex>
+                                    <Text fontSize="9px" fontWeight="black" color="orange.500" textTransform="uppercase">Awaiting</Text>
+                                  </VStack>
+                                  <VStack spacing={1} zIndex={1}>
+                                    <Flex w={7} h={7} borderRadius="full" bg={useColorModeValue("gray.200", "gray.600")} align="center" justify="center">
+                                      <Icon as={FiCheckCircle} color={useColorModeValue("gray.400", "gray.500")} boxSize={3.5} />
+                                    </Flex>
+                                    <Text fontSize="9px" fontWeight="bold" color={mutedText} textTransform="uppercase">Confirmed</Text>
+                                  </VStack>
+                                </Flex>
+                              </Box>
+
+                              <Box w="full" p={3} bg={useColorModeValue("blue.50", "blue.900")} borderRadius="lg" border="1px solid" borderColor={useColorModeValue("blue.100", "blue.700")}>
+                                <HStack justify="center" spacing={3}>
+                                  <Box position="relative" w={4} h={4}>
+                                    <Box position="absolute" inset={0} borderRadius="full" bg="green.400" animation="liveDot 2s ease-in-out infinite" />
+                                    <Box w={2} h={2} borderRadius="full" bg="green.500" position="absolute" top="4px" left="4px" />
+                                  </Box>
+                                  <Text fontSize="xs" fontWeight="bold" color={useColorModeValue("blue.700", "blue.200")}>Listening for payment — auto-confirms when received</Text>
+                                </HStack>
+                              </Box>
+
+                              <Divider />
+                              <Button colorScheme="blue" size="sm" variant="ghost" onClick={handleGenerateQr} isLoading={loadingQr} fontSize="xs">
+                                ↻ Regenerate QR Code
+                              </Button>
+                            </VStack>
+                          ) : (
+                            /* ═══ FALLBACK: GENERATE BUTTON ═══ */
+                            <VStack spacing={3} py={4}>
+                              <Icon as={FiZap} boxSize={8} color="red.400" />
+                              <Text fontSize="sm" fontWeight="bold" color={textColor}>Ready to Pay?</Text>
+                              <Button colorScheme="red" onClick={handleGenerateQr} leftIcon={<FiZap />} size="lg" w="full" borderRadius="xl">
+                                Generate QR — {fmt(selectedBill.amount)}
+                              </Button>
+                            </VStack>
+                          )}
+                        </Box>
+                      </>
                     )}
                   </Box>
                 )}
@@ -495,7 +723,7 @@ export default function TenantUtility() {
           </ModalBody>
           
           <ModalFooter py={6} borderTop="1px solid" borderColor={borderColor}>
-            <Button w="full" onClick={onClose} fontWeight="black" textTransform="uppercase" letterSpacing="widest" fontSize="xs">
+            <Button w="full" onClick={handleClose} fontWeight="black" textTransform="uppercase" letterSpacing="widest" fontSize="xs">
               {t("utility.close")}
             </Button>
           </ModalFooter>
@@ -505,16 +733,39 @@ export default function TenantUtility() {
   );
 }
 
-const pulseKeyframes = `
+const paymentKeyframes = `
 @keyframes pulse {
   0% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.05); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes qrGlow {
+  0%, 100% { box-shadow: 0 0 15px -3px rgba(66,153,225,0.3); }
+  50% { box-shadow: 0 0 30px -3px rgba(66,153,225,0.6); }
+}
+@keyframes stepPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+@keyframes liveDot {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.8); opacity: 0; }
+}
+@keyframes confettiFall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0.7; }
+  50% { transform: translateY(-15px) rotate(180deg); opacity: 1; }
+  100% { transform: translateY(0) rotate(360deg); opacity: 0.7; }
+}
+@keyframes successBounce {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.05); }
+  70% { transform: scale(0.95); }
   100% { transform: scale(1); opacity: 1; }
 }
 `;
 
 if (typeof document !== 'undefined') {
   const style = document.createElement('style');
-  style.innerHTML = pulseKeyframes;
+  style.innerHTML = paymentKeyframes;
   document.head.appendChild(style);
 }

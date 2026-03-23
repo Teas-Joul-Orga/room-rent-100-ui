@@ -41,12 +41,8 @@ import {
   FiShield,
   FiActivity,
 } from "react-icons/fi";
+import { useTranslation } from "react-i18next";
 
-const steps = [
-  { title: "Tenant", description: "Select Tenant", icon: FiUser },
-  { title: "Room", description: "Select Room", icon: FiHome },
-  { title: "Details", description: "Lease Info", icon: FiCalendar },
-];
 
 const fmt = (n) => {
   const c = localStorage.getItem("currency") || "$";
@@ -60,12 +56,18 @@ const fmt = (n) => {
 };
 
 export default function CreateNewLease() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = Boolean(id);
   const isRenew = window.location.pathname.includes('/renew');
   const today = new Date().toISOString().split("T")[0];
   const isRiel = localStorage.getItem("currency") === "៛" || localStorage.getItem("currency") === "KHR" || localStorage.getItem("currency") === "Riel";
+
+  const steps = [
+    { title: t("lease_create.step_tenant_room") || "Tenant & Room", description: t("lease_create.desc_tenant_room") || "Select Tenant & Room", icon: FiUser },
+    { title: t("lease_create.step_details"), description: t("lease_create.desc_details"), icon: FiCalendar },
+  ];
 
   const [activeStep, setActiveStep] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -93,6 +95,8 @@ export default function CreateNewLease() {
     security_deposit: 0,
     status: "active",
   });
+
+  const [duration, setDuration] = useState(null);
 
   // Theme
   const bg = useColorModeValue("gray.50", "#0d1117");
@@ -154,9 +158,12 @@ export default function CreateNewLease() {
             if (l.tenant) setTenantSearch(l.tenant.name);
           }
         }
+        // We don't initialize 'duration' from the lease because calculating duration precisely backwards from dates might be messy 
+        // and editing might not need the exact duration chip highlighted if it's already set.
+        // But for completeness, we could calculate it. For now, it's manually selected.
       } catch (error) {
         console.error("Failed to fetch data:", error);
-        toast.error("Error loading data from server.");
+        toast.error(t("lease_create.err_fetch"));
       } finally {
         setIsLoading(false);
       }
@@ -202,16 +209,13 @@ export default function CreateNewLease() {
 
   const handleNext = () => {
     const newErrors = {};
-    if (activeStep === 0 && !formData.tenant_id) {
-      newErrors.tenant_id = "Please select a tenant.";
-    }
-    if (activeStep === 1 && !formData.room_id) {
-      newErrors.room_id = "Please select a room.";
+    if (activeStep === 0) {
+      if (!formData.tenant_id) newErrors.tenant_id = t("lease_create.err_sel_tenant");
+      if (!formData.room_id) newErrors.room_id = t("lease_create.err_sel_room");
     }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      // Optional: scroll to error
       return;
     }
 
@@ -229,16 +233,16 @@ export default function CreateNewLease() {
     if (activeStep < steps.length - 1) return;
 
     const newErrors = {};
-    if (!formData.tenant_id) newErrors.tenant_id = "Tenant is required";
-    if (!formData.room_id) newErrors.room_id = "Room is required";
-    if (!formData.start_date) newErrors.start_date = "Start date is required";
-    if (!formData.end_date) newErrors.end_date = "End date is required";
-    if (formData.rent_amount === "" || formData.rent_amount === null) newErrors.rent_amount = "Rent amount is required";
-    if (formData.security_deposit === "" || formData.security_deposit === null) newErrors.security_deposit = "Security deposit is required";
+    if (!formData.tenant_id) newErrors.tenant_id = t("lease_create.err_req_tenant");
+    if (!formData.room_id) newErrors.room_id = t("lease_create.err_req_room");
+    if (!formData.start_date) newErrors.start_date = t("lease_create.err_req_start");
+    if (!formData.end_date) newErrors.end_date = t("lease_create.err_req_end");
+    if (formData.rent_amount === "" || formData.rent_amount === null) newErrors.rent_amount = t("lease_create.err_req_rent");
+    if (formData.security_deposit === "" || formData.security_deposit === null) newErrors.security_deposit = t("lease_create.err_req_deposit");
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      toast.error("Please fill all required fields");
+      toast.error(t("lease_create.err_fill_all"));
       return;
     }
 
@@ -256,13 +260,13 @@ export default function CreateNewLease() {
       });
       const data = await res.json();
       if (res.ok) {
-        toast.success(isEdit ? "Lease updated!" : "Lease created successfully!");
+        toast.success(isEdit ? t("lease_create.success_update") : t("lease_create.success_create"));
         navigate("/dashboard/lease");
       } else {
-        toast.error(data.message || "Failed to save lease");
+        toast.error(data.message || t("lease_create.err_save"));
       }
     } catch (e) {
-      toast.error("Network error");
+      toast.error(t("lease_create.err_network"));
     } finally {
       setIsSaving(false);
     }
@@ -282,7 +286,7 @@ export default function CreateNewLease() {
       <Center minH="100vh" bg={bg}>
         <VStack gap={4}>
           <Spinner size="xl" color="blue.500" thickness="4px" />
-          <Text color={mutedText} fontWeight="medium">Loading...</Text>
+          <Text color={mutedText} fontWeight="medium">{t("lease_create.loading")}</Text>
         </VStack>
       </Center>
     );
@@ -302,14 +306,14 @@ export default function CreateNewLease() {
             onClick={() => navigate("/dashboard/lease")}
             size="sm"
           >
-            Back
+            {t("common.back")}
           </Button>
           <Box>
             <Heading size="lg" color={textColor} fontWeight="black">
-              {isEdit ? "Edit Lease Agreement" : "New Lease Agreement"}
+              {isEdit ? t("lease_create.title_edit") : t("lease_create.title_new")}
             </Heading>
             <Text fontSize="sm" color={mutedText} mt={0.5}>
-              {isEdit ? "Update the details below" : "Complete the 3 steps to create a lease"}
+              {isEdit ? t("lease_create.subtitle_edit") : t("lease_create.subtitle_new")}
             </Text>
           </Box>
         </Flex>
@@ -334,7 +338,7 @@ export default function CreateNewLease() {
                   </Flex>
                   <Box display={{ base: "none", md: "block" }}>
                     <Text fontSize="xs" fontWeight="black" color={isActive ? "blue.600" : isDone ? "green.600" : mutedText} textTransform="uppercase" letterSpacing="wider">
-                      Step {index + 1}
+                      {t("lease_create.step_prefix")} {index + 1}
                     </Text>
                     <Text fontSize="sm" fontWeight="bold" color={isActive ? textColor : mutedText}>
                       {step.title}
@@ -358,11 +362,12 @@ export default function CreateNewLease() {
               }}
             >
 
-              {/* ===== STEP 1: TENANT ===== */}
+              {/* ===== STEP 1: TENANT & ROOM ===== */}
               {activeStep === 0 && (
-                <Box>
-                  <Text fontSize="lg" fontWeight="black" color={textColor} mb={1}>Select Tenant</Text>
-                  <Text fontSize="sm" color={mutedText} mb={6}>Search and select the tenant for this lease.</Text>
+                <SimpleGrid columns={{ base: 1, xl: 2 }} spacing={10} w="full" alignItems="start">
+                  <Box>
+                  <Text fontSize="lg" fontWeight="black" color={textColor} mb={1}>{t("lease_create.select_tenant_title")}</Text>
+                  <Text fontSize="sm" color={mutedText} mb={6}>{t("lease_create.select_tenant_desc")}</Text>
 
                   <Box maxW="xl" position="relative" ref={tenantDropdownRef}>
                     <FormControl isInvalid={errors.tenant_id}>
@@ -372,7 +377,7 @@ export default function CreateNewLease() {
                         </InputLeftElement>
                         <Input
                           pl="44px"
-                          placeholder="Search by name or email..."
+                          placeholder={t("lease_create.search_tenant_ph")}
                           value={tenantSearch}
                           bg={inputBg}
                           isDisabled={isRenew}
@@ -416,13 +421,13 @@ export default function CreateNewLease() {
                                   <Icon as={FiCheck} color="green.500" boxSize={3} />
                                 )}
                               </Flex>
-                              <Text fontSize="xs" color={mutedText}>{t.email || "No email"}</Text>
+                              <Text fontSize="xs" color={mutedText}>{t.email || t("lease_create.no_email")}</Text>
                             </Box>
                           </Flex>
                         )) : (
                           <Box px={5} py={6} textAlign="center">
                             <Icon as={FiUser} color={mutedText} boxSize={6} mb={2} />
-                            <Text fontSize="sm" color={mutedText}>No tenants found.</Text>
+                            <Text fontSize="sm" color={mutedText}>{t("lease_create.no_tenants")}</Text>
                           </Box>
                         )}
                       </Box>
@@ -437,26 +442,23 @@ export default function CreateNewLease() {
                         <Box flex={1}>
                           <Flex align="center" gap={2} mb={1}>
                             <Text fontWeight="black" fontSize="md" color={textColor}>{selectedTenant.name}</Text>
-                            <Badge colorScheme="green" fontSize="9px" fontWeight="black">Selected</Badge>
+                            <Badge colorScheme="green" fontSize="9px" fontWeight="black">{t("lease_create.badge_selected")}</Badge>
                           </Flex>
-                          <Text fontSize="sm" color={mutedText}>{selectedTenant.email || "No email"}</Text>
+                          <Text fontSize="sm" color={mutedText}>{selectedTenant.email || t("lease_create.no_email")}</Text>
                           {selectedTenant.phone && <Text fontSize="sm" color={mutedText}>{selectedTenant.phone}</Text>}
                         </Box>
                         <Icon as={FiCheck} color="green.500" boxSize={6} />
                       </Flex>
                     </Box>
                   )}
-                </Box>
-              )}
+                  </Box>
 
-              {/* ===== STEP 2: ROOM ===== */}
-              {activeStep === 1 && (
-                <Box>
-                  <Text fontSize="lg" fontWeight="black" color={textColor} mb={1}>Select Room</Text>
-                  <Text fontSize="sm" color={mutedText} mb={6}>Choose an available unit for this lease.</Text>
+                  <Box>
+                    <Text fontSize="lg" fontWeight="black" color={textColor} mb={1}>{t("lease_create.select_room_title")}</Text>
+                    <Text fontSize="sm" color={mutedText} mb={6}>{t("lease_create.select_room_desc")}</Text>
 
-                  <FormControl isInvalid={errors.room_id}>
-                    <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} spacing={4}>
+                    <FormControl isInvalid={errors.room_id}>
+                    <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
                       {rooms.map((r) => {
                       const isSelected = String(formData.room_id) === String(r.id);
                       const isAvailable = r.status?.toLowerCase() === "available" || isSelected;
@@ -495,17 +497,17 @@ export default function CreateNewLease() {
                           )}
                           <Icon as={FiHome} color={isSelected ? "blue.500" : mutedText} boxSize={5} mb={3} />
                           <Text fontWeight="black" fontSize="md" color={textColor} mb={1}>{r.name}</Text>
-                          <Text fontSize="xs" color={mutedText} mb={3}>{r.size || "Standard Unit"}</Text>
+                          <Text fontSize="xs" color={mutedText} mb={3}>{r.size || t("lease_create.standard_unit")}</Text>
                           <Text fontSize="xl" fontWeight="black" color={isSelected ? "blue.600" : textColor}>
                             {fmt(r.base_rent_price || 0)}
-                            <Text as="span" fontSize="xs" color={mutedText} fontWeight="normal"> /mo</Text>
+                            <Text as="span" fontSize="xs" color={mutedText} fontWeight="normal"> {t("lease_create.per_month")}</Text>
                           </Text>
                           <Badge
                             mt={2} fontSize="9px" fontWeight="black" textTransform="uppercase"
                             colorScheme={r.status?.toLowerCase() === "available" ? "green" : isSelected ? "blue" : "red"}
                             borderRadius="full" px={2} py={1}
                           >
-                            {isSelected ? "Selected" : r.status || "Available"}
+                            {isSelected ? t("lease_create.badge_selected") : (r.status?.toLowerCase() === "available" ? t("lease_create.status_available") : r.status)}
                           </Badge>
                         </Box>
                       );
@@ -513,14 +515,15 @@ export default function CreateNewLease() {
                   </SimpleGrid>
                   <FormErrorMessage>{errors.room_id}</FormErrorMessage>
                 </FormControl>
-              </Box>
+                  </Box>
+                </SimpleGrid>
               )}
 
-              {/* ===== STEP 3: DETAILS ===== */}
-              {activeStep === 2 && (
+              {/* ===== STEP 2: DETAILS ===== */}
+              {activeStep === 1 && (
                 <Box>
-                  <Text fontSize="lg" fontWeight="black" color={textColor} mb={1}>Lease Details</Text>
-                  <Text fontSize="sm" color={mutedText} mb={6}>Set the financial terms and dates for this agreement.</Text>
+                  <Text fontSize="lg" fontWeight="black" color={textColor} mb={1}>{t("lease_create.details_title")}</Text>
+                  <Text fontSize="sm" color={mutedText} mb={6}>{t("lease_create.details_desc")}</Text>
 
                   {/* Selection Summary */}
                   {(selectedTenant || selectedRoom) && (
@@ -529,7 +532,7 @@ export default function CreateNewLease() {
                         <Flex flex={1} align="center" gap={3} p={4} bg={useColorModeValue("gray.50", "#1c2333")} borderRadius="xl" border="1px solid" borderColor={borderColor}>
                           <Avatar size="sm" name={selectedTenant.name} />
                           <Box>
-                            <Text fontSize="10px" fontWeight="black" color={mutedText} textTransform="uppercase">Tenant</Text>
+                            <Text fontSize="10px" fontWeight="black" color={mutedText} textTransform="uppercase">{t("lease_create.tenant_label")}</Text>
                             <Text fontWeight="bold" fontSize="sm" color={textColor}>{selectedTenant.name}</Text>
                           </Box>
                         </Flex>
@@ -540,7 +543,7 @@ export default function CreateNewLease() {
                             <Icon as={FiHome} color="blue.600" />
                           </Flex>
                           <Box>
-                            <Text fontSize="10px" fontWeight="black" color={mutedText} textTransform="uppercase">Room</Text>
+                            <Text fontSize="10px" fontWeight="black" color={mutedText} textTransform="uppercase">{t("lease_create.room_label")}</Text>
                             <Text fontWeight="bold" fontSize="sm" color={textColor}>{selectedRoom.name}</Text>
                           </Box>
                         </Flex>
@@ -553,11 +556,11 @@ export default function CreateNewLease() {
                     <Box p={6} bg={useColorModeValue("blue.50", "blue.900/30")} borderRadius="xl" border="1px solid" borderColor={useColorModeValue("blue.100", "blue.700")}>
                       <Flex align="center" gap={2} mb={5}>
                         <Icon as={FiActivity} color="blue.600" />
-                        <Text fontWeight="black" fontSize="sm" color={useColorModeValue("blue.800", "blue.100")}>Financial Terms</Text>
+                        <Text fontWeight="black" fontSize="sm" color={useColorModeValue("blue.800", "blue.100")}>{t("lease_create.financial_terms")}</Text>
                       </Flex>
                       <VStack spacing={4}>
                         <FormControl isInvalid={errors.rent_amount}>
-                          <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Monthly Rent</FormLabel>
+                          <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>{t("lease_create.monthly_rent")}</FormLabel>
                           <InputGroup size="md">
                             <InputLeftAddon fontWeight="black" bg={useColorModeValue("gray.100", "gray.700")}>
                               {isRiel ? "៛" : "$"}
@@ -579,7 +582,7 @@ export default function CreateNewLease() {
                           <FormErrorMessage>{errors.rent_amount}</FormErrorMessage>
                         </FormControl>
                         <FormControl isInvalid={errors.security_deposit}>
-                          <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Security Deposit</FormLabel>
+                          <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>{t("lease_create.security_deposit")}</FormLabel>
                           <InputGroup size="md">
                             <InputLeftAddon fontWeight="black" bg={useColorModeValue("gray.100", "gray.700")}>
                               {isRiel ? "៛" : "$"}
@@ -608,20 +611,50 @@ export default function CreateNewLease() {
                       <Box w="full" p={6} bg={useColorModeValue("gray.50", "#31363f/50")} borderRadius="xl" border="1px solid" borderColor={borderColor}>
                         <Flex align="center" gap={2} mb={5}>
                           <Icon as={FiCalendar} color={mutedText} />
-                          <Text fontWeight="black" fontSize="sm" color={textColor}>Lease Duration</Text>
+                          <Text fontWeight="black" fontSize="sm" color={textColor}>{t("lease_create.lease_duration")}</Text>
                         </Flex>
                         <VStack spacing={4}>
                           <FormControl isInvalid={errors.start_date}>
-                            <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Start Date</FormLabel>
+                            <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>{t("lease_create.start_date")}</FormLabel>
                             <Input size="md" type="date" bg={inputBg} value={formData.start_date}
-                              onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} />
+                              onChange={(e) => {
+                                const newStart = e.target.value;
+                                setFormData({ ...formData, start_date: newStart });
+                                if (duration) {
+                                  const newEnd = dayjs(newStart).add(duration, 'month').subtract(1, 'day').format('YYYY-MM-DD');
+                                  setFormData(prev => ({ ...prev, end_date: newEnd }));
+                                }
+                              }} />
                             <FormErrorMessage>{errors.start_date}</FormErrorMessage>
                           </FormControl>
                           <FormControl isInvalid={errors.end_date}>
-                            <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>End Date</FormLabel>
-                            <Input size="md" type="date" bg={inputBg} value={formData.end_date}
-                              onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
+                            <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>{t("lease_create.duration_label")}</FormLabel>
+                            <SimpleGrid columns={3} spacing={2}>
+                               {[1, 3, 6, 12, 24].map((m) => (
+                                 <Button
+                                    key={m}
+                                    size="sm"
+                                    px={0}
+                                    variant={duration === m ? "solid" : "outline"}
+                                    colorScheme="blue"
+                                    onClick={() => {
+                                      setDuration(m);
+                                      if (formData.start_date) {
+                                         const newEnd = dayjs(formData.start_date).add(m, 'month').subtract(1, 'day').format('YYYY-MM-DD');
+                                         setFormData(prev => ({ ...prev, end_date: newEnd }));
+                                      }
+                                    }}
+                                 >
+                                    {m > 1 ? t("lease_create.months_plural", { count: m }) : t("lease_create.months", { count: m })}
+                                 </Button>
+                               ))}
+                            </SimpleGrid>
                             <FormErrorMessage>{errors.end_date}</FormErrorMessage>
+                            {formData.end_date && (
+                               <Text mt={2} fontSize="xs" color={mutedText}>
+                                  {t("lease_create.ends_on")} <Text as="span" fontWeight="bold" color={textColor}>{dayjs(formData.end_date).format('MMM D, YYYY')}</Text>
+                               </Text>
+                            )}
                           </FormControl>
                         </VStack>
                       </Box>
@@ -629,11 +662,11 @@ export default function CreateNewLease() {
                       <Box w="full" p={6} bg={useColorModeValue("gray.50", "#31363f/50")} borderRadius="xl" border="1px solid" borderColor={borderColor}>
                         <Flex align="center" gap={2} mb={5}>
                           <Icon as={FiShield} color={mutedText} />
-                          <Text fontWeight="black" fontSize="sm" color={textColor}>Lease Status</Text>
+                          <Text fontWeight="black" fontSize="sm" color={textColor}>{t("lease_create.lease_status")}</Text>
                         </Flex>
                         <FormControl>
-                          <SimpleGrid columns={3} spacing={2}>
-                            {["active", "expired", "terminated"].map((s) => (
+                          <SimpleGrid columns={1} spacing={2}>
+                            {["active"].map((s) => (
                               <Button
                                 key={s}
                                 type="button"
@@ -647,7 +680,7 @@ export default function CreateNewLease() {
                                 letterSpacing="wider"
                                 py={6}
                               >
-                                {s}
+                                {s === "active" ? t("lease.active") || "ACTIVE" : s}
                               </Button>
                             ))}
                           </SimpleGrid>
@@ -665,11 +698,11 @@ export default function CreateNewLease() {
                 {/* Left: Cancel / Back */}
                 {activeStep === 0 ? (
                   <Button type="button" variant="ghost" color={mutedText} onClick={() => navigate("/dashboard/lease")} isDisabled={isSaving}>
-                    Cancel
+                    {t("lease_create.btn_cancel")}
                   </Button>
                 ) : (
                   <Button type="button" leftIcon={<FiArrowLeft />} variant="outline" onClick={handlePrev} isDisabled={isSaving}>
-                    Back
+                    {t("common.back")}
                   </Button>
                 )}
 
@@ -683,7 +716,7 @@ export default function CreateNewLease() {
                     px={8}
                     onClick={handleNext}
                   >
-                    Next Step
+                    {t("lease_create.btn_next")}
                   </Button>
                 ) : (
                   <Button
@@ -694,7 +727,7 @@ export default function CreateNewLease() {
                     type="submit"
                     isLoading={isSaving}
                   >
-                    {isEdit ? "Update Lease" : "Confirm & Save"}
+                    {isEdit ? t("lease_create.btn_update") : t("lease_create.btn_confirm")}
                   </Button>
                 )}
               </Flex>

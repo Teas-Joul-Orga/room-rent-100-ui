@@ -980,8 +980,9 @@ export default function ViewLease() {
                     <SimpleGrid columns={3} spacing={4}>
                       <FormControl>
                         <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Previous Reading</FormLabel>
-                        <Input size="sm" type="number" step="0.01" bg={inputBg} borderColor={borderColor} value={billForm.previous_reading} readOnly />
-                        <Text fontSize="xs" color={mutedText} mt={1}>Auto-fetched.</Text>
+                        <Input size="sm" type="number" step="0.01" bg={inputBg} borderColor={borderColor} value={billForm.previous_reading} 
+                          onChange={e => setBillForm({ ...billForm, previous_reading: e.target.value })} />
+                        <Text fontSize="xs" color={mutedText} mt={1}>Auto-fetched, but editable.</Text>
                       </FormControl>
                       <FormControl>
                         <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Current Reading</FormLabel>
@@ -1235,7 +1236,7 @@ export default function ViewLease() {
                         transition="all 0.2s"
                         onClick={() => {
                           if (isOccupied) return;
-                          setEditForm({ ...editForm, room_id: room.id, rent_amount: room.price || editForm.rent_amount });
+                          setEditForm({ ...editForm, room_id: room.id, rent_amount: toCurrent(room.price) || editForm.rent_amount });
                         }}
                       >
                         <Text fontWeight="bold" fontSize="sm" color={textColor}>{room.name}</Text>
@@ -1243,7 +1244,7 @@ export default function ViewLease() {
                         <Text fontSize="xs" fontWeight="bold" color={isOccupied ? "red.500" : isSelected ? "blue.500" : "green.500"} mt={1}>
                           {isOccupied ? "Occupied" : isSelected ? "Available / Selected" : "Available"}
                         </Text>
-                        <Text fontWeight="black" color={textColor} mt={2} fontSize="md">${Number(room.price || 0).toFixed(2)}</Text>
+                        <Text fontWeight="black" color={textColor} mt={2} fontSize="md">{fmt(room.price || 0)}</Text>
                         <Text fontSize="9px" fontWeight="bold" color={mutedText} textTransform="uppercase">/ Month</Text>
                       </Box>
                     );

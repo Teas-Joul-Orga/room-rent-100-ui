@@ -23,6 +23,7 @@ import {
   InputLeftElement,
   Switch,
   Collapse,
+  Select,
 } from "@chakra-ui/react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { 
@@ -55,6 +56,7 @@ const AddNewTenant = () => {
   const [isFetching, setIsFetching] = useState(isEdit);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [dobState, setDobState] = useState({ year: "", month: "", day: "" });
 
   const [formData, setFormData] = useState({
     name: "",
@@ -63,6 +65,7 @@ const AddNewTenant = () => {
     job: "",
     dob: "",
     create_account: false,
+    username: "",
     password: "",
     password_confirmation: "",
     status: "active",
@@ -114,10 +117,18 @@ const AddNewTenant = () => {
           job: data.job || "",
           dob: data.dob || "",
           create_account: false,
+          username: "",
           password: "",
           password_confirmation: "",
           status: data.status || "active",
         });
+
+        if (data.dob) {
+          const parts = data.dob.split('-');
+          if (parts.length === 3) {
+            setDobState({ year: parts[0], month: parts[1], day: parts[2] });
+          }
+        }
 
         setPreviews({
           photo: data.photo_path ? `http://localhost:8000/storage/${data.photo_path}` : null,
@@ -171,11 +182,14 @@ const AddNewTenant = () => {
       data.append("email", formData.email);
       data.append("phone", formData.phone);
       data.append("job", formData.job);
-      data.append("dob", formData.dob);
+      if (dobState.year && dobState.month && dobState.day) {
+        data.append("dob", `${dobState.year}-${dobState.month.padStart(2, '0')}-${dobState.day.padStart(2, '0')}`);
+      }
       data.append("status", formData.status);
 
       if (!isEdit && formData.create_account) {
         data.append("create_account", "1");
+        if (formData.username) data.append("username", formData.username);
         data.append("password", formData.password);
         data.append("password_confirmation", formData.password_confirmation);
       }
@@ -279,7 +293,7 @@ const AddNewTenant = () => {
 
                     <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
                       <FormControl isRequired>
-                        <FormLabel fontSize="sm" color={labelColor}>{t("tenant.name")}</FormLabel>
+                        <FormLabel fontSize="sm" color={labelColor}>Full name</FormLabel>
                         <InputGroup>
                           <InputLeftElement pointerEvents="none" children={<FiUser color="gray.400" />} />
                           <Input
@@ -346,18 +360,46 @@ const AddNewTenant = () => {
 
                       <FormControl isRequired>
                         <FormLabel fontSize="sm" color={labelColor}>{t("tenant.dob")}</FormLabel>
-                        <InputGroup>
-                          <InputLeftElement pointerEvents="none" children={<FiCalendar color="gray.400" />} />
-                          <Input
-                            name="dob"
-                            type="date"
-                            value={formData.dob}
-                            onChange={handleChange}
-                            bg={inputBg}
-                            borderColor={borderColor}
-                            borderRadius="xl"
-                          />
-                        </InputGroup>
+                        <HStack spacing={2}>
+                          <Select 
+                            placeholder="Day" 
+                            size="md" 
+                            value={dobState.day} 
+                            onChange={(e) => setDobState({ ...dobState, day: e.target.value })}
+                            bg={inputBg} borderColor={borderColor} borderRadius="xl"
+                          >
+                            {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
+                              <option key={d} value={d.toString().padStart(2, '0')}>{d}</option>
+                            ))}
+                          </Select>
+                          <Select 
+                            placeholder="Month" 
+                            size="md" 
+                            value={dobState.month} 
+                            onChange={(e) => setDobState({ ...dobState, month: e.target.value })}
+                            bg={inputBg} borderColor={borderColor} borderRadius="xl"
+                          >
+                            {[
+                              {v: '01', l: 'Jan'}, {v: '02', l: 'Feb'}, {v: '03', l: 'Mar'},
+                              {v: '04', l: 'Apr'}, {v: '05', l: 'May'}, {v: '06', l: 'Jun'},
+                              {v: '07', l: 'Jul'}, {v: '08', l: 'Aug'}, {v: '09', l: 'Sep'},
+                              {v: '10', l: 'Oct'}, {v: '11', l: 'Nov'}, {v: '12', l: 'Dec'}
+                            ].map(m => (
+                              <option key={m.v} value={m.v}>{m.l}</option>
+                            ))}
+                          </Select>
+                          <Select 
+                            placeholder="Year" 
+                            size="md" 
+                            value={dobState.year} 
+                            onChange={(e) => setDobState({ ...dobState, year: e.target.value })}
+                            bg={inputBg} borderColor={borderColor} borderRadius="xl"
+                          >
+                            {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                              <option key={y} value={y}>{y}</option>
+                            ))}
+                          </Select>
+                        </HStack>
                       </FormControl>
                     </SimpleGrid>
                   </VStack>
@@ -382,7 +424,24 @@ const AddNewTenant = () => {
                       </Flex>
 
                       <Collapse in={formData.create_account} animateOpacity>
-                        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} pt={4}>
+                        <Box pt={4} mb={4}>
+                          <FormControl isRequired={formData.create_account}>
+                            <FormLabel fontSize="sm" color={labelColor}>Username</FormLabel>
+                            <InputGroup>
+                              <InputLeftElement pointerEvents="none" children={<FiUser color="gray.400" />} />
+                              <Input
+                                name="username"
+                                value={formData.username}
+                                onChange={handleChange}
+                                placeholder="e.g. john_doe"
+                                bg={inputBg}
+                                borderColor={borderColor}
+                                borderRadius="xl"
+                              />
+                            </InputGroup>
+                          </FormControl>
+                        </Box>
+                        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
                           <FormControl isRequired={formData.create_account}>
                             <FormLabel fontSize="sm" color={labelColor}>{t("common.password")}</FormLabel>
                             <InputGroup>
