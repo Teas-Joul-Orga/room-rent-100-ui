@@ -54,6 +54,7 @@ const getSidebarGroups = (role, t) => {
         { label: t("sidebar.furniture"), path: "/dashboard/furniture", exact: false, pathD: ["M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"] },
         { label: t("sidebar.leases"), path: "/dashboard/lease", exact: false, pathD: ["M7 3h8l4 4v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z", "M9 13h6M9 17h6M9 9h3"] },
         { label: t("sidebar.utilities"), path: "/dashboard/utility", exact: false, pathD: ["M12 2v4", "M7 8h10", "M8 22h8", "M9 12h6v6H9z"] },
+        { label: t("sidebar.bills") || "Bills", path: "/dashboard/bills", exact: false, pathD: ["M9 14l2 2 4-4", "M21 12a9 9 0 11-18 0 9 9 0 0118 0z"] },
         { label: t("sidebar.payments"), path: "/dashboard/payments", exact: false, pathD: ["M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7z", "M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0", "M6 12h.01", "M18 12h.01"] },
         { label: t("sidebar.maintenance"), path: "/dashboard/maintenance", exact: false, pathD: ["M14.7 6.3a4 4 0 0 0-5.7 5.7l-6.3 6.3 2 2 6.3-6.3a4 4 0 0 0 5.7-5.7Z", "M16 8l4-4"] },
         { label: t("sidebar.expenses"), path: "/dashboard/expenses", exact: false, pathD: ["M20 12V8H4v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2z", "M4 12V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4", "M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"] },

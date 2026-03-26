@@ -4,7 +4,7 @@ import {
   Box, Flex, Button, Input, Table, Thead, Tbody, Tr, Th, Td,
   TableContainer, Badge, Select, useColorModeValue, Spinner, Text,
   SimpleGrid, IconButton, Tooltip, Heading, useDisclosure,
-  Tabs, TabList, Tab, TabPanels, TabPanel
+  Tabs, TabList, Tab, TabPanels, TabPanel, Checkbox
 } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next";
 import { FiArrowUp, FiArrowDown, FiTrash2, FiPrinter, FiChevronLeft, FiChevronRight, FiPlus, FiSearch, FiDownload } from "react-icons/fi";
@@ -111,6 +111,14 @@ export default function Payment() {
     fetchPayments(); 
   }, [debouncedSearch, typeFilter, methodFilter, sortField, sortOrder, currentPage, paymentGroup]);
 
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const toggleAll = (checked) => {
+    setSelectedIds(checked ? payments.map(p => p.id) : []);
+  };
+
   const handleDelete = async (p) => {
     if (!window.confirm(`Delete this ${p.type} payment of ${fmt(p.amount_paid)}?`)) return;
     try {
@@ -127,23 +135,16 @@ export default function Payment() {
     } catch (e) { toast.error("Network error"); }
   };
 
-  const handlePrintReceipt = async (ids) => {
+  const handlePrintReceipt = (ids) => {
     const list = Array.isArray(ids) ? ids : [ids];
     if (list.length === 0) { toast.error("Select payments to print."); return; }
-    try {
-      const res = await fetch(`${API}/payments/print-receipt`, {
-        method: "POST",
-        headers: {
-          ...headers(),
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ payment_ids: list }),
-      });
-      if (res.ok) {
-        const blob = await res.blob();
-        window.open(window.URL.createObjectURL(blob), "_blank");
-      } else toast.error("Failed to generate receipt");
-    } catch (e) { toast.error("Network error"); }
+    
+    const queryParams = new URLSearchParams();
+    list.forEach(id => queryParams.append('payment_ids[]', id));
+    queryParams.append('token', localStorage.getItem("token"));
+    
+    const printUrl = `http://localhost:8000/api/v1/admin/print/receipt?${queryParams.toString()}`;
+    window.open(printUrl, "_blank");
   };
 
   const handleSort = (field) => {
@@ -202,6 +203,11 @@ export default function Payment() {
             </Text>
           </Box>
           <Flex gap={2}>
+            {selectedIds.length > 0 && (
+              <Button size="md" colorScheme="purple" variant="outline" leftIcon={<FiPrinter />} onClick={() => handlePrintReceipt(selectedIds)}>
+                {t("payment.print_receipts", `Print Receipts (${selectedIds.length})`)}
+              </Button>
+            )}
             <Button
               size="md"
               colorScheme="green"
@@ -289,6 +295,9 @@ export default function Payment() {
             <Table variant="simple" size="md">
               <Thead bg={tableHBg}>
                 <Tr>
+                  <Th w="40px" borderBottom="2px solid" borderColor={borderColor}>
+                    <Checkbox onChange={(e) => toggleAll(e.target.checked)} isChecked={selectedIds.length === payments.length && payments.length > 0} />
+                  </Th>
                   <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">{t("payment.tenant_room")}</Th>
                   <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase" cursor="pointer" onClick={() => handleSort("payment_date")}>{t("payment.date")}</Th>
                   <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">{t("payment.type")}</Th>
@@ -305,7 +314,10 @@ export default function Payment() {
                   <Tr><Td colSpan={7} textAlign="center" py={12} color={mutedText}>{t("payment.no_records")}</Td></Tr>
                 ) : (
                   payments.map(p => (
-                    <Tr key={p.id} _hover={{ bg: trHoverBg }}>
+                    <Tr key={p.id} _hover={{ bg: trHoverBg }} bg={selectedIds.includes(p.id) ? "blue.50" : "transparent"}>
+                      <Td>
+                        <Checkbox isChecked={selectedIds.includes(p.id)} onChange={() => toggleSelect(p.id)} />
+                      </Td>
                       <Td>
                         <Text fontSize="sm" fontWeight="bold" color={textColor}>{p.lease?.tenant?.name || "—"}</Text>
                         <Text fontSize="sm" color={mutedText}>{p.lease?.room?.name || "No Room"}</Text>

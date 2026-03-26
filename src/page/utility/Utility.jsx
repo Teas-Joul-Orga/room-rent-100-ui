@@ -249,18 +249,30 @@ export default function Utility() {
     }
   };
 
-  const handlePrintInvoice = async () => {
+  const handlePrintInvoice = () => {
     if (selectedIds.length === 0) { toast.error("Select bills to print."); return; }
-    try {
-      const res = await fetch(`${API}/utility-bills/print-invoice`, {
-        method: "POST", headers: headers(),
-        body: JSON.stringify({ bill_ids: selectedIds }),
-      });
-      if (res.ok) {
-        const blob = await res.blob();
-        window.open(window.URL.createObjectURL(blob), "_blank");
-      } else toast.error("Failed to generate invoice");
-    } catch (e) { toast.error("Network error"); }
+    
+    // Construct query string for bill IDs
+    const queryParams = new URLSearchParams();
+    selectedIds.forEach(id => queryParams.append('bill_ids[]', id));
+    queryParams.append('token', localStorage.getItem("token"));
+    
+    // Open direct URL in new tab
+    const printUrl = `http://localhost:8000/api/v1/admin/print/invoice?${queryParams.toString()}`;
+    window.open(printUrl, "_blank");
+  };
+
+  const handlePrintReceipt = (ids) => {
+    const list = Array.isArray(ids) ? ids : [ids];
+    if (list.length === 0) { toast.error("Select payments to print."); return; }
+    
+    const queryParams = new URLSearchParams();
+    list.forEach(id => queryParams.append('payment_ids[]', id));
+    queryParams.append('token', localStorage.getItem("token"));
+    
+    // Open direct URL in new tab
+    const printUrl = `http://localhost:8000/api/v1/admin/print/receipt?${queryParams.toString()}`;
+    window.open(printUrl, "_blank");
   };
 
   const handleSendNotification = async (billId) => {
@@ -310,7 +322,11 @@ export default function Utility() {
   };
 
   const toggleAll = (checked) => {
-    setSelectedIds(checked ? bills.map(b => b.id) : []);
+    if (activeTab === 0) {
+      setSelectedIds(checked ? bills.map(b => b.id) : []);
+    } else {
+      setSelectedIds(checked ? payments.map(p => p.id) : []);
+    }
   };
 
   const renderPagination = () => (
@@ -379,8 +395,8 @@ export default function Utility() {
           </Box>
           <Flex gap={2}>
             {selectedIds.length > 0 && (
-              <Button size="md" colorScheme="purple" variant="outline" leftIcon={<FiPrinter />} onClick={handlePrintInvoice}>
-                {t("utility.print_invoice", { count: selectedIds.length })}
+              <Button size="md" colorScheme="purple" variant="outline" leftIcon={<FiPrinter />} onClick={activeTab === 0 ? handlePrintInvoice : () => handlePrintReceipt(selectedIds)}>
+                {activeTab === 0 ? t("utility.print_invoice", { count: selectedIds.length }) : t("payment.print_receipts", `Print Receipts (${selectedIds.length})`)}
               </Button>
             )}
             <Button
@@ -421,7 +437,7 @@ export default function Utility() {
           </Flex>
         </Flex>
 
-        <Tabs variant="line" colorScheme="blue" index={activeTab} onChange={(i) => setActiveTab(i)} isLazy>
+        <Tabs variant="line" colorScheme="blue" index={activeTab} onChange={(i) => { setActiveTab(i); setSelectedIds([]); }} isLazy>
           <TabList borderBottom="1px solid" borderColor={borderColor} mb={6}>
             <Tab fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" pb={4}>
               {t("utility.statements")}
@@ -590,6 +606,9 @@ export default function Utility() {
                   <Table variant="simple" size="md">
                     <Thead bg={tableHBg}>
                       <Tr>
+                        <Th w="40px" borderBottom="2px solid" borderColor={borderColor}>
+                          <Checkbox onChange={(e) => toggleAll(e.target.checked)} isChecked={selectedIds.length === payments.length && payments.length > 0} />
+                        </Th>
                         <Th color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">{t("utility.tenant_room")}</Th>
                         <Th color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">{t("utility.date")}</Th>
                         <Th color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">{t("utility.amount_paid")}</Th>
@@ -603,7 +622,10 @@ export default function Utility() {
                         <Tr><Td colSpan={6} textAlign="center" py={12} color={mutedText}>No utility payments found.</Td></Tr>
                       ) : (
                         payments.map(p => (
-                          <Tr key={p.id} _hover={{ bg: trHoverBg }}>
+                          <Tr key={p.id} _hover={{ bg: trHoverBg }} bg={selectedIds.includes(p.id) ? "blue.50" : "transparent"}>
+                            <Td>
+                              <Checkbox isChecked={selectedIds.includes(p.id)} onChange={() => toggleSelect(p.id)} />
+                            </Td>
                             <Td>
                               <Text fontSize="sm" fontWeight="bold" color={textColor}>{p.lease?.tenant?.name}</Text>
                               <Text fontSize="sm" color={mutedText}>{p.lease?.room?.name}</Text>

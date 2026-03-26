@@ -269,7 +269,8 @@ export default function AllRoom() {
         ) : rooms.length > 0 ? (
           <SimpleGrid columns={{ base: 1, sm: 2, lg: 3, xl: 4, "2xl": 5 }} spacing={6} pb={6}>
             {rooms.map((r) => {
-              const activeLease = r.leases?.find(l => l.status === 'active');
+              const lastLease = r.leases && r.leases.length > 0 ? r.leases[r.leases.length - 1] : null;
+              const activeLease = lastLease && lastLease.status === 'active' ? lastLease : null;
               const tenantName = activeLease?.tenant?.name;
               let sinceDate = '';
               if (activeLease && activeLease.start_date) {

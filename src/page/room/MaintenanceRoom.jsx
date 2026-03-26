@@ -611,7 +611,8 @@ function MaintenanceRoom() {
                     onChange={e => {
                       const roomId = e.target.value;
                       const selectedRoom = rooms.find(rm => rm.id === Number(roomId));
-                      const activeLease = selectedRoom?.leases?.find(l => l.status === 'active');
+                      const lastLease = selectedRoom?.leases && selectedRoom.leases.length > 0 ? selectedRoom.leases[selectedRoom.leases.length - 1] : null;
+                      const activeLease = lastLease && lastLease.status === 'active' ? lastLease : null;
                       setAdminCreateForm({ 
                         ...adminCreateForm, 
                         room_id: roomId, 
@@ -634,8 +635,8 @@ function MaintenanceRoom() {
                     onChange={e => setAdminCreateForm({ ...adminCreateForm, tenant_id: e.target.value })}
                   >
                     {/* Populated based on room selection above or all tenants if flexible */}
-                    {rooms.find(rm => rm.id === Number(adminCreateForm.room_id))?.leases
-                      ?.filter(l => l.status === 'active')
+                    {[rooms.find(rm => rm.id === Number(adminCreateForm.room_id))?.leases?.slice(-1)[0]]
+                      .filter(l => l && l.status === 'active')
                       .map(l => (
                         <option key={l.tenant.id} value={l.tenant.id}>{l.tenant.name}</option>
                       ))

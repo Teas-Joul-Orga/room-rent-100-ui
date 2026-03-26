@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+build_output.txt
+es.txt
+eslint_output.txt

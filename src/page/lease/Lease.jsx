@@ -33,9 +33,13 @@ import {
   ModalCloseButton,
   useDisclosure,
   VStack,
+  SimpleGrid,
+  HStack,
+  Divider,
+  Avatar,
 } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next";
-import { FiArrowUp, FiArrowDown, FiPlus, FiEye, FiEdit2, FiTrash2, FiCalendar } from "react-icons/fi";
+import { FiArrowUp, FiArrowDown, FiPlus, FiEye, FiEdit2, FiTrash2, FiCalendar, FiLayout, FiBriefcase, FiStar, FiAward, FiUser, FiUserX, FiBellOff, FiDroplet } from "react-icons/fi";
 import { exportToExcel } from "../../utils/exportExcel";
 
 const fmt = (n) => {
@@ -52,6 +56,14 @@ const fmt = (n) => {
 export default function Leases() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+
+  const getRoomIcon = (name = "") => {
+    const lowerName = name.toLowerCase();
+    if (lowerName.includes('10')) return FiBriefcase;
+    if (lowerName.includes('3')) return FiStar;
+    if (lowerName.includes('4')) return FiAward;
+    return FiLayout;
+  };
 
   // Data
   const [leases, setLeases] = useState([]);
@@ -409,331 +421,360 @@ export default function Leases() {
 
   return (
     <>
-    <Box p={6} bg={bg} h={{ base: "auto", lg: "calc(100vh - 140px)" }} overflow="hidden" display="flex" flexDirection="column">
+    <Box p={6} bg={bg} minH="calc(100vh - 142px)" display="flex" flexDirection="column" gap={6} overflow="auto">
       <Toaster position="top-right" />
         
         {/* Top Filter Bar */}
         <Flex 
           bg={cardBg} 
-          px={5}
+          px={6}
           py={4}
-          borderRadius="lg" 
+          borderRadius="2xl" 
           shadow="sm" 
-          mb={6} 
           border="1px solid" 
           borderColor={borderColor}
-          direction={{ base: "column", md: "row" }}
-          gap={3}
-          align="flex-end"
+          direction={{ base: "column", xl: "row" }}
+          gap={4}
+          align={{ base: "stretch", xl: "center" }}
           flexShrink={0}
           wrap="wrap"
         >
-          <FormControl flex="2" minW="200px">
-            <FormLabel fontSize="xs" fontWeight="semibold" color={thColor} mb={1}>{t("lease.tenant")} / {t("lease.room")}</FormLabel>
+          <Flex flex="2" gap={4} wrap="wrap" align="center" justify={{ base: "space-between", xl: "flex-start" }}>
             <Input
-              placeholder={t("lease.search_placeholder")}
+              placeholder={t("lease.search_placeholder") || "Search Tenant or Room..."}
               value={search}
-              size="sm"
-              borderRadius="md"
+              size="md"
+              borderRadius="full"
               onChange={(e) => setSearch(e.target.value)}
+              minW="240px"
+              maxW={{ base: "full", md: "320px" }}
+              bg={useColorModeValue("gray.50", "whiteAlpha.100")}
+              border="none"
+              _focus={{ ring: 2, ringColor: "blue.400" }}
             />
-          </FormControl>
-
-          <FormControl flex="1" minW="140px">
-            <FormLabel fontSize="xs" fontWeight="semibold" color={thColor} mb={1}>{t("lease.status")}</FormLabel>
+            
             <Select 
               value={statusFilter} 
-              size="sm"
-              borderRadius="md"
+              size="md"
+              borderRadius="full"
               onChange={(e) => setStatusFilter(e.target.value)}
+              w="160px"
+              bg={useColorModeValue("gray.50", "whiteAlpha.100")}
+              border="none"
+              cursor="pointer"
             >
-              <option value="">{t("lease.all_status")}</option>
-              <option value="active">{t("lease.active")}</option>
-              <option value="expired">{t("lease.expired")}</option>
-              <option value="terminated">{t("lease.terminated")}</option>
+              <option value="">{t("lease.all_status") || "All Status"}</option>
+              <option value="active">{t("lease.active") || "Active"}</option>
+              <option value="expired">{t("lease.expired") || "Expired"}</option>
+              <option value="terminated">{t("lease.terminated") || "Terminated"}</option>
             </Select>
-          </FormControl>
 
-          <FormControl flex="1.5" minW="240px">
-            <FormLabel fontSize="xs" fontWeight="semibold" color={thColor} mb={1}>{t("lease.date_range")}</FormLabel>
-            <Flex align="center" gap={2}>
+            <Flex align="center" gap={2} bg={useColorModeValue("gray.50", "whiteAlpha.100")} px={4} py={1} borderRadius="full">
               <Input
                 type="date"
                 value={startsAfter}
                 size="sm"
-                borderRadius="md"
+                variant="unstyled"
                 onChange={(e) => setStartsAfter(e.target.value)}
               />
-              <Text fontSize="xs" color="gray.400" flexShrink={0}>{t("lease.to")}</Text>
+              <Text fontSize="xs" color="gray.400">→</Text>
               <Input
                 type="date"
                 value={endsBefore}
                 size="sm"
-                borderRadius="md"
+                variant="unstyled"
                 onChange={(e) => setEndsBefore(e.target.value)}
               />
             </Flex>
-          </FormControl>
+          </Flex>
 
-          {/* Action Buttons */}
-          <Flex gap={2} flexShrink={0} align="flex-end" pb="1px">
+          <Flex gap={3} flexShrink={0} align="center" justify="flex-end" flex="1">
             {selectedIds.length > 0 && (
-              <Button size="sm" colorScheme="purple" borderRadius="md" onClick={handleRenew}>
+              <Button size="md" colorScheme="purple" borderRadius="full" onClick={handleRenew} px={6}>
                 {t("lease.renew")} {selectedIds.length > 1 ? `(${selectedIds.length})` : ""}
               </Button>
             )}
             {selectedIds.length >= 2 && (
-              <Button size="sm" colorScheme="red" borderRadius="md" leftIcon={<FiTrash2 />} onClick={handleBulkDelete}>
-                {t("lease.delete")}
+              <Button size="md" colorScheme="red" borderRadius="full" leftIcon={<FiTrash2 />} onClick={handleBulkDelete} px={6}>
+                Delete ({selectedIds.length})
               </Button>
             )}
-            <Button
-              size="sm"
-              colorScheme="green"
-              borderRadius="md"
-              px={5}
-              onClick={() => {
-                const dataToExport = processed.map(l => ({
-                  "Tenant": l.tenant?.name || "Unknown",
-                  "Room": l.room?.name || "Unknown",
-                  "Rent": Number(l.rent_amount),
-                  "Security Deposit": Number(l.security_deposit || 0),
-                  "Start Date": l.start_date,
-                  "End Date": l.end_date,
-                  "Status": l.status,
-                  "Created At": new Date(l.created_at).toLocaleDateString()
-                }));
-                exportToExcel(dataToExport, "All_Leases_" + new Date().toISOString().split('T')[0]);
-              }}
-            >
-              {t("lease.export")}
-            </Button>
-            <Button size="sm" colorScheme="blue" borderRadius="md" leftIcon={<FiPlus />} onClick={() => navigate("/dashboard/lease/createnewlease")}>
+            <Button size="md" colorScheme="blue" borderRadius="full" leftIcon={<FiPlus />} onClick={() => navigate("/dashboard/lease/createnewlease")} px={8} shadow="sm">
               {t("lease.new")}
             </Button>
           </Flex>
         </Flex>
 
-        {/* Table Container */}
-        <TableContainer 
-          bg={cardBg} 
-          borderRadius="lg" 
-          shadow="sm" 
-          border="1px solid" 
-          borderColor={borderColor}
-          display="flex"
-          flexDirection="column"
-          flex={1}
-          minH={0}
-          overflow="hidden"
-        >
-          <Box overflow="hidden" flex={1}>
-          <Table variant="simple" size="md">
-            <Thead borderBottom="1px solid" borderColor={borderColor} position="sticky" top={0} zIndex={2} bg={cardBg}>
-              <Tr>
-                <Th w="40px" textAlign="center">
-                  <Checkbox 
-                    isChecked={allChecked} 
-                    isIndeterminate={isIndeterminate}
-                    onChange={(e) => {
-                      if (e.target.checked) setSelectedIds(paginated.map(l => l.uid));
-                      else setSelectedIds([]);
-                    }}
-                  />
-                </Th>
-                <Th fontSize="10px" color={thColor}>{t("lease.tenant")}</Th>
-                <Th fontSize="10px" color={thColor}>{t("lease.room")}</Th>
-                <Th fontSize="10px" color={thColor} cursor="pointer" onClick={() => handleSort('rent')}>
-                  {t("lease.rent")} <SortIcon field="rent" />
-                </Th>
-                <Th fontSize="10px" color={thColor} cursor="pointer" onClick={() => handleSort('end_date')}>
-                  {t("lease.period")} <SortIcon field="end_date" />
-                </Th>
-                <Th fontSize="10px" color={thColor} cursor="pointer" onClick={() => handleSort('status')}>
-                  {t("lease.status")} <SortIcon field="status" />
-                </Th>
-                <Th fontSize="10px" color={thColor} textAlign="right">{t("lease.actions")}</Th>
-              </Tr>
-            </Thead>
+        {/* Horizontal Scrollable Grid / Horizontal List */}
+        <Box flexShrink={0}>
+          <Text fontSize="xs" fontWeight="black" color={textColor} mb={4} textTransform="uppercase" letterSpacing="widest" opacity={0.8}>
+            {t("lease.active_grid") || "Active Grid Display"}
+          </Text>
+          {isLoading ? (
+             <Spinner size="md" color="blue.500" />
+          ) : paginated.length > 0 ? (
+            <Flex 
+              overflowX="auto" 
+              pb={4} 
+              gap={6} 
+              className="hide-scroll"
+              css={{
+                '&::-webkit-scrollbar': { display: 'none' },
+                'msOverflowStyle': 'none',
+                'scrollbarWidth': 'none',
+              }}
+            >
+              {paginated.filter(l => l.status === 'active').map((l) => {
+                const expiring = isExpiringSoon(l);
+                const isChecked = selectedIds.includes(l.uid);
+                
+                // Room card theme matching mockup
+                let theme = { 
+                  bg: "teal.500", 
+                  color: "white", 
+                  priceColor: "white", 
+                  badgeBg: "white", 
+                  badgeColor: "teal.500", 
+                  border: "none", 
+                  borderColor: "transparent", 
+                  watermarkColor: "whiteAlpha.200" 
+                };
+                
+                const RoomIcon = getRoomIcon(l.room?.name);
+                const start = l.start_date ? new Date(l.start_date) : null;
+                const sinceDate = start ? `${String(start.getMonth() + 1).padStart(2,'0')}/${String(start.getDate()).padStart(2,'0')}` : '—';
 
-            <Tbody>
-              {isLoading ? (
-                <Tr>
-                  <Td colSpan={7} textAlign="center" py={12}>
-                    <Spinner size="lg" color="green.500" />
-                  </Td>
-                </Tr>
-              ) : paginated.length > 0 ? (
-                paginated.map((l) => {
-                  const expiring = isExpiringSoon(l);
-                  return (
-                    <Tr 
-                      key={l.uid} 
-                      bg={expiring ? expiringBgRow : "transparent"} 
-                      _hover={{ bg: expiring ? useColorModeValue("orange.100", "orange.800") : trHoverBg }}
-                      transition="background 0.2s"
-                    >
-                      <Td textAlign="center">
-                        <Checkbox 
-                          isChecked={selectedIds.includes(l.uid)}
-                          onChange={(e) => {
-                            if (e.target.checked) setSelectedIds([...selectedIds, l.uid]);
-                            else setSelectedIds(selectedIds.filter(id => id !== l.uid));
-                          }}
-                        />
-                      </Td>
-
-                      <Td>
-                        <Flex direction="column">
-                          <Text fontWeight="bold" color={textColor} fontSize="sm">
-                            {l.tenant?.name || "Unknown"}
-                          </Text>
-                          <Text fontSize="xs" color="gray.500" mt="0.5">
-                            {l.tenant?.email || "No email"}
-                          </Text>
+                return (
+                  <Box 
+                    key={l.uid} 
+                    minW="350px"
+                    maxW="350px"
+                    bg={isChecked ? "blue.600" : theme.bg} 
+                    color={theme.color}
+                    borderRadius="2xl" 
+                    shadow="md" 
+                    border={isChecked ? "2px solid" : theme.border} 
+                    borderColor={isChecked ? "blue.200" : theme.borderColor}
+                    position="relative"
+                    overflow="hidden"
+                    transition="all 0.2s"
+                    _hover={{ shadow: "xl", transform: "translateY(-4px)" }}
+                    cursor="pointer"
+                    onClick={() => navigate(`/dashboard/lease/view/${l.uid}`)}
+                    minH="180px"
+                    p={6}
+                    display="flex"
+                    flexDirection="column"
+                    justifyContent="space-between"
+                  >
+                    {/* Watermark Background */}
+                    <Icon 
+                      as={FiUser} 
+                      position="absolute" 
+                      bottom="-10px" 
+                      right="-10px" 
+                      w={32} 
+                      h={32} 
+                      color={theme.watermarkColor} 
+                      zIndex={0} 
+                      transform="rotate(-15deg)" 
+                    />
+                    
+                    {/* Content */}
+                    <Box position="relative" zIndex={1} h="full" display="flex" flexDirection="column" justifyContent="space-between">
+                      {/* Top Bar */}
+                      <Flex justify="space-between" align="flex-start">
+                        {/* Badge with Checkbox */}
+                        <Flex 
+                          bg={theme.badgeBg} 
+                          color={theme.badgeColor} 
+                          pl={1.5} pr={4} py={1.5} 
+                          borderRadius="full" 
+                          align="center" 
+                          gap={2.5} 
+                          fontWeight="bold" 
+                          fontSize="xs" 
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Checkbox 
+                            isChecked={isChecked} 
+                            onChange={(e) => {
+                              if (e.target.checked) setSelectedIds([...selectedIds, l.uid]);
+                              else setSelectedIds(selectedIds.filter((id) => id !== l.uid));
+                            }} 
+                            colorScheme="blue" 
+                            borderColor={theme.badgeColor} 
+                            size="md"
+                            bg="white"
+                            borderRadius="sm"
+                          />
+                          <Flex align="center" gap={2}>
+                            <Icon as={RoomIcon} />
+                            <Text fontWeight="bold" fontSize="sm">{l.room?.name || '?'}</Text>
+                          </Flex>
                         </Flex>
-                      </Td>
 
-                      <Td>
-                        <Text color="gray.600" fontSize="sm">
-                          {l.room?.name || "Unknown"}
-                        </Text>
-                      </Td>
-
-                      <Td>
-                        <Text color={textColor} fontSize="sm">
-                          {fmt(l.rent_amount)}
-                        </Text>
-                      </Td>
-
-                      <Td>
-                        <Flex align="center" fontSize="sm">
-                          <Text color={textColor}>{formatDate(l.start_date)}</Text>
-                          <Text mx={2} color="gray.400">→</Text>
-                          <Text 
-                            fontWeight={expiring ? "bold" : "normal"} 
-                            color={expiring ? "orange.600" : textColor}
-                          >
-                            {formatDate(l.end_date)}
-                          </Text>
-                          
+                        {/* Price */}
+                        <Flex align="center" gap={2}>
                           {expiring && (
-                            <Badge 
-                              ml={3} 
-                              bg="orange.100" 
-                              color="orange.700" 
-                              fontSize="9px" 
-                              px={2} 
-                              py={0.5} 
-                              borderRadius="md"
-                            >
-                              {t("lease.expiring_soon")}
-                            </Badge>
+                            <Badge bg="red.400" color="white" border="none" borderRadius="md" px={2} py={0.5} fontSize="9px">! EXP</Badge>
                           )}
+                          <Text fontSize="xl" fontWeight="black" color={theme.priceColor}>{fmt(l.rent_amount)}</Text>
                         </Flex>
-                      </Td>
+                      </Flex>
 
-                      <Td>
-                        {(() => {
-                          const badge = getStatusBadge(l.status);
-                          return (
-                            <Badge
-                              bg={badge.bg}
-                              color={badge.color}
-                              px={3}
-                              py={1}
-                              borderRadius="full"
-                              fontSize="10px"
-                              fontWeight="bold"
-                              textTransform="capitalize"
-                            >
-                              {badge.label}
-                            </Badge>
-                          );
-                        })()}
-                      </Td>
+                      {/* Bottom Info */}
+                      <Flex justify="space-between" align="flex-end" mt={10}>
+                        {/* Left Icons (Mockup style) with Tooltips */}
+                        <Flex gap={2}>
+                          <Tooltip label={t("lease.rent_status") || "Rent Status: Up to Date"} hasArrow placement="top">
+                            <Flex align="center" justify="center" bg="white" w={7} h={7} borderRadius="full" color={theme.badgeColor}>
+                              <Icon as={FiBellOff} boxSize={3.5} />
+                            </Flex>
+                          </Tooltip>
+                          
+                          <Tooltip label={t("lease.utility_status") || "Utilities: Paid"} hasArrow placement="top">
+                            <Flex align="center" justify="center" bg="white" w={7} h={7} borderRadius="full" color={theme.badgeColor}>
+                              <Icon as={FiDroplet} boxSize={3.5} />
+                            </Flex>
+                          </Tooltip>
 
-                      <Td textAlign="right">
-                        <Flex justify="flex-end" gap={2}>
-                          <Tooltip label="View Lease" hasArrow placement="top">
-                            <IconButton
-                              icon={<FiEye />}
-                              size="xs"
-                              bg="blue.50"
-                              color="blue.600"
-                              border="1px solid"
-                              borderColor="blue.100"
-                              borderRadius="lg"
-                              _hover={{ bg: "blue.100", transform: "scale(1.1)" }}
-                              transition="all 0.15s"
-                              onClick={() => navigate(`/dashboard/lease/view/${l.uid}`)}
-                              aria-label="View lease"
-                            />
-                          </Tooltip>
-                          <Tooltip label="Edit Lease" hasArrow placement="top">
-                            <IconButton
-                              icon={<FiEdit2 />}
-                              size="xs"
-                              bg="purple.50"
-                              color="purple.600"
-                              border="1px solid"
-                              borderColor="purple.100"
-                              borderRadius="lg"
-                              _hover={{ bg: "purple.100", transform: "scale(1.1)" }}
-                              transition="all 0.15s"
-                              onClick={() => navigate(`/dashboard/lease/edit/${l.uid}`)}
-                              aria-label="Edit lease"
-                            />
-                          </Tooltip>
-                          <Tooltip label="Delete Lease" hasArrow placement="top">
-                            <IconButton
-                              icon={<FiTrash2 />}
-                              size="xs"
-                              bg="red.50"
-                              color="red.600"
-                              border="1px solid"
-                              borderColor="red.100"
-                              borderRadius="lg"
-                              _hover={{ bg: "red.100", transform: "scale(1.1)" }}
-                              transition="all 0.15s"
-                              onClick={() => handleDelete(l)}
-                              aria-label="Delete lease"
-                            />
+                          <Tooltip label={t("lease.pending_items") || "2 Items Pending"} hasArrow placement="top">
+                            <Flex align="center" justify="center" bg="white" w={7} h={7} borderRadius="full" color={theme.badgeColor} fontSize="xs" fontWeight="bold">
+                              2
+                            </Flex>
                           </Tooltip>
                         </Flex>
-                      </Td>
-                    </Tr>
-                  );
-                })
-              ) : (
-                <Tr>
-                   <Td colSpan={7} textAlign="center" py={12} color={mutedText}>
-                    {t("lease.no_leases")}
-                  </Td>
-                </Tr>
-              )}
-            </Tbody>
-          </Table>
-          </Box>
-        </TableContainer>
 
-        {/* PAGINATION */}
-        {totalPages > 1 && (
-          <Flex justify="space-between" align="center" mt={4} px={2} flexShrink={0}>
-            <Text fontSize="sm" color={mutedText}>
-              {t("lease.showing_entries", { first: firstIndex + 1, last: Math.min(lastIndex, processed.length), total: processed.length })}
-            </Text>
-            <Flex gap={2}>
-              <Button size="sm" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} isDisabled={currentPage === 1}>
-                {t("lease.prev")}
-              </Button>
-              <Text fontSize="sm" alignSelf="center" mx={2}>{t("lease.page_info", { current: currentPage, total: totalPages })}</Text>
-              <Button size="sm" onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} isDisabled={currentPage === totalPages}>
-                {t("lease.next")}
-              </Button>
+                        {/* Right Info: Tenant */}
+                        <Box textAlign="right">
+                          <Text fontWeight="black" fontSize="md" noOfLines={1} textTransform="uppercase">{l.tenant?.name || 'Unknown'}</Text>
+                          <Text fontSize="10px" opacity={0.8} textTransform="uppercase" letterSpacing="wider" mt={0.5}>SINCE {sinceDate}</Text>
+                        </Box>
+                      </Flex>
+                    </Box>
+                  </Box>
+                );
+              })}
             </Flex>
-          </Flex>
-        )}
+          ) : (
+             <Text fontSize="xs" color={mutedText}>No leases match filters.</Text>
+          )}
+        </Box>
+
+        <Divider borderColor={borderColor} />
+
+        {/* Detailed Table View */}
+        <Box flex="1" minH="400px" display="flex" flexDirection="column" gap={4}>
+           <Flex justify="space-between" align="center">
+             <Text fontSize="xs" fontWeight="black" color={textColor} textTransform="uppercase" letterSpacing="widest" opacity={0.8}>
+               {t("lease.detailed_list") || "Detailed Lease Ledger"}
+             </Text>
+           </Flex>
+
+           <Box 
+             bg={cardBg} 
+             borderRadius="2xl" 
+             shadow="sm" 
+             border="1px solid" 
+             borderColor={borderColor}
+             overflow="auto"
+             flex="1"
+           >
+             <Table variant="simple">
+               <Thead bg={useColorModeValue("gray.50", "#1c2333")} position="sticky" top={0} zIndex={1}>
+                 <Tr>
+                   <Th w="60px" px={6}>
+                     <Checkbox 
+                       size="sm"
+                       colorScheme="blue"
+                       isChecked={allChecked} 
+                       isIndeterminate={isIndeterminate}
+                       onChange={(e) => {
+                         if (e.target.checked) setSelectedIds(paginated.map(l => l.uid));
+                         else setSelectedIds([]);
+                       }}
+                     />
+                   </Th>
+                   <Th fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" color={mutedText} py={5} px={4}>ID</Th>
+                   <Th fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" color={mutedText} py={5} px={4}>{t("lease.tenant")}</Th>
+                   <Th fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" color={mutedText} py={5} px={4}>{t("lease.room")}</Th>
+                   <Th fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" color={mutedText} py={5} px={4} cursor="pointer" onClick={() => handleSort('rent')}>{t("lease.rent")} <SortIcon field="rent" /></Th>
+                   <Th fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" color={mutedText} py={5} px={4}>{t("lease.deposit") || "Deposit"}</Th>
+                   <Th fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" color={mutedText} py={5} px={4} cursor="pointer" onClick={() => handleSort('end_date')}>{t("lease.period")} <SortIcon field="end_date" /></Th>
+                   <Th fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" color={mutedText} py={5} px={4}>{t("lease.status")}</Th>
+                   <Th textAlign="right" fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" color={mutedText} py={5} px={6}>{t("lease.actions")}</Th>
+                 </Tr>
+               </Thead>
+               <Tbody>
+                 {paginated.map((l) => {
+                   const expiring = isExpiringSoon(l);
+                   const isChecked = selectedIds.includes(l.uid);
+                   const badge = getStatusBadge(l.status);
+                   return (
+                     <Tr key={l.uid} bg={expiring ? expiringBgRow : "transparent"} _hover={{ bg: trHoverBg }}>
+                       <Td px={6}>
+                          <Checkbox 
+                            size="md" 
+                            isChecked={isChecked} 
+                            onChange={(e) => {
+                              if (e.target.checked) setSelectedIds([...selectedIds, l.uid]);
+                              else setSelectedIds(selectedIds.filter(id => id !== l.uid));
+                            }} 
+                           />
+                       </Td>
+                       <Td py={5} px={4}>
+                         <Text fontSize="xs" fontFamily="mono" color={mutedText} fontWeight="bold">#{String(l.uid).substring(0,8)}</Text>
+                       </Td>
+                       <Td py={5} px={4}>
+                         <Text fontWeight="black" fontSize="md" color={textColor}>{l.tenant?.name || "Unknown"}</Text>
+                       </Td>
+                       <Td py={5} px={4}>
+                         <Badge colorScheme="purple" variant="subtle" px={4} py={1} borderRadius="md" fontSize="xs" fontWeight="black">{l.room?.name || "?"}</Badge>
+                       </Td>
+                       <Td py={5} px={4} fontSize="md" fontWeight="black" color={textColor}>{fmt(l.rent_amount)}</Td>
+                       <Td py={5} px={4} fontSize="md" fontWeight="bold" color={mutedText}>{fmt(l.security_deposit)}</Td>
+                       <Td py={5} px={4}>
+                         <VStack align="start" spacing={0}>
+                           <Text fontSize="sm" fontWeight="black">{formatDate(l.start_date)}</Text>
+                           <Text fontSize="xs" color={mutedText} fontWeight="bold">{formatDate(l.end_date)}</Text>
+                         </VStack>
+                       </Td>
+                       <Td py={5} px={4}>
+                          <Badge bg={badge.bg} color={badge.color} fontSize="xs" px={4} py={1} borderRadius="full" fontWeight="black" textTransform="uppercase">{badge.label}</Badge>
+                       </Td>
+                       <Td textAlign="right" py={5} px={6}>
+                         <HStack justify="flex-end" spacing={2}>
+                           <IconButton icon={<FiEye />} size="sm" variant="ghost" colorScheme="blue" onClick={() => navigate(`/dashboard/lease/view/${l.uid}`)} aria-label="View" />
+                           <IconButton icon={<FiEdit2 />} size="sm" variant="ghost" colorScheme="purple" onClick={() => navigate(`/dashboard/lease/edit/${l.uid}`)} aria-label="Edit" />
+                           <IconButton icon={<FiTrash2 />} size="sm" variant="ghost" colorScheme="red" onClick={() => handleDelete(l)} aria-label="Delete" />
+                         </HStack>
+                       </Td>
+                     </Tr>
+                   );
+                 })}
+               </Tbody>
+             </Table>
+           </Box>
+
+           {/* PAGINATION */}
+           {totalPages > 1 && (
+             <Flex justify="space-between" align="center" pt={4}>
+               <Text fontSize="xs" color={mutedText}>
+                 {t("lease.showing_entries", { first: firstIndex + 1, last: Math.min(lastIndex, processed.length), total: processed.length })}
+               </Text>
+               <HStack spacing={2}>
+                 <Button size="xs" borderRadius="full" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} isDisabled={currentPage === 1}>
+                   {t("lease.prev")}
+                 </Button>
+                 <Text fontSize="xs" fontWeight="bold">{currentPage} / {totalPages}</Text>
+                 <Button size="xs" borderRadius="full" onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} isDisabled={currentPage === totalPages}>
+                   {t("lease.next")}
+                 </Button>
+               </HStack>
+             </Flex>
+           )}
+        </Box>
       </Box>
 
       {/* Bulk Renew Modal */}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import toast, { Toaster } from "react-hot-toast";
@@ -9,10 +9,13 @@ import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton,
   ModalBody, ModalFooter, useDisclosure, FormControl, FormLabel,
   Input, Select, Textarea, Checkbox, IconButton, Tooltip,
-  useColorModeValue, Divider
+  useColorModeValue, Divider, VStack, HStack, Stack, Icon, Image,
+  Stat, StatLabel, StatNumber, StatHelpText, StatGroup, Grid, GridItem
 } from "@chakra-ui/react";
 import {
-  FiArrowLeft, FiEdit2, FiTrash2, FiPlus, FiPrinter, FiDollarSign, FiBell
+  FiArrowLeft, FiEdit2, FiTrash2, FiPlus, FiPrinter, FiDollarSign, FiBell,
+  FiRefreshCw, FiXCircle, FiClock, FiCheckCircle, FiAlertCircle,
+  FiTool, FiTrendingDown, FiZap, FiDroplet, FiImage
 } from "react-icons/fi";
 
 const API = "http://localhost:8000/api/v1/admin";
@@ -82,6 +85,7 @@ export default function ViewLease() {
   const { isOpen: isBillOpen, onOpen: onBillOpen, onClose: onBillClose } = useDisclosure();
   const [billForm, setBillForm] = useState({ type: "electricity", amount: "", due_date: "", status: "unpaid", description: "", previous_reading: "", current_reading: "", cost_per_unit: getDefaultRate("electricity"), currency: localStorage.getItem("currency") || "$" });
   const [isSavingBill, setIsSavingBill] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [lastReading, setLastReading] = useState(0);
 
   const isMetered = ["electricity", "water"].includes(billForm.type);
@@ -107,6 +111,35 @@ export default function ViewLease() {
   const [tenantSearch, setTenantSearch] = useState("");
   const [showTenantDropdown, setShowTenantDropdown] = useState(false);
 
+  // Renew Lease modal
+  const { isOpen: isRenewOpen, onOpen: onRenewOpen, onClose: onRenewClose } = useDisclosure();
+  const [renewForm, setRenewForm] = useState({ start_date: "", end_date: "", rent_amount: "" });
+  const [isRenewing, setIsRenewing] = useState(false);
+
+  // Terminate Lease modal
+  const { isOpen: isTerminateOpen, onOpen: onTerminateOpen, onClose: onTerminateClose } = useDisclosure();
+  const [isTerminating, setIsTerminating] = useState(false);
+
+  // Rent notification
+  const [isSendingReminder, setIsSendingReminder] = useState(false);
+  const [isGeneratingRent, setIsGeneratingRent] = useState(false);
+
+  // Maintenance
+  const [maintenanceRequests, setMaintenanceRequests] = useState([]);
+  // eslint-disable-next-line no-unused-vars
+  const [isFetchingMaintenance, setIsFetchingMaintenance] = useState(false);
+  const { isOpen: isMaintOpen, onOpen: onMaintOpen, onClose: onMaintClose } = useDisclosure();
+  const [maintForm, setMaintForm] = useState({ title: "", description: "", priority: "normal", status: "pending" });
+  const [isSavingMaint, setIsSavingMaint] = useState(false);
+
+  // Expenses
+  const [roomExpenses, setRoomExpenses] = useState([]);
+  // eslint-disable-next-line no-unused-vars
+  const [isFetchingExpenses, setIsFetchingExpenses] = useState(false);
+  const { isOpen: isExpOpen, onOpen: onExpOpen, onClose: onExpClose } = useDisclosure();
+  const [expForm, setExpForm] = useState({ title: "", category: "Repairs", amount: "", expense_date: new Date().toISOString().split("T")[0], description: "" });
+  const [isSavingExp, setIsSavingExp] = useState(false);
+
   const bg = useColorModeValue("gray.50", "#0d1117");
   const cardBg = useColorModeValue("white", "#161b22");
   const borderColor = useColorModeValue("gray.200", "#30363d");
@@ -118,6 +151,9 @@ export default function ViewLease() {
   const highlightBg = useColorModeValue("yellow.50", "yellow.900");
   const successBg = useColorModeValue("green.50", "green.900");
   const purpleBg = useColorModeValue("purple.50", "purple.900");
+  const dangerBg = useColorModeValue("red.50", "red.900");
+  const warningBg = useColorModeValue("orange.50", "orange.900");
+  const cautionBg = useColorModeValue("yellow.50", "yellow.900");
 
   const headers = () => ({
     Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -125,24 +161,49 @@ export default function ViewLease() {
     "Content-Type": "application/json",
   });
 
-  const fetchLease = async () => {
+  const fetchMaintenance = useCallback(async (roomId) => {
+    if (!roomId) return;
+    setIsFetchingMaintenance(true);
+    try {
+      const res = await fetch(`${API}/maintenance?room_id=${roomId}`, { headers: headers() });
+      const data = await res.json();
+      if (res.ok) setMaintenanceRequests(data.data || data);
+    } catch (e) { console.error(e);  console.error(e); }
+    finally { setIsFetchingMaintenance(false); }
+  }, []);
+
+  const fetchExpenses = useCallback(async (roomId) => {
+    if (!roomId) return;
+    setIsFetchingExpenses(true);
+    try {
+      const res = await fetch(`${API}/expenses?room_id=${roomId}`, { headers: headers() });
+      const data = await res.json();
+      if (res.ok) setRoomExpenses(data.data || data);
+    } catch (e) { console.error(e);  console.error(e); }
+    finally { setIsFetchingExpenses(false); }
+  }, []);
+
+  const fetchLease = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API}/leases/${id}`, { headers: headers() });
-      if (res.ok) {
-        const data = await res.json();
-        setLease(data.data || data);
+      const resp = await fetch(`${API}/leases/${id}`, { headers: headers() });
+      const data = await resp.json();
+      if (resp.ok) {
+        const leaseData = data.data || data;
+        setLease(leaseData);
+        fetchMaintenance(leaseData.room_id);
+        fetchExpenses(leaseData.room_id);
       } else {
         toast.error("Failed to load lease details");
       }
-    } catch (e) {
+    } catch (e) { console.error(e); 
       toast.error("Network error");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [id, fetchMaintenance, fetchExpenses]);
 
-  useEffect(() => { fetchLease(); }, [id]);
+  useEffect(() => { fetchLease(); }, [fetchLease]);
 
   const handleDeletePayment = async (paymentId) => {
     if (!window.confirm("Delete this payment record?")) return;
@@ -150,7 +211,7 @@ export default function ViewLease() {
       const res = await fetch(`${API}/payments/${paymentId}`, { method: "DELETE", headers: headers() });
       if (res.ok) { toast.success("Payment deleted"); fetchLease(); }
       else toast.error("Failed to delete payment");
-    } catch (e) { toast.error("Network error"); }
+    } catch (e) { console.error(e);  toast.error("Network error"); }
   };
 
   const handleDeleteBill = async (billId) => {
@@ -159,7 +220,7 @@ export default function ViewLease() {
       const res = await fetch(`${API}/utility-bills/${billId}`, { method: "DELETE", headers: headers() });
       if (res.ok) { toast.success("Bill deleted"); fetchLease(); }
       else toast.error("Failed to delete bill");
-    } catch (e) { toast.error("Network error"); }
+    } catch (e) { console.error(e);  toast.error("Network error"); }
   };
 
   const handleSavePayment = async (e) => {
@@ -183,7 +244,7 @@ export default function ViewLease() {
       } else {
         toast.error(data.message || "Failed to save payment");
       }
-    } catch (e) { toast.error("Network error"); }
+    } catch (e) { console.error(e);  toast.error("Network error"); }
     finally { setIsSavingPay(false); }
   };
 
@@ -196,7 +257,7 @@ export default function ViewLease() {
       const reading = parseFloat(data.reading) || 0;
       setLastReading(reading);
       setBillForm(prev => ({ ...prev, previous_reading: reading }));
-    } catch (e) { setLastReading(0); }
+    } catch (e) { console.error(e);  setLastReading(0); }
   };
 
   // Auto-calculate amount when meter values change
@@ -242,7 +303,7 @@ export default function ViewLease() {
       } else {
         toast.error(data.message || "Failed to save bill");
       }
-    } catch (e) { toast.error("Network error"); }
+    } catch (e) { console.error(e);  toast.error("Network error"); }
     finally { setIsSavingBill(false); }
   };
 
@@ -282,7 +343,7 @@ export default function ViewLease() {
       } else {
         toast.error(data.error || data.message || "Failed to pay bills");
       }
-    } catch (e) { toast.error("Network error"); }
+    } catch (e) { console.error(e);  toast.error("Network error"); }
     finally { setIsPayingAll(false); }
   };
 
@@ -307,7 +368,7 @@ export default function ViewLease() {
       } else {
         toast.error(data.error || data.message || "Failed to refund deposit");
       }
-    } catch (e) { toast.error("Network error"); }
+    } catch (e) { console.error(e);  toast.error("Network error"); }
     finally { setIsRefunding(false); }
   };
 
@@ -333,7 +394,7 @@ export default function ViewLease() {
       } else {
         toast.error(data.message || "Failed to update lease");
       }
-    } catch (e) { toast.error("Network error"); }
+    } catch (e) { console.error(e);  toast.error("Network error"); }
     finally { setIsSavingEdit(false); }
   };
 
@@ -348,46 +409,32 @@ export default function ViewLease() {
       const data = await res.json();
       if (res.ok) toast.success(data.message || "Notification sent");
       else toast.error(data.error || "Failed to send notification");
-    } catch (e) { toast.error("Network error"); }
+    } catch (e) { console.error(e);  toast.error("Network error"); }
   };
 
   // Print Invoice for selected bills
-  const handlePrintInvoice = async () => {
+  const handlePrintInvoice = () => {
     if (selectedBillIds.length === 0) { toast.error("Select bills to print."); return; }
-    try {
-      const res = await fetch(`${API}/utility-bills/print-invoice`, {
-        method: "POST",
-        headers: headers(),
-        body: JSON.stringify({ bill_ids: selectedBillIds }),
-      });
-      if (res.ok) {
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        window.open(url, "_blank");
-      } else {
-        toast.error("Failed to generate invoice");
-      }
-    } catch (e) { toast.error("Network error"); }
+    
+    const queryParams = new URLSearchParams();
+    selectedBillIds.forEach(id => queryParams.append('bill_ids[]', id));
+    queryParams.append('token', localStorage.getItem("token"));
+    
+    const printUrl = `http://localhost:8000/api/v1/admin/print/invoice?${queryParams.toString()}`;
+    window.open(printUrl, "_blank");
   };
 
   // Print Receipt for selected/given payment IDs
-  const handlePrintReceipt = async (paymentIds) => {
+  const handlePrintReceipt = (paymentIds) => {
     const ids = Array.isArray(paymentIds) ? paymentIds : [paymentIds];
     if (ids.length === 0) { toast.error("Select payments to print."); return; }
-    try {
-      const res = await fetch(`${API}/payments/print-receipt`, {
-        method: "POST",
-        headers: headers(),
-        body: JSON.stringify({ payment_ids: ids }),
-      });
-      if (res.ok) {
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        window.open(url, "_blank");
-      } else {
-        toast.error("Failed to generate receipt");
-      }
-    } catch (e) { toast.error("Network error"); }
+    
+    const queryParams = new URLSearchParams();
+    ids.forEach(id => queryParams.append('payment_ids[]', id));
+    queryParams.append('token', localStorage.getItem("token"));
+    
+    const printUrl = `http://localhost:8000/api/v1/admin/print/receipt?${queryParams.toString()}`;
+    window.open(printUrl, "_blank");
   };
 
   const getStatusBadge = (status) => {
@@ -399,49 +446,173 @@ export default function ViewLease() {
     }
   };
 
-  const handlePrintContract = async () => {
+  const handlePrintContract = () => {
     setIsPrintingContract(true);
+    const printUrl = `http://localhost:8000/api/v1/admin/print/contract/${id}?token=${localStorage.getItem("token")}`;
+    window.open(printUrl, "_blank");
+    setTimeout(() => setIsPrintingContract(false), 1000);
+  };
+
+  // Renew Lease
+  const handleRenewLease = async (e) => {
+    e.preventDefault();
+    setIsRenewing(true);
     try {
-      const res = await fetch(`${API}/leases/${id}/print`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-          // Don't use the standard headers() here because it forces 'Accept: application/json'
-          // We want the browser to accept the PDF stream
-          Accept: "application/pdf",
-        },
+      const res = await fetch(`${API}/leases/bulk-renew`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({
+          renewals: [{
+            id: lease.id,
+            start_date: renewForm.start_date,
+            end_date: renewForm.end_date,
+            rent_amount: toUSD(renewForm.rent_amount),
+          }]
+        }),
       });
-      
+      const data = await res.json();
       if (res.ok) {
-        const blob = await res.blob();
-        
-        if (!blob || blob.size === 0) {
-          throw new Error("Received an empty file from the server.");
-        }
-
-        const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
-        const newWindow = window.open(url, "_blank");
-        
-        if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-          toast.error("Popup blocked! Please allow popups for this site.");
-        }
-
-        // Cleanup
-        setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+        toast.success(data.message || "Lease renewed successfully!");
+        onRenewClose();
+        fetchLease();
       } else {
-        const text = await res.text();
-        let errorMessage = "Failed to generate contract PDF";
-        try {
-          const data = JSON.parse(text);
-          errorMessage = data.error || errorMessage;
-        } catch (e) {}
-        toast.error(errorMessage);
+        toast.error(data.error || data.message || "Failed to renew lease");
       }
-    } catch (e) {
-      console.error("Print Error:", e);
-      toast.error(`Error: ${e.message}`);
-    } finally {
-      setIsPrintingContract(false);
-    }
+    } catch (e) { console.error(e);  toast.error("Network error"); }
+    finally { setIsRenewing(false); }
+  };
+
+  // Terminate Lease
+  const handleTerminateLease = async () => {
+    setIsTerminating(true);
+    try {
+      const res = await fetch(`${API}/leases/${lease.uid}`, {
+        method: "PUT",
+        headers: headers(),
+        body: JSON.stringify({
+          tenant_id: lease.tenant?.id,
+          room_id: lease.room?.id,
+          start_date: lease.start_date?.split("T")[0],
+          end_date: lease.end_date?.split("T")[0],
+          rent_amount: lease.rent_amount,
+          security_deposit: lease.security_deposit,
+          deposit_status: lease.deposit_status || "unpaid",
+          status: "terminated",
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("Lease terminated. Room is now available.");
+        onTerminateClose();
+        fetchLease();
+      } else {
+        toast.error(data.error || data.message || "Failed to terminate lease");
+      }
+    } catch (e) { console.error(e);  toast.error("Network error"); }
+    finally { setIsTerminating(false); }
+  };
+
+  // Send Rent Reminder
+  const handleSendRentReminder = async () => {
+    setIsSendingReminder(true);
+    try {
+      const res = await fetch(`${API}/leases/${lease.uid}/notify-rent`, {
+        method: "POST",
+        headers: headers(),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || "Rent reminder sent!");
+      } else {
+        toast.error(data.error || "Failed to send reminder");
+      }
+    } catch (e) { console.error(e);  toast.error("Network error"); }
+    finally { setIsSendingReminder(false); }
+  };
+
+  // Generate Monthly Rent
+  const handleGenerateRent = async () => {
+    setIsGeneratingRent(true);
+    try {
+      const res = await fetch(`${API}/leases/generate-rent`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({ lease_id: lease.id })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || "Monthly rent generated!");
+        fetchLease();
+      } else {
+        toast.error(data.error || "Failed to generate rent");
+      }
+    } catch (e) { console.error(e);  toast.error("Network error"); }
+    finally { setIsGeneratingRent(false); }
+  };
+
+  // Maintenance Handlers
+  const handleSaveMaintenance = async (e) => {
+    e.preventDefault();
+    setIsSavingMaint(true);
+    try {
+      const res = await fetch(`${API}/maintenance`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({
+          ...maintForm,
+          room_id: lease.room_id,
+          tenant_id: lease.tenant_id,
+        })
+      });
+      if (res.ok) {
+        toast.success("Maintenance request created!");
+        onMaintClose();
+        fetchMaintenance(lease.room_id);
+      } else {
+        const data = await res.json();
+        toast.error(data.message || "Failed to create request");
+      }
+    } catch (e) { console.error(e);  toast.error("Network error"); }
+    finally { setIsSavingMaint(false); }
+  };
+
+  const handleUpdateMaintStatus = async (maintId, status) => {
+    try {
+      const res = await fetch(`${API}/maintenance/${maintId}`, {
+        method: "PUT",
+        headers: headers(),
+        body: JSON.stringify({ status })
+      });
+      if (res.ok) {
+        toast.success("Status updated!");
+        fetchMaintenance(lease.room_id);
+      }
+    } catch (e) { console.error(e);  toast.error("Network error"); }
+  };
+
+  // Expense Handlers
+  const handleSaveExpense = async (e) => {
+    e.preventDefault();
+    setIsSavingExp(true);
+    try {
+      const res = await fetch(`${API}/expenses`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({
+          ...expForm,
+          room_id: lease.room_id
+        })
+      });
+      if (res.ok) {
+        toast.success("Expense recorded!");
+        onExpClose();
+        fetchExpenses(lease.room_id);
+      } else {
+        const data = await res.json();
+        toast.error(data.message || "Failed to record expense");
+      }
+    } catch (e) { console.error(e);  toast.error("Network error"); }
+    finally { setIsSavingExp(false); }
   };
 
   const totalContractValue = lease ? Number(lease.rent_amount) * (
@@ -485,12 +656,27 @@ export default function ViewLease() {
             />
             <Box>
               <Heading size="md" color={textColor}>{t("lease.statement")}</Heading>
-              <Text fontSize="xs" color={mutedText} mt={0.5}>
-                {fmtDate(lease.start_date)} — {fmtDate(lease.end_date)}
+              <Text fontSize="sm" fontWeight="black" color={mutedText} mt={0.5}>
+                Lease Reference: #{String(lease.uid).substring(0,8)}
               </Text>
             </Box>
           </Flex>
-          <Flex gap={2}>
+          <Flex gap={2} flexWrap="wrap">
+            {/* Rent Reminder — only if outstanding rent */}
+            {lease.status === "active" && totalRentPaid < totalContractValue && (
+              <Button
+                leftIcon={<FiBell />}
+                size="sm"
+                colorScheme="orange"
+                variant="outline"
+                isLoading={isSendingReminder}
+                loadingText="Sending..."
+                onClick={handleSendRentReminder}
+              >
+                Rent Reminder
+              </Button>
+            )}
+
             <Button
               leftIcon={<FiPrinter />}
               size="sm"
@@ -502,6 +688,30 @@ export default function ViewLease() {
             >
               Print Contract
             </Button>
+
+            {/* Renew — only for active/expired leases */}
+            {(lease.status === "active" || lease.status === "expired") && (
+              <Button
+                leftIcon={<FiRefreshCw />}
+                size="sm"
+                colorScheme="teal"
+                variant="solid"
+                onClick={() => {
+                  const endDate = lease.end_date ? lease.end_date.split("T")[0] : new Date().toISOString().split("T")[0];
+                  const newEnd = new Date(endDate);
+                  newEnd.setFullYear(newEnd.getFullYear() + 1);
+                  setRenewForm({
+                    start_date: endDate,
+                    end_date: newEnd.toISOString().split("T")[0],
+                    rent_amount: toCurrent(lease.rent_amount),
+                  });
+                  onRenewOpen();
+                }}
+              >
+                Renew
+              </Button>
+            )}
+
             <Button
               leftIcon={<FiEdit2 />}
               size="sm"
@@ -520,7 +730,6 @@ export default function ViewLease() {
                 setTenantSearch("");
                 setShowTenantDropdown(false);
                 onEditOpen();
-                // Fetch tenants & rooms in the background (non-blocking)
                 const token = localStorage.getItem("token");
                 const h = { Authorization: `Bearer ${token}`, Accept: "application/json" };
                 Promise.all([
@@ -532,8 +741,21 @@ export default function ViewLease() {
                 }).catch(err => console.error(err));
               }}
             >
-              Edit Lease
+              Edit
             </Button>
+
+            {/* Terminate — only for active leases */}
+            {lease.status === "active" && (
+              <Button
+                leftIcon={<FiXCircle />}
+                size="sm"
+                colorScheme="red"
+                variant="outline"
+                onClick={onTerminateOpen}
+              >
+                Terminate
+              </Button>
+            )}
           </Flex>
         </Flex>
 
@@ -572,9 +794,9 @@ export default function ViewLease() {
               <Badge
                 bg={statusBadge.bg}
                 color={statusBadge.color}
-                px={3} py={1}
+                px={4} py={1.5}
                 borderRadius="full"
-                fontSize="9px"
+                fontSize="xs"
                 fontWeight="black"
                 textTransform="uppercase"
                 letterSpacing="wider"
@@ -585,42 +807,43 @@ export default function ViewLease() {
 
             {/* Info */}
             <Box flex={1}>
-              <Flex direction={{ base: "column", md: "row" }} justify="space-between" align={{ md: "flex-end" }} borderBottom="1px solid" borderColor={borderColor} pb={5} mb={5}>
+              <Flex direction={{ base: "column", md: "row" }} justify="space-between" align={{ md: "center" }} borderBottom="1px solid" borderColor={borderColor} pb={5} mb={5}>
                 <Box>
                   <Heading size="lg" textTransform="uppercase" letterSpacing="tight" color={textColor}>
                     {lease.room?.name || "Unknown Room"}
                   </Heading>
-                  <Text fontSize="xs" fontWeight="bold" color={mutedText} mt={1} textTransform="uppercase" letterSpacing="tight">
+                  <Text fontSize="sm" fontWeight="black" color={mutedText} mt={1} textTransform="uppercase" letterSpacing="tight">
                     {fmtDate(lease.start_date)} — {fmtDate(lease.end_date)}
                   </Text>
                 </Box>
                 <Box textAlign={{ md: "right" }} mt={{ base: 3, md: 0 }}>
-                  <Text fontSize="10px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>
-                    {t("lease.current_resident")}
-                  </Text>
-                  <Text fontSize="lg" fontWeight="black" textTransform="uppercase" letterSpacing="tight" color={textColor}>
+                  <Text fontSize="md" fontWeight="black" textTransform="uppercase" letterSpacing="tight" color={textColor}>
                     {lease.tenant?.name || "Unknown"}
+                  </Text>
+                  <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mt={1}>
+                    Resident Profile
                   </Text>
                 </Box>
               </Flex>
 
-              <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={4}>
+              <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={6}>
                 <Box>
-                   <Text fontSize="9px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>{t("lease.email")}</Text>
-                  <Text fontSize="sm" fontWeight="bold" color={textColor} wordBreak="break-all">{lease.tenant?.email || "—"}</Text>
+                   <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>{t("lease.email")}</Text>
+                  <Text fontSize="md" fontWeight="bold" color={textColor} wordBreak="break-all">{lease.tenant?.email || "—"}</Text>
                 </Box>
                 <Box>
-                   <Text fontSize="9px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>{t("lease.phone")}</Text>
-                  <Text fontSize="sm" fontWeight="bold" color={textColor}>{lease.tenant?.phone || "N/A"}</Text>
+                   <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>{t("lease.phone")}</Text>
+                  <Text fontSize="md" fontWeight="bold" color={textColor}>{lease.tenant?.phone || "N/A"}</Text>
                 </Box>
                 <Box>
-                   <Text fontSize="9px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>{t("lease.occupation")}</Text>
-                  <Text fontSize="sm" fontWeight="bold" color={textColor} textTransform="uppercase">{lease.tenant?.job || "N/A"}</Text>
+                   <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>{t("lease.occupation")}</Text>
+                  <Text fontSize="md" fontWeight="bold" color={textColor} textTransform="uppercase">{lease.tenant?.job || "N/A"}</Text>
                 </Box>
                 <Box>
-                   <Text fontSize="9px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>{t("lease.deposit_status")}</Text>
+                   <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>{t("lease.deposit_status")}</Text>
                   <Badge
                     fontSize="xs"
+                    px={3} py={1}
                     colorScheme={lease.deposit_status === "held" ? "green" : lease.deposit_status === "refunded" ? "gray" : "orange"}
                     textTransform="uppercase"
                   >
@@ -628,50 +851,74 @@ export default function ViewLease() {
                   </Badge>
                 </Box>
               </SimpleGrid>
+
+              {/* Room Details Row */}
+              <Divider my={6} borderColor={borderColor} />
+              <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={6}>
+                <Box>
+                  <Flex align="center" gap={2} mb={1}>
+                    <FiZap size={14} color="#ECC94B" />
+                    <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider">Floor & Size</Text>
+                  </Flex>
+                  <Text fontSize="md" fontWeight="bold" color={textColor}>
+                    Floor {lease.room?.floor || "—"} • {lease.room?.size || "—"} m²
+                  </Text>
+                </Box>
+                <Box>
+                  <Flex align="center" gap={2} mb={1}>
+                    <FiZap size={14} color="#ECC94B" />
+                    <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider">Electricity Reading</Text>
+                  </Flex>
+                  <Text fontSize="md" fontWeight="bold" color={textColor}>{lease.room?.electricity_reading || "0"} kWh</Text>
+                </Box>
+                <Box>
+                  <Flex align="center" gap={2} mb={1}>
+                    <FiDroplet size={14} color="#4299E1" />
+                    <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider">Water Reading</Text>
+                  </Flex>
+                  <Text fontSize="md" fontWeight="bold" color={textColor}>{lease.room?.water_reading || "0"} m³</Text>
+                </Box>
+                <Box>
+                  <Flex align="center" gap={2} mb={1}>
+                    <FiZap size={14} color="#ECC94B" />
+                    <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider">Base Price</Text>
+                  </Flex>
+                  <Text fontSize="md" fontWeight="bold" color={textColor}>{fmt(lease.room?.base_rent_price)}</Text>
+                </Box>
+              </SimpleGrid>
             </Box>
           </Flex>
         </Box>
 
-        {/* Detailed Balance Summary */}
-        <Box bg={useColorModeValue("blue.50", "whiteAlpha.100")} p={5} borderRadius="xl" border="1px dashed" borderColor="blue.200" mb={6} shadow="sm">
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-            <Flex align="center" gap={4}>
-              <Box bg={useColorModeValue("blue.100", "blue.900")} p={3} borderRadius="lg">
-                <FiDollarSign size={20} color={useColorModeValue("#3182CE", "#63B3ED")} />
-              </Box>
-              <Box>
-                <Text fontSize="xs" fontWeight="black" color="blue.400" textTransform="uppercase" letterSpacing="wider">{t("lease.remaining_rent")}</Text>
-                <Heading size="md" fontWeight="black" color="blue.600">
-                  {fmt(Math.max(0, totalContractValue - totalRentPaid))}
-                </Heading>
-              </Box>
-            </Flex>
-            <Flex align="center" gap={4}>
-              <Box bg={useColorModeValue("green.100", "green.900")} p={3} borderRadius="lg">
-                <FiDollarSign size={20} color={useColorModeValue("#38A169", "#68D391")} />
-              </Box>
-              <Box>
-                <Text fontSize="xs" fontWeight="black" color="green.400" textTransform="uppercase" letterSpacing="wider">{t("lease.unpaid_utilities")}</Text>
-                <Heading size="md" fontWeight="black" color="green.600">
-                  {fmt(lease.unpaid_utilities_sum || 0)}
-                </Heading>
-              </Box>
-            </Flex>
-          </SimpleGrid>
-        </Box>
+
 
         {/* KPI Cards */}
         <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mb={6}>
           {/* Monthly Rent */}
           <Box bg={cardBg} p={8} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor}>
-            <Text fontSize="10px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={2}>{t("lease.monthly_rent")}</Text>
+            <Flex justify="space-between" align="center" mb={2}>
+              <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider">{t("lease.monthly_rent")}</Text>
+              {lease.status === "active" && (
+                <Tooltip label="Generate Invoice for This Month" hasArrow>
+                  <IconButton
+                    icon={<FiPlus />}
+                    size="xs"
+                    variant="ghost"
+                    colorScheme="blue"
+                    isLoading={isGeneratingRent}
+                    onClick={handleGenerateRent}
+                    aria-label="Generate rent"
+                  />
+                </Tooltip>
+              )}
+            </Flex>
             <Heading size="xl" fontWeight="black" color={textColor}>{fmt(lease.rent_amount)}</Heading>
             {totalRentPaid >= totalContractValue ? (
-              <Text mt={4} fontSize="10px" fontWeight="black" textTransform="uppercase" color="green.600">
+              <Text mt={4} fontSize="xs" fontWeight="black" textTransform="uppercase" color="green.600">
                 ✓ Fully Paid
               </Text>
             ) : (
-              <Button mt={4} size="xs" colorScheme="blue" variant="link" leftIcon={<FiDollarSign />} onClick={() => { setPayForm({ ...payForm, type: "rent", amount_paid: toCurrent(lease.rent_amount), currency: localStorage.getItem("currency") || "$" }); onPayOpen(); }}>
+              <Button mt={4} size="sm" colorScheme="blue" variant="link" leftIcon={<FiDollarSign />} onClick={() => { setPayForm({ ...payForm, type: "rent", amount_paid: toCurrent(lease.rent_amount), currency: localStorage.getItem("currency") || "$" }); onPayOpen(); }}>
                 {t("lease.record_payment")} →
               </Button>
             )}
@@ -679,18 +926,18 @@ export default function ViewLease() {
 
           {/* Security Deposit */}
           <Box bg={cardBg} p={8} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor} position="relative">
-            <Badge position="absolute" top={8} right={8} fontSize="9px" fontWeight="black" textTransform="uppercase" colorScheme={lease.deposit_status === "held" ? "green" : "gray"} variant="outline" px={2} py={1}>
+            <Badge position="absolute" top={8} right={8} fontSize="xs" fontWeight="black" textTransform="uppercase" colorScheme={lease.deposit_status === "held" ? "green" : "gray"} variant="outline" px={3} py={1}>
               {lease.deposit_status || "unpaid"}
             </Badge>
-            <Text fontSize="10px" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={2}>{t("lease.security_deposit")}</Text>
+            <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={2}>{t("lease.security_deposit")}</Text>
             <Heading size="xl" fontWeight="black" color={textColor}>{fmt(lease.security_deposit)}</Heading>
             {(!lease.deposit_status || lease.deposit_status === "unpaid") && (
-              <Button mt={4} size="xs" colorScheme="green" variant="link" onClick={() => { setPayForm({ ...payForm, type: "deposit", amount_paid: toCurrent(lease.security_deposit), currency: localStorage.getItem("currency") || "$" }); onPayOpen(); }}>
+              <Button mt={4} size="sm" colorScheme="green" variant="link" onClick={() => { setPayForm({ ...payForm, type: "deposit", amount_paid: toCurrent(lease.security_deposit), currency: localStorage.getItem("currency") || "$" }); onPayOpen(); }}>
                 {t("lease.collect_deposit")} →
               </Button>
             )}
             {lease.deposit_status === "held" && (
-              <Button mt={4} size="xs" colorScheme="orange" variant="link" onClick={() => { setRefundForm({ amount: toCurrent(lease.security_deposit), notes: "" }); onRefundOpen(); }}>
+              <Button mt={4} size="sm" colorScheme="orange" variant="link" onClick={() => { setRefundForm({ amount: toCurrent(lease.security_deposit), notes: "" }); onRefundOpen(); }}>
                 {t("lease.initiate_refund")} →
               </Button>
             )}
@@ -698,9 +945,9 @@ export default function ViewLease() {
 
           {/* Unpaid Utilities */}
           <Box bg="gray.900" p={8} borderRadius="xl" shadow="xl">
-            <Text fontSize="10px" fontWeight="black" color="blue.400" textTransform="uppercase" letterSpacing="wider" mb={2}>{t("lease.unpaid_utilities")}</Text>
+            <Text fontSize="xs" fontWeight="black" color="blue.400" textTransform="uppercase" letterSpacing="wider" mb={2}>{t("lease.unpaid_utilities")}</Text>
             <Heading size="xl" fontWeight="black" color="white">{fmt(unpaidBillsTotal)}</Heading>
-            <Button mt={4} size="xs" color="blue.400" variant="link" _hover={{ color: "white" }}>
+            <Button mt={4} size="sm" color="blue.400" variant="link" _hover={{ color: "white" }}>
                {t("lease.manage_bills")} →
             </Button>
           </Box>
@@ -710,15 +957,24 @@ export default function ViewLease() {
         <Tabs variant="line" colorScheme="blue" isLazy>
           <Flex direction={{ base: "column", md: "row" }} align={{ md: "center" }} justify="space-between" borderBottom="1px solid" borderColor={borderColor} mb={0}>
             <TabList border="none">
-              <Tab fontSize="10px" fontWeight="black" textTransform="uppercase" letterSpacing="wider" pb={4}>
+              <Tab fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" pb={4}>
                 {t("lease.utility_statement")}
               </Tab>
-              <Tab fontSize="10px" fontWeight="black" textTransform="uppercase" letterSpacing="wider" pb={4}>
+              <Tab fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" pb={4}>
                 {t("lease.payment_ledger")}
               </Tab>
+              <Tab fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" pb={4}>
+                <Flex align="center" gap={1.5}><FiTool size={13} /> Maintenance</Flex>
+              </Tab>
+              <Tab fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" pb={4}>
+                <Flex align="center" gap={1.5}><FiTrendingDown size={13} /> Expenses</Flex>
+              </Tab>
+              <Tab fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" pb={4}>
+                <Flex align="center" gap={1.5}><FiClock size={13} /> Timeline</Flex>
+              </Tab>
             </TabList>
-            <Text fontSize="10px" fontWeight="black" textTransform="uppercase" letterSpacing="wider" color="gray.300" pb={{ md: 2 }}>
-              Transaction History Mode
+            <Text fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" color="gray.400" pb={{ md: 2 }}>
+              Transaction History
             </Text>
           </Flex>
 
@@ -759,51 +1015,53 @@ export default function ViewLease() {
                           const bills = lease.utility_bills || [];
                           setSelectedBillIds(e.target.checked ? bills.map(b => b.id) : []);
                         }} /></Th>
-                        <Th>{t("common.type")}</Th>
-                        <Th>{t("common.amount")}</Th>
-                        <Th>{t("lease.due_date") || "Due Date"}</Th>
-                        <Th>{t("common.status")}</Th>
-                        <Th>{t("common.description")}</Th>
-                        <Th textAlign="right"></Th>
+                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>{t("common.type")}</Th>
+                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>{t("common.amount")}</Th>
+                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>{t("lease.due_date") || "Due Date"}</Th>
+                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>{t("common.status")}</Th>
+                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>{t("common.description")}</Th>
+                        <Th textAlign="right" py={4}></Th>
                       </Tr>
                     </Thead>
                     <Tbody>
-                      {(lease.utility_bills || []).length === 0 ? (
+                      {(lease.utility_bills || []).length === 0 ?
                         <Tr><Td colSpan={7} textAlign="center" py={10} color={mutedText}>{t("utility.no_bills")}</Td></Tr>
-                      ) : (
-                        [...(lease.utility_bills || [])].sort((a, b) => new Date(b.due_date) - new Date(a.due_date)).map(bill => (
-                          <Tr key={bill.id} bg={selectedBillIds.includes(bill.id) ? successBg : "transparent"}>
-                            <Td><Checkbox isChecked={selectedBillIds.includes(bill.id)} onChange={(e) => {
-                              setSelectedBillIds(e.target.checked ? [...selectedBillIds, bill.id] : selectedBillIds.filter(i => i !== bill.id));
-                            }} /></Td>
-                            <Td>
-                              <Badge fontSize="9px" fontWeight="black" textTransform="uppercase" colorScheme={
-                                bill.type === "electricity" ? "yellow" : bill.type === "water" ? "blue" : "gray"
-                              }>{t(`utility.${bill.type}`)}</Badge>
-                            </Td>
-                            <Td fontWeight="bold" color={textColor}>{fmt(bill.amount)}</Td>
-                            <Td fontSize="xs" color={mutedText}>{fmtDate(bill.due_date)}</Td>
-                            <Td>
-                              <Badge fontSize="9px" fontWeight="black" textTransform="uppercase" colorScheme={bill.status === "paid" ? "green" : "red"}>
-                                {t(`utility.${bill.status}`)}
-                              </Badge>
-                            </Td>
-                            <Td fontSize="xs" color={mutedText}>{bill.description || "—"}</Td>
-                            <Td textAlign="right">
-                              <Flex justify="flex-end" gap={1}>
-                                {bill.status === "unpaid" && (
-                                  <Tooltip label="Send Reminder" hasArrow>
-                                    <IconButton icon={<FiBell />} size="xs" colorScheme="orange" variant="ghost" onClick={() => handleSendNotification(bill.id)} aria-label="Send notification" />
+                      :
+                        [...(lease.utility_bills || [])].sort((a, b) => new Date(b.due_date) - new Date(a.due_date)).map(bill => {
+                          return (
+                            <Tr key={bill.id} bg={selectedBillIds.includes(bill.id) ? successBg : "transparent"}>
+                              <Td><Checkbox isChecked={selectedBillIds.includes(bill.id)} onChange={(e) => {
+                                setSelectedBillIds(e.target.checked ? [...selectedBillIds, bill.id] : selectedBillIds.filter(i => i !== bill.id));
+                              }} /></Td>
+                              <Td>
+                                <Badge fontSize="xs" fontWeight="black" textTransform="uppercase" colorScheme={
+                                  bill.type === "electricity" ? "yellow" : bill.type === "water" ? "blue" : "gray"
+                                } px={3} py={1}>{t(`utility.${bill.type}`)}</Badge>
+                              </Td>
+                              <Td fontWeight="black" fontSize="sm" color={textColor}>{fmt(bill.amount)}</Td>
+                              <Td fontSize="xs" color={mutedText} fontWeight="bold">{fmtDate(bill.due_date)}</Td>
+                              <Td>
+                                <Badge fontSize="xs" fontWeight="black" textTransform="uppercase" colorScheme={bill.status === "paid" ? "green" : "red"} px={3} py={1}>
+                                  {t(`utility.${bill.status}`)}
+                                </Badge>
+                              </Td>
+                              <Td fontSize="xs" color={mutedText}>{bill.description || "—"}</Td>
+                              <Td textAlign="right">
+                                <Flex justify="flex-end" gap={1}>
+                                  {bill.status === "unpaid" && (
+                                    <Tooltip label="Send Reminder" hasArrow>
+                                      <IconButton icon={<FiBell />} size="xs" colorScheme="orange" variant="ghost" onClick={() => handleSendNotification(bill.id)} aria-label="Send notification" />
+                                    </Tooltip>
+                                  )}
+                                  <Tooltip label="Delete" hasArrow>
+                                    <IconButton icon={<FiTrash2 />} size="xs" colorScheme="red" variant="ghost" onClick={() => handleDeleteBill(bill.id)} aria-label="Delete bill" />
                                   </Tooltip>
-                                )}
-                                <Tooltip label="Delete" hasArrow>
-                                  <IconButton icon={<FiTrash2 />} size="xs" colorScheme="red" variant="ghost" onClick={() => handleDeleteBill(bill.id)} aria-label="Delete bill" />
-                                </Tooltip>
-                              </Flex>
-                            </Td>
-                          </Tr>
-                        ))
-                      )}
+                                </Flex>
+                              </Td>
+                            </Tr>
+                          )
+                        })
+                      }
                     </Tbody>
                   </Table>
                 </TableContainer>
@@ -842,54 +1100,342 @@ export default function ViewLease() {
                           const payments = lease.payments || [];
                           setSelectedPayments(e.target.checked ? payments.map(p => p.id) : []);
                         }} /></Th>
-                        <Th>{t("common.date")}</Th>
-                        <Th>{t("common.amount")}</Th>
-                        <Th>{t("common.type")}</Th>
-                        <Th>{t("common.method")}</Th>
-                        <Th>{t("common.notes")}</Th>
-                        <Th textAlign="right"></Th>
+                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>{t("common.date")}</Th>
+                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>{t("common.amount")}</Th>
+                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>{t("common.type")}</Th>
+                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>{t("common.method")}</Th>
+                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>{t("common.notes")}</Th>
+                        <Th textAlign="right" py={4}></Th>
                       </Tr>
                     </Thead>
                     <Tbody>
-                      {(lease.payments || []).length === 0 ? (
+                      {(lease.payments || []).length === 0 ?
                         <Tr><Td colSpan={7} textAlign="center" py={10} color={mutedText}>{t("payment.no_records")}</Td></Tr>
-                      ) : (
-                        [...(lease.payments || [])].sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date)).map(payment => (
-                          <Tr key={payment.id} bg={selectedPayments.includes(payment.id) ? purpleBg : "transparent"}>
-                            <Td><Checkbox isChecked={selectedPayments.includes(payment.id)} onChange={(e) => {
-                              setSelectedPayments(e.target.checked ? [...selectedPayments, payment.id] : selectedPayments.filter(i => i !== payment.id));
-                            }} /></Td>
-                            <Td fontSize="xs" fontWeight="bold" color={mutedText}>{fmtDate(payment.payment_date)}</Td>
-                            <Td fontWeight="black" color={textColor}>{fmt(payment.amount_paid)}</Td>
-                            <Td>
-                              <Badge fontSize="9px" fontWeight="black" textTransform="uppercase" colorScheme={payment.type === "rent" ? "green" : payment.type === "deposit" ? "blue" : "orange"}>
-                                {t(`payment.${payment.type}`)}
-                              </Badge>
-                            </Td>
-                            <Td fontSize="10px" fontWeight="bold" color={mutedText} textTransform="uppercase">{t(`payment.${payment.payment_method}`)}</Td>
-                            <Td fontSize="xs" color={mutedText}>{payment.notes || "—"}</Td>
-                            <Td textAlign="right">
-                              <Flex gap={1} justify="flex-end">
-                                <Tooltip label="Print Receipt" hasArrow>
-                                  <IconButton icon={<FiPrinter />} size="xs" colorScheme="purple" variant="ghost" onClick={() => handlePrintReceipt(payment.id)} aria-label="Print receipt" />
-                                </Tooltip>
-                                <Tooltip label="Delete" hasArrow>
-                                  <IconButton icon={<FiTrash2 />} size="xs" colorScheme="red" variant="ghost" onClick={() => handleDeletePayment(payment.id)} aria-label="Delete payment" />
-                                </Tooltip>
-                              </Flex>
-                            </Td>
-                          </Tr>
-                        ))
-                      )}
+                      :
+                        [...(lease.payments || [])].sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date)).map(payment => {
+                          return (
+                            <Tr key={payment.id} bg={selectedPayments.includes(payment.id) ? purpleBg : "transparent"}>
+                              <Td><Checkbox isChecked={selectedPayments.includes(payment.id)} onChange={(e) => {
+                                setSelectedPayments(e.target.checked ? [...selectedPayments, payment.id] : selectedPayments.filter(i => i !== payment.id));
+                              }} /></Td>
+                              <Td fontSize="xs" color={mutedText} fontWeight="bold">{fmtDate(payment.payment_date)}</Td>
+                              <Td fontWeight="black" fontSize="sm" color={textColor}>{fmt(payment.amount_paid)}</Td>
+                              <Td>
+                                <Badge fontSize="xs" fontWeight="black" textTransform="uppercase" colorScheme="purple" px={3} py={1}>{payment.type || "rent"}</Badge>
+                              </Td>
+                              <Td fontSize="sm" fontWeight="bold" color={textColor} textTransform="uppercase">{payment.payment_method}</Td>
+                              <Td fontSize="xs" color={mutedText} maxW="400px">{(payment.notes || "—").replace(/\(Hash: [^\)]+\)/gi, "").trim()}</Td>
+                              <Td textAlign="right">
+                                <Flex gap={1} justify="flex-end">
+                                  <Tooltip label="Print Receipt" hasArrow>
+                                    <IconButton icon={<FiPrinter />} size="xs" colorScheme="purple" variant="ghost" onClick={() => handlePrintReceipt(payment.id)} aria-label="Print receipt" />
+                                  </Tooltip>
+                                  <Tooltip label="Delete" hasArrow>
+                                    <IconButton icon={<FiTrash2 />} size="xs" colorScheme="red" variant="ghost" onClick={() => handleDeletePayment(payment.id)} aria-label="Delete payment" />
+                                  </Tooltip>
+                                </Flex>
+                              </Td>
+                            </Tr>
+                          )
+                        })
+                      }
                     </Tbody>
                   </Table>
                 </TableContainer>
+              </Box>
+            </TabPanel>
+
+            {/* ===== MAINTENANCE TAB ===== */}
+            <TabPanel px={0} pt={6}>
+              <Box bg={cardBg} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
+                <Flex align="center" justify="space-between" px={6} py={4} bg={tableHBg} borderBottom="1px solid" borderColor={borderColor}>
+                  <Flex align="center" gap={2}>
+                    <FiTool color={mutedText} size={15}/>
+                    <Text fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="tight" color={textColor}>
+                      Maintenance Requests
+                    </Text>
+                  </Flex>
+                  <Button size="xs" colorScheme="blue" variant="link" leftIcon={<FiPlus />} onClick={onMaintOpen}>
+                    New Request
+                  </Button>
+                </Flex>
+                <TableContainer>
+                  <Table variant="simple" size="sm">
+                    <Thead>
+                      <Tr>
+                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>Title</Th>
+                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>Priority</Th>
+                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>Status</Th>
+                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>Reported</Th>
+                        <Th textAlign="right" py={4}></Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {maintenanceRequests.length === 0 ?
+                        <Tr><Td colSpan={5} textAlign="center" py={10} color={mutedText}>No maintenance requests found.</Td></Tr>
+                      :
+                        maintenanceRequests.map(req => {
+                          return (
+                            <Tr key={req.id}>
+                              <Td>
+                                <Text fontSize="sm" fontWeight="bold" color={textColor}>{req.title}</Text>
+                                <Text fontSize="xs" color={mutedText} noOfLines={1}>{req.description}</Text>
+                              </Td>
+                              <Td>
+                                <Badge size="sm" colorScheme={req.priority === "emergency" ? "red" : req.priority === "urgent" ? "orange" : "blue"}>
+                                  {req.priority}
+                                </Badge>
+                              </Td>
+                              <Td>
+                                <Select
+                                  size="xs"
+                                  value={req.status}
+                                  variant="filled"
+                                  borderRadius="md"
+                                  w="140px"
+                                  onChange={(e) => handleUpdateMaintStatus(req.uid, e.target.value)}
+                                >
+                                  <option value="pending">Pending</option>
+                                  <option value="in_progress">In Progress</option>
+                                  <option value="resolved">Resolved</option>
+                                  <option value="cancelled">Cancelled</option>
+                                </Select>
+                              </Td>
+                              <Td fontSize="xs" color={mutedText}>{fmtDate(req.created_at)}</Td>
+                              <Td textAlign="right">
+                                 <Tooltip label="View Details" hasArrow>
+                                    <IconButton icon={<FiImage />} size="xs" variant="ghost" onClick={() => window.open(`http://localhost:8000/storage/${req.photo_path}`, '_blank')} isDisabled={!req.photo_path} aria-label="View photo" />
+                                 </Tooltip>
+                              </Td>
+                            </Tr>
+                          )
+                        })
+                      }
+                    </Tbody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            </TabPanel>
+
+            {/* ===== EXPENSES TAB ===== */}
+            <TabPanel px={0} pt={6}>
+              <Box bg={cardBg} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
+                <Flex align="center" justify="space-between" px={6} py={4} bg={tableHBg} borderBottom="1px solid" borderColor={borderColor}>
+                  <Flex align="center" gap={2}>
+                    <FiTrendingDown color={mutedText} size={15}/>
+                    <Text fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="tight" color={textColor}>
+                      Room Expenses
+                    </Text>
+                  </Flex>
+                  <Button size="xs" colorScheme="blue" variant="link" leftIcon={<FiPlus />} onClick={onExpOpen}>
+                    Record Expense
+                  </Button>
+                </Flex>
+                <TableContainer>
+                  <Table variant="simple" size="sm">
+                    <Thead>
+                      <Tr>
+                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>Title</Th>
+                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>Category</Th>
+                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>Amount</Th>
+                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>Date</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {roomExpenses.length === 0 ?
+                        <Tr><Td colSpan={4} textAlign="center" py={10} color={mutedText}>No expenses recorded for this room.</Td></Tr>
+                      :
+                                                roomExpenses.map(exp => {
+                          return (
+                            <Tr key={exp.id}>
+                              <Td fontSize="sm" fontWeight="bold" color={textColor}>{exp.title}</Td>
+                              <Td><Badge size="sm" variant="outline">{exp.category}</Badge></Td>
+                              <Td fontSize="sm" fontWeight="black" color="red.500">{fmt(exp.amount)}</Td>
+                              <Td fontSize="xs" color={mutedText}>{fmtDate(exp.expense_date)}</Td>
+                            </Tr>
+                          )
+                        })
+                      }
+                    </Tbody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            </TabPanel>
+
+            {/* ===== TIMELINE TAB ===== */}
+            <TabPanel px={0} pt={6}>
+              <Box bg={cardBg} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor} p={8}>
+                <Flex align="center" gap={2} mb={6}>
+                  <FiClock size={18} />
+                  <Text fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" color={textColor}>
+                    Activity Timeline
+                  </Text>
+                </Flex>
+                {(() => {
+                  // Build timeline events from existing data
+                  const events = [];
+                  // Lease created
+                  if (lease.created_at) {
+                    events.push({ date: lease.created_at, type: "lease", icon: <FiCheckCircle />, color: "blue", title: "Lease Created", desc: `${lease.room?.name} assigned to ${lease.tenant?.name}. Rent: ${fmt(lease.rent_amount)}/mo` });
+                  }
+                  // Payments
+                  (lease.payments || []).forEach(p => {
+                    events.push({ date: p.payment_date || p.created_at, type: "payment", icon: <FiDollarSign />, color: "green", title: `${(p.type || "rent").charAt(0).toUpperCase() + (p.type || "rent").slice(1)} Payment`, desc: `${fmt(p.amount_paid)} via ${p.payment_method}${p.notes ? " — " + p.notes.replace(/\(Hash: [^\)]+\)/gi, "").trim() : ""}` });
+                  });
+                  // Utility bills
+                  (lease.utility_bills || []).forEach(b => {
+                    events.push({ date: b.created_at || b.due_date, type: "bill", icon: <FiAlertCircle />, color: b.status === "paid" ? "teal" : "orange", title: `${b.type.charAt(0).toUpperCase() + b.type.slice(1)} Bill${b.status === "paid" ? " (Paid)" : ""}`, desc: `${fmt(b.amount)} — Due ${fmtDate(b.due_date)}${b.description ? ". " + b.description : ""}` });
+                  });
+                  // Deposit events
+                  if (lease.deposit_status === "held") {
+                    events.push({ date: lease.updated_at || lease.created_at, type: "deposit", icon: <FiCheckCircle />, color: "green", title: "Security Deposit Collected", desc: fmt(lease.security_deposit) });
+                  }
+                  if (lease.deposit_status === "refunded") {
+                    events.push({ date: lease.updated_at || lease.created_at, type: "deposit", icon: <FiDollarSign />, color: "purple", title: "Security Deposit Refunded", desc: `${fmt(lease.security_deposit)}${lease.deposit_notes ? " — " + lease.deposit_notes : ""}` });
+                  }
+                  // Sort by date, newest first
+                  events.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                  if (events.length === 0) return <Text py={10} textAlign="center" color={mutedText}>No activity yet.</Text>;
+
+                  return (
+                    <Box position="relative" pl={8}>
+                      {/* Vertical line */}
+                      <Box position="absolute" left="15px" top={0} bottom={0} w="2px" bg={borderColor} />
+                      {events.map((ev, i) => (
+                        <Flex key={i} mb={6} align="flex-start" position="relative">
+                          {/* Dot */}
+                          <Box
+                            position="absolute" left="-24px" top="4px"
+                            w="20px" h="20px" borderRadius="full"
+                            bg={`${ev.color}.500`} color="white"
+                            display="flex" alignItems="center" justifyContent="center"
+                            fontSize="10px" zIndex={1}
+                          >
+                            {ev.icon}
+                          </Box>
+                          <Box ml={2} flex={1}>
+                            <Flex align="center" gap={2} mb={0.5}>
+                              <Text fontSize="sm" fontWeight="black" color={textColor}>{ev.title}</Text>
+                              <Badge fontSize="10px" colorScheme={ev.color} variant="subtle" px={2} py={0.5}>{ev.type}</Badge>
+                            </Flex>
+                            <Text fontSize="xs" color={mutedText}>{ev.desc}</Text>
+                            <Text fontSize="10px" fontWeight="bold" color="gray.400" mt={1}>{fmtDate(ev.date)}</Text>
+                          </Box>
+                        </Flex>
+                      ))}
+                    </Box>
+                  );
+                })()}
               </Box>
             </TabPanel>
           </TabPanels>
         </Tabs>
 
       </Box>
+
+      {/* ===== RENEW LEASE MODAL ===== */}
+      <Modal isOpen={isRenewOpen} onClose={onRenewClose} isCentered size="lg">
+        <ModalOverlay bg="blackAlpha.600" />
+        <ModalContent bg={cardBg} borderRadius="xl">
+          <form onSubmit={handleRenewLease}>
+            <ModalHeader color={textColor}>
+              <Flex align="center" gap={2}>
+                <FiRefreshCw />
+                <Text>Renew Lease</Text>
+              </Flex>
+            </ModalHeader>
+            <ModalCloseButton />
+            <ModalBody pb={6}>
+              {/* Current lease summary */}
+              <Box bg={subCardBg} p={4} borderRadius="lg" border="1px solid" borderColor={borderColor} mb={5}>
+                <SimpleGrid columns={2} spacing={3}>
+                  <Box>
+                    <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider">Room</Text>
+                    <Text fontSize="sm" fontWeight="bold" color={textColor}>{lease.room?.name}</Text>
+                  </Box>
+                  <Box>
+                    <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider">Tenant</Text>
+                    <Text fontSize="sm" fontWeight="bold" color={textColor}>{lease.tenant?.name}</Text>
+                  </Box>
+                  <Box>
+                    <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider">Current Term</Text>
+                    <Text fontSize="sm" fontWeight="bold" color={textColor}>{fmtDate(lease.start_date)} — {fmtDate(lease.end_date)}</Text>
+                  </Box>
+                  <Box>
+                    <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider">Current Rent</Text>
+                    <Text fontSize="sm" fontWeight="bold" color={textColor}>{fmt(lease.rent_amount)}</Text>
+                  </Box>
+                </SimpleGrid>
+              </Box>
+
+              <Text fontSize="xs" fontWeight="black" color="teal.500" textTransform="uppercase" letterSpacing="wider" mb={4}>
+                New Term Details
+              </Text>
+              <SimpleGrid columns={2} spacing={4}>
+                <FormControl isRequired>
+                  <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>New Start Date</FormLabel>
+                  <Input size="sm" type="date" bg={inputBg} borderColor={borderColor} value={renewForm.start_date} onChange={e => setRenewForm({ ...renewForm, start_date: e.target.value })} />
+                </FormControl>
+                <FormControl isRequired>
+                  <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>New End Date</FormLabel>
+                  <Input size="sm" type="date" bg={inputBg} borderColor={borderColor} value={renewForm.end_date} onChange={e => setRenewForm({ ...renewForm, end_date: e.target.value })} />
+                </FormControl>
+                <FormControl isRequired gridColumn="span 2">
+                  <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Monthly Rent ({localStorage.getItem("currency") || "$"})</FormLabel>
+                  <Input size="md" type="number" step="0.01" bg={inputBg} borderColor="teal.400" fontWeight="bold" value={renewForm.rent_amount} onChange={e => setRenewForm({ ...renewForm, rent_amount: e.target.value })} />
+                  <Text fontSize="xs" color={mutedText} mt={1}>Adjust if needed, or keep the same.</Text>
+                </FormControl>
+              </SimpleGrid>
+            </ModalBody>
+            <ModalFooter>
+              <Button onClick={onRenewClose} variant="ghost" mr={3} size="sm">Cancel</Button>
+              <Button colorScheme="teal" type="submit" size="sm" isLoading={isRenewing} leftIcon={<FiRefreshCw />}>Confirm Renewal</Button>
+            </ModalFooter>
+          </form>
+        </ModalContent>
+      </Modal>
+
+      {/* ===== TERMINATE LEASE MODAL ===== */}
+      <Modal isOpen={isTerminateOpen} onClose={onTerminateClose} isCentered size="md">
+        <ModalOverlay bg="blackAlpha.600" />
+        <ModalContent bg={cardBg} borderRadius="xl">
+          <ModalHeader color="red.500">
+            <Flex align="center" gap={2}>
+              <FiXCircle />
+              <Text>Terminate Lease</Text>
+            </Flex>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <Text fontSize="sm" color={textColor} mb={4}>
+              Are you sure you want to terminate this lease for <Text as="span" fontWeight="black">{lease.tenant?.name}</Text> in <Text as="span" fontWeight="black">{lease.room?.name}</Text>?
+            </Text>
+            <Box bg={dangerBg} p={4} borderRadius="lg" border="1px solid" borderColor="red.200" mb={4}>
+              <Text fontSize="xs" fontWeight="black" color="red.600" textTransform="uppercase" letterSpacing="wider" mb={2}>This action will:</Text>
+              <Text fontSize="sm" color={textColor}>• Set lease status to <strong>Terminated</strong></Text>
+              <Text fontSize="sm" color={textColor}>• Mark the room as <strong>Available</strong></Text>
+              <Text fontSize="sm" color={textColor}>• Leave payments and bills unchanged</Text>
+            </Box>
+            {(lease.deposit_status === "held") && (
+              <Box bg={warningBg} p={4} borderRadius="lg" border="1px solid" borderColor="orange.200" mb={4}>
+                <Text fontSize="xs" fontWeight="black" color="orange.600" textTransform="uppercase" letterSpacing="wider" mb={1}>Deposit Notice</Text>
+                <Text fontSize="sm" color={textColor}>Security deposit of {fmt(lease.security_deposit)} is still <strong>held</strong>. You may want to process a refund separately.</Text>
+              </Box>
+            )}
+            {unpaidBillsTotal > 0 && (
+              <Box bg={cautionBg} p={4} borderRadius="lg" border="1px solid" borderColor="yellow.200">
+                <Text fontSize="xs" fontWeight="black" color="yellow.600" textTransform="uppercase" letterSpacing="wider" mb={1}>Outstanding Bills</Text>
+                <Text fontSize="sm" color={textColor}>There are {fmt(unpaidBillsTotal)} in unpaid utility bills.</Text>
+              </Box>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button onClick={onTerminateClose} variant="ghost" mr={3} size="sm">Cancel</Button>
+            <Button colorScheme="red" size="sm" isLoading={isTerminating} leftIcon={<FiXCircle />} onClick={handleTerminateLease}>Confirm Termination</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
 
       {/* ===== RECORD PAYMENT MODAL ===== */}
       <Modal isOpen={isPayOpen} onClose={onPayClose} isCentered size="lg">
@@ -1315,6 +1861,81 @@ export default function ViewLease() {
             <ModalFooter borderTop="1px solid" borderColor={borderColor}>
               <Button onClick={onEditClose} variant="ghost" mr={3} size="sm" fontWeight="bold">Cancel</Button>
               <Button colorScheme="blue" type="submit" size="sm" isLoading={isSavingEdit} fontWeight="bold" px={6}>Update Agreement</Button>
+            </ModalFooter>
+          </form>
+        </ModalContent>
+      </Modal>
+
+      {/* ===== MAINTENANCE MODAL ===== */}
+      <Modal isOpen={isMaintOpen} onClose={onMaintClose} isCentered size="lg">
+        <ModalOverlay bg="blackAlpha.600" />
+        <ModalContent bg={cardBg} borderRadius="xl">
+          <form onSubmit={handleSaveMaintenance}>
+            <ModalHeader color={textColor}>New Maintenance Request</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody pb={6}>
+               <VStack spacing={4} align="stretch">
+                  <FormControl isRequired>
+                    <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Issue Title</FormLabel>
+                    <Input size="sm" bg={inputBg} borderColor={borderColor} placeholder="e.g. Broken AC, Leaking Sink" value={maintForm.title} onChange={e => setMaintForm({...maintForm, title: e.target.value})} />
+                  </FormControl>
+                  <FormControl isRequired>
+                    <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Priority</FormLabel>
+                    <Select size="sm" bg={inputBg} borderColor={borderColor} value={maintForm.priority} onChange={e => setMaintForm({...maintForm, priority: e.target.value})}>
+                      <option value="normal">Normal</option>
+                      <option value="urgent">Urgent</option>
+                      <option value="emergency">Emergency</option>
+                    </Select>
+                  </FormControl>
+                  <FormControl isRequired>
+                    <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Description</FormLabel>
+                    <Textarea size="sm" bg={inputBg} borderColor={borderColor} rows={4} value={maintForm.description} onChange={e => setMaintForm({...maintForm, description: e.target.value})} />
+                  </FormControl>
+               </VStack>
+            </ModalBody>
+            <ModalFooter>
+              <Button onClick={onMaintClose} variant="ghost" mr={3} size="sm">Cancel</Button>
+              <Button colorScheme="blue" type="submit" size="sm" isLoading={isSavingMaint}>Submit Ticket</Button>
+            </ModalFooter>
+          </form>
+        </ModalContent>
+      </Modal>
+
+      {/* ===== EXPENSE MODAL ===== */}
+      <Modal isOpen={isExpOpen} onClose={onExpClose} isCentered size="md">
+        <ModalOverlay bg="blackAlpha.600" />
+        <ModalContent bg={cardBg} borderRadius="xl">
+          <form onSubmit={handleSaveExpense}>
+            <ModalHeader color={textColor}>Record Room Expense</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody pb={6}>
+               <VStack spacing={4} align="stretch">
+                  <FormControl isRequired>
+                    <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Title</FormLabel>
+                    <Input size="sm" bg={inputBg} borderColor={borderColor} value={expForm.title} onChange={e => setExpForm({...expForm, title: e.target.value})} />
+                  </FormControl>
+                  <FormControl isRequired>
+                    <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Category</FormLabel>
+                    <Select size="sm" bg={inputBg} borderColor={borderColor} value={expForm.category} onChange={e => setExpForm({...expForm, category: e.target.value})}>
+                      <option value="Repairs">Repairs</option>
+                      <option value="Cleaning">Cleaning</option>
+                      <option value="Furniture">Furniture</option>
+                      <option value="Other">Other</option>
+                    </Select>
+                  </FormControl>
+                  <FormControl isRequired>
+                    <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Amount ({localStorage.getItem("currency") || "$"})</FormLabel>
+                    <Input size="sm" bg={inputBg} borderColor={borderColor} type="number" step="0.01" value={expForm.amount} onChange={e => setExpForm({...expForm, amount: e.target.value})} />
+                  </FormControl>
+                  <FormControl isRequired>
+                    <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Date</FormLabel>
+                    <Input size="sm" bg={inputBg} borderColor={borderColor} type="date" value={expForm.expense_date} onChange={e => setExpForm({...expForm, expense_date: e.target.value})} />
+                  </FormControl>
+               </VStack>
+            </ModalBody>
+            <ModalFooter>
+              <Button onClick={onExpClose} variant="ghost" mr={3} size="sm">Cancel</Button>
+              <Button colorScheme="blue" type="submit" size="sm" isLoading={isSavingExp}>Save Expense</Button>
             </ModalFooter>
           </form>
         </ModalContent>

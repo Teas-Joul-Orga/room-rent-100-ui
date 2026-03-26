@@ -60,6 +60,7 @@ import Furniture from "./page/furniture/Furniture";
 import AddNewFurniture from "./page/furniture/AddNewFurniture";
 import RoomFurniture from "./page/furniture/RoomFurniture";
 import ViewFurniture from "./page/furniture/ViewFurniture";
+import Bills from "./page/utility/Bills";
 
 import Login from "./Login";
 import ProtectedRoute from "./protectedroute";
@@ -185,6 +186,7 @@ function App() {
             <Route path="recyclebin" element={<AllRecyclebin />} />
             <Route path="expenses" element={<AdminExpense />} />
             <Route path="payments" element={<Payment />} />
+            <Route path="bills" element={<Bills />} />
           </Route>
         </Routes>
       </BrowserRouter>

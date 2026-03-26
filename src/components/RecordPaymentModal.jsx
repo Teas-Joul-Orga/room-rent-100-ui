@@ -9,9 +9,31 @@ import toast from "react-hot-toast";
 
 const API = "http://localhost:8000/api/v1/admin";
 
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
+
 export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initialData = {} }) {
   const curr = localStorage.getItem("currency") || "$";
   
+  const toLocal = (n) => {
+    const c = localStorage.getItem("currency") || "$";
+    const num = Number(n || 0);
+    if (c === "៛" || c === "KHR" || c === "Riel") {
+      const r = Number(localStorage.getItem("exchangeRate") || 4000);
+      return Math.round(num * r);
+    }
+    return Number(num.toFixed(2));
+  };
+  
+  const toUSD = (n) => {
+    const c = localStorage.getItem("currency") || "$";
+    const num = Number(n || 0);
+    if (c === "៛" || c === "KHR" || c === "Riel") {
+      const r = Number(localStorage.getItem("exchangeRate") || 4000);
+      return Number((num / r).toFixed(2));
+    }
+    return num;
+  };
+
   const fmt = (n) => {
     const c = localStorage.getItem("currency") || "$";
     const num = Number(n || 0);
@@ -51,7 +73,7 @@ export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initial
         ...prev,
         lease_id: safeData.lease_id || "",
         type: safeData.type || "rent",
-        amount_paid: safeData.amount || "",
+        amount_paid: safeData.amount ? toLocal(safeData.amount) : "",
         bill_id: safeData.bill_id || "",
         notes: safeData.notes || ""
       }));
@@ -117,7 +139,7 @@ export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initial
       setFormData(prev => ({ 
         ...prev, 
         bill_id: billId, 
-        amount_paid: remaining > 0 ? remaining : 0,
+        amount_paid: remaining > 0 ? toLocal(remaining) : 0,
         notes: `Payment for ${bill.type} bill (Due: ${fmtDate(bill.due_date)})`
       }));
     } else {
@@ -127,15 +149,15 @@ export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initial
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.lease_id || !formData.amount_paid || !formData.payment_date) {
-      toast.error("Please fill required fields (Lease, Amount, Date)");
+    if ((!formData.lease_id && !formData.bill_id) || !formData.amount_paid || !formData.payment_date) {
+      toast.error("Please fill required fields (Lease/Bill, Amount, Date)");
       return;
     }
 
     // Validation: Check if remaining balance is 0 or if amount exceeds balance
     const selectedLease = leases.find(item => item.id.toString() === formData.lease_id.toString());
     if (selectedLease) {
-      const amountPaid = Number(formData.amount_paid);
+      const amountPaid = toUSD(formData.amount_paid);
 
       if (formData.type === 'rent') {
         const rentTotal = Number(selectedLease.total_contract_value || 0);
@@ -176,6 +198,11 @@ export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initial
         toast.error("Auth token missing");
         return;
       }
+      const payload = {
+        ...formData,
+        amount_paid: toUSD(formData.amount_paid)
+      };
+
       const res = await fetch(`${API}/payments`, {
         method: "POST",
         headers: {
@@ -183,7 +210,7 @@ export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initial
           "Content-Type": "application/json",
           Accept: "application/json"
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
 
       const data = await res.json();
@@ -213,8 +240,8 @@ export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initial
           
           <ModalBody py={6}>
             <SimpleGrid columns={1} spacing={4}>
-              <FormControl isRequired>
-                <FormLabel fontSize="xs" fontWeight="bold">Select Tenant / Lease</FormLabel>
+              <FormControl>
+                <FormLabel fontSize="xs" fontWeight="bold">Select Tenant / Lease (Optional if paying a bill)</FormLabel>
                 {isLoadingLeases ? (
                   <Flex align="center" gap={2}><Spinner size="sm" /> <Text fontSize="xs">Loading leases...</Text></Flex>
                 ) : (
@@ -236,6 +263,9 @@ export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initial
                         </option>
                       );
                     })}
+                    {!formData.lease_id && formData.bill_id && (
+                      <option value="">— Vacant Room / No Active Lease —</option>
+                    )}
                   </Select>
                 )}
               </FormControl>
