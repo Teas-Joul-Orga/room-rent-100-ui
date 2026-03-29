@@ -13,7 +13,8 @@ import {
   HStack,
   Spinner,
   Button,
-  useToast, // added useToast
+  useToast,
+  useDisclosure,
 } from "@chakra-ui/react";
 import {
   LuWrench,
@@ -27,100 +28,57 @@ import {
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { useApi } from "../../hooks/useApi";
+import StatsCard from "../../components/common/StatsCard";
+import ConfirmDialog from "../../components/common/ConfirmDialog";
+import EmptyState from "../../components/common/EmptyState";
 
 dayjs.extend(relativeTime);
 
 export default function Overview() {
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [generatingRent, setGeneratingRent] = useState(false);
   const navigate = useNavigate();
-  const toast = useToast();
+  const { request, loading } = useApi();
+  const [generatingRent, setGeneratingRent] = useState(false);
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   const { colorMode } = useColorMode();
-  const cardBg = (colorMode === 'light' ? "white" : "#161b22");
-  const cardBorder = (colorMode === 'light' ? "gray.100" : "gray.700");
-  const textColor = (colorMode === 'light' ? "gray.900" : "white");
-  const mutedTextColor = (colorMode === 'light' ? "gray.500" : "gray.400");
-  const itemBorderColor = (colorMode === 'light' ? "gray.50" : "gray.700");
-  const headerBg = (colorMode === 'light' ? "gray.50" : "gray.700");
-
-  const [token] = useState(() => localStorage.getItem("token"));
+  const cardBg = useColorModeValue("white", "#161b22");
+  const cardBorder = useColorModeValue("gray.100", "gray.700");
+  const textColor = useColorModeValue("gray.900", "white");
+  const mutedTextColor = useColorModeValue("gray.500", "gray.400");
+  const itemBorderColor = useColorModeValue("gray.50", "gray.700");
+  const headerBg = useColorModeValue("gray.50", "gray.700");
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
 
   const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("http://localhost:8000/api/v1/admin/dashboard", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-      if (res.ok) {
-        const json = await res.json();
-        setData(json);
-      } else {
-        console.error("Failed to fetch dashboard data");
-      }
-    } catch (err) {
-      console.error("API error", err);
-    } finally {
-      setLoading(false);
+    const [json] = await request({ url: "/admin/dashboard", method: "GET" }, { showToast: false });
+    if (json) {
+      setData(json);
     }
   };
 
   const handleGenerateRent = async () => {
-    if (!window.confirm("Generate rent bills for all active leases for this month?")) return;
-    
     setGeneratingRent(true);
-    try {
-      const res = await fetch("http://localhost:8000/api/v1/admin/leases/generate-monthly-rent", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-      
-      const json = await res.json();
-      
-      if (res.ok) {
-        toast({
-          title: "Success",
-          description: json.message || "Monthly rent generated successfully.",
-          status: "success",
-          duration: 5000,
-          isClosable: true,
-        });
-        // Refresh data to show any new overdue bills etc
-        fetchDashboardData();
-      } else {
-        toast({
-          title: "Error",
-          description: json.message || "Failed to generate rent.",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-      }
-    } catch (err) {
-      toast({
-        title: "Connection Error",
-        description: "Could not connect to the server.",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-    } finally {
-      setGeneratingRent(false);
+    const [json] = await request({ 
+      url: "/admin/leases/generate-rent",
+      method: "POST" 
+    }, {
+      successMessage: "Monthly rent generated successfully.",
+      errorMessage: "Failed to generate rent."
+    });
+    
+    if (json) {
+      fetchDashboardData();
     }
+    setGeneratingRent(false);
+    onClose();
   };
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <Flex justify="center" align="center" h="64">
         <Spinner size="xl" color="blue.500" />
@@ -138,49 +96,49 @@ export default function Overview() {
     {
       title: "Pending Maintenance",
       value: stats.pending_maintenance,
-      actionText: "Needs Review",
+      subValue: "Needs Review",
       icon: LuClipboardList,
-      colors: { base: "yellow.500", light: "yellow.100", dark: "yellow.600", text: "yellow.700" },
+      color: "yellow",
       link: "/dashboard/maintenance",
     },
     {
       title: "Urgent Repairs",
       value: stats.emergency_maintenance,
-      actionText: "Action Required",
+      subValue: "Action Required",
       icon: LuWrench,
-      colors: { base: "red.600", light: "red.100", dark: "red.700", text: "red.700" },
+      color: "red",
       link: "/dashboard/maintenance",
     },
     {
       title: "Overdue Payments",
       value: stats.overdue_bills,
-      actionText: "Follow Up",
+      subValue: "Follow Up",
       icon: LuReceipt,
-      colors: { base: "orange.500", light: "orange.100", dark: "orange.600", text: "orange.700" },
+      color: "orange",
       link: "/dashboard/utility",
     },
     {
       title: "Expiring Leases",
       value: stats.expiring_leases,
-      actionText: "Renew Soon",
+      subValue: "Renew Soon",
       icon: LuCalendarClock,
-      colors: { base: "purple.500", light: "purple.100", dark: "purple.600", text: "purple.700" },
+      color: "purple",
       link: "/dashboard/lease",
     },
     {
       title: "Vacant Units",
       value: stats.available_rooms,
-      actionText: "Ready to Lease",
+      subValue: "Ready to Lease",
       icon: LuDoorOpen,
-      colors: { base: "green.500", light: "green.100", dark: "green.600", text: "green.700" },
+      color: "green",
       link: "/dashboard/rooms",
     },
     {
       title: "Pending Onboarding",
       value: stats.pending_accounts,
-      actionText: "Create Logins",
+      subValue: "Create Logins",
       icon: LuUserPlus,
-      colors: { base: "blue.600", light: "blue.100", dark: "blue.700", text: "blue.700" },
+      color: "blue",
       link: "/dashboard/tenants",
     },
   ];
@@ -194,41 +152,15 @@ export default function Overview() {
       {/* STAT CARDS */}
       <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={6}>
         {statCards.map((c, i) => (
-          <Box
+          <StatsCard
             key={i}
-            as="button"
+            title={c.title}
+            value={c.value}
+            subValue={c.subValue}
+            icon={c.icon}
+            color={c.color}
             onClick={() => navigate(c.link)}
-            textAlign="left"
-            bg={cardBg}
-            borderRadius="2xl"
-            p={6}
-            boxShadow="sm"
-            borderLeft="4px solid"
-            borderLeftColor={c.colors.base}
-            _hover={{ boxShadow: "md", transform: "translateY(-2px)" }}
-            transition="all 0.2s"
-          >
-            <Text fontSize="10px" fontWeight="black" color={mutedTextColor} textTransform="uppercase" letterSpacing="widest" mb={1}>
-              {c.title}
-            </Text>
-            <Flex align="center" justify="space-between">
-              <Heading size="xl" fontWeight="black" color={textColor}>
-                {c.value}
-              </Heading>
-              
-              <Text 
-                fontSize="10px" 
-                fontWeight="bold" 
-                bg={(colorMode === 'light' ? c.colors.light : "gray.700")} 
-                color={(colorMode === 'light' ? c.colors.text : c.colors.light)}
-                px={2} 
-                py={1} 
-                borderRadius="md"
-              >
-                {c.actionText}
-              </Text>
-            </Flex>
-          </Box>
+          />
         ))}
       </Grid>
 
@@ -272,9 +204,11 @@ export default function Overview() {
                 </Flex>
               ))
             ) : (
-              <Text p={8} textAlign="center" color={mutedTextColor} fontStyle="italic" fontSize="sm">
-                No recent requests.
-              </Text>
+              <EmptyState 
+                title="All clear" 
+                description="No recent maintenance requests to show." 
+                icon={LuWrench}
+              />
             )}
           </VStack>
         </Box>
@@ -309,9 +243,11 @@ export default function Overview() {
                 </Flex>
               ))
             ) : (
-              <Text p={8} textAlign="center" color={mutedTextColor} fontStyle="italic" fontSize="sm">
-                No leases expiring soon.
-              </Text>
+              <EmptyState 
+                title="Stable Occupancy" 
+                description="No leases are expiring in the next 30 days." 
+                icon={LuCalendarClock}
+              />
             )}
           </VStack>
         </Box>
@@ -332,7 +268,7 @@ export default function Overview() {
         border="1px"
         borderColor="gray.800"
       >
-        {/* <Box mb={{ base: 6, md: 0 }}>
+        <Box mb={{ base: 6, md: 0 }}>
           <HStack spacing={3} mb={1}>
             <Text fontSize="2xl" fontWeight="black" textTransform="uppercase" letterSpacing="tight">
               Monthly Billing Cycle
@@ -344,7 +280,7 @@ export default function Overview() {
           <Text color="gray.400" fontSize="sm">
             Generate rent invoices for all active tenants for <Text as="strong" color="white">{dayjs().format('MMMM YYYY')}</Text>.
           </Text>
-        </Box> */}
+        </Box>
         <HStack spacing={4}>
           <Text 
             as="button" 
@@ -375,13 +311,24 @@ export default function Overview() {
              isLoading={generatingRent}
              loadingText="RUNNING..."
              leftIcon={<LuRefreshCw />}
-             onClick={handleGenerateRent}
+             onClick={onOpen}
              transition="all 0.2s"
           >
             Run Monthly Cycle
           </Button>
         </HStack>
       </Box>
+
+      <ConfirmDialog 
+        isOpen={isOpen}
+        onClose={onClose}
+        onConfirm={handleGenerateRent}
+        title="Generate Monthly Rent"
+        message={`Are you sure you want to generate rent bills for all active leases for ${dayjs().format('MMMM YYYY')}? This will create new utility bills and notify tenants.`}
+        confirmText="Generate Now"
+        type="info"
+        isLoading={generatingRent}
+      />
 
     </VStack>
   );

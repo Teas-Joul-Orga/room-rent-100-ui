@@ -4,7 +4,8 @@ import {
   Stat, StatLabel, StatNumber, StatHelpText, Badge,
   Table, Thead, Tbody, Tr, Th, Td, TableContainer, Icon, Grid, GridItem, Skeleton,
   Avatar, AvatarGroup, Tooltip, IconButton, Menu, MenuButton, MenuList, MenuItem,
-  Progress, Divider, Heading, Center, useColorMode, VStack, HStack
+  Progress, Divider, Heading, Center, useColorMode, VStack, HStack,
+  Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, useDisclosure
 } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next";
 import {
@@ -13,7 +14,7 @@ import {
 } from "recharts";
 import { 
   FiTrendingUp, FiTrendingDown, FiDollarSign, FiHome, FiTool, FiActivity, 
-  FiBell, FiCalendar, FiUsers, FiPlus, FiArrowRight, FiMoreVertical, FiClock
+  FiBell, FiCalendar, FiUsers, FiPlus, FiArrowRight, FiMoreVertical, FiClock,FiCheckCircle
 } from "react-icons/fi";
 import { LuWrench, LuReceipt, LuDoorOpen, LuUserPlus, LuRefreshCw } from "react-icons/lu";
 import { toast } from "react-hot-toast";
@@ -39,6 +40,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [yearFilter, setYearFilter] = useState(dayjs().format('YYYY'));
   const [dashboardData, setDashboardData] = useState(null);
+  const { isOpen: isCommandOpen, onOpen: onCommandOpen, onClose: onCommandClose } = useDisclosure();
+  const { isOpen: isOverdueOpen, onOpen: onOverdueOpen, onClose: onOverdueClose } = useDisclosure();
+  const [overdueBills, setOverdueBills] = useState([]);
+  const [fetchingOverdue, setFetchingOverdue] = useState(false);
 
   // Cached localization parsing
   const currencySettings = useMemo(() => {
@@ -57,7 +62,7 @@ export default function Dashboard() {
     return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   }, [currencySettings]);
 
-  // Aesthetic Colors
+  // Aesthetic Colors - MUST be at the top level
   const bg = useColorModeValue("white", "#0d1117");
   const cardBg = useColorModeValue("white", "#161b22");
   const glassBg = useColorModeValue("rgba(255, 255, 255, 0.7)", "rgba(22, 27, 34, 0.7)");
@@ -73,6 +78,15 @@ export default function Dashboard() {
   const statBgOrange = useColorModeValue("orange.50", "orange.900");
   const progressBg = useColorModeValue("gray.100", "gray.700");
 
+  const yearOptions = useMemo(() => {
+    const currentYear = dayjs().year();
+    const years = [];
+    for (let i = currentYear - 2; i <= currentYear + 2; i++) {
+      years.push(i);
+    }
+    return years;
+  }, []);
+
   const fetchDashboard = async () => {
     setLoading(true);
     try {
@@ -83,6 +97,20 @@ export default function Dashboard() {
       toast.error("Failed to load dashboard metrics");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchOverdueBills = async () => {
+    setFetchingOverdue(true);
+    try {
+      // Fetch bills with status unpaid
+      const res = await api.get("/admin/utility-bills?status=unpaid&per_page=100");
+      setOverdueBills(res.data.data || []);
+      onOverdueOpen();
+    } catch (e) {
+      toast.error("Failed to fetch overdue bills");
+    } finally {
+      setFetchingOverdue(false);
     }
   };
 
@@ -124,7 +152,7 @@ export default function Dashboard() {
 
   const urgentCards = [
     { title: "Pending Fixes", val: urgentStats.pending_maintenance, icon: FiTool, color: "orange", link: "/dashboard/maintenance", bg: statBgOrange },
-    { title: "Overdue Bills", val: urgentStats.overdue_bills, icon: FiClock, color: "red", link: "/dashboard/utility", bg: statBgRed },
+    { title: "Overdue Bills", val: urgentStats.overdue_bills, icon: FiClock, color: "red", onClick: fetchOverdueBills, bg: statBgRed },
     { title: "Vacant Units", val: urgentStats.available_rooms, icon: FiHome, color: "green", link: "/dashboard/rooms", bg: statBgGreen },
     { title: "New Leases", val: urgentStats.expiring_leases, icon: FiCalendar, color: "purple", link: "/dashboard/lease", bg: statBgPurple },
   ];
@@ -134,7 +162,12 @@ export default function Dashboard() {
       
       {/* Top Header Section */}
       <Flex direction={{ base: "column", md: "row" }} justify="space-between" align={{ base: "flex-start", md: "center" }} mb={10} gap={4}>
-        <Box>
+        <Box 
+          cursor="pointer" 
+          onClick={onCommandOpen}
+          _hover={{ opacity: 0.8 }}
+          transition="all 0.2s"
+        >
           <Heading size="xl" fontWeight="900" letterSpacing="tight" bgGradient="linear(to-r, blue.400, purple.500)" bgClip="text">
             Command Center
           </Heading>
@@ -147,7 +180,7 @@ export default function Dashboard() {
             size="sm" w="120px" rounded="full" bg={cardBg} borderColor={borderColor} fontWeight="800"
             value={yearFilter} onChange={e => setYearFilter(e.target.value)}
           >
-            {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+            {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
           </Select>
           <IconButton icon={<FiPlus />} colorScheme="blue" rounded="full" shadow="lg" onClick={() => navigate("/dashboard/lease/createnewlease")} />
         </Flex>
@@ -165,16 +198,19 @@ export default function Dashboard() {
               label="Revenue" value={fmt(financials.revenueCollected)} 
               sub={`Expected: ${fmt(financials.revenueExpected)}`} 
               percent={financials.collectionRate} icon={FiDollarSign} color="blue" 
+              styles={{ textColor, mutedText, borderColor, cardBg, kpiProgressBg: progressBg }}
             />
             <KPIStat 
               label="Occupancy" value={`${occupancy.occupancyRate.toFixed(1)}%`} 
               sub={`${occupancy.occupiedRooms} / ${occupancy.totalRooms} Units`} 
               percent={occupancy.occupancyRate} icon={FiHome} color="purple" 
+              styles={{ textColor, mutedText, borderColor, cardBg, kpiProgressBg: progressBg }}
             />
             <KPIStat 
               label="Net Profit" value={fmt(financials.netProfit)} 
               sub={`${financials.revenueCollected > 0 ? ((financials.netProfit / financials.revenueCollected) * 100).toFixed(1) : 0}% Margin`} 
               percent={financials.revenueCollected > 0 ? (financials.netProfit / financials.revenueCollected) * 100 : 0} icon={FiTrendingUp} color="emerald" 
+              styles={{ textColor, mutedText, borderColor, cardBg, kpiProgressBg: progressBg }}
             />
           </SimpleGrid>
 
@@ -365,11 +401,16 @@ export default function Dashboard() {
               <MotionBox 
                  key={i} whileHover={{ x: 5 }} whileActive={{ scale: 0.98 }}
                  bg={cardBg} p={4} borderRadius="2xl" border="1px" borderColor={borderColor} shadow="sm"
-                 cursor="pointer" onClick={() => navigate(card.link)}
+                 cursor="pointer" 
+                 onClick={() => card.onClick ? card.onClick() : navigate(card.link)}
               >
                 <Flex align="center" gap={4}>
                   <Center w="12" h="12" bg={card.bg} color={`${card.color}.500`} _dark={{ color: `${card.color}.300` }} rounded="xl">
-                    <Icon as={card.icon} boxSize={5} />
+                    {fetchingOverdue && card.title === "Overdue Bills" ? (
+                      <Spinner size="sm" />
+                    ) : (
+                      <Icon as={card.icon} boxSize={5} />
+                    )}
                   </Center>
                   <Box flex="1">
                     <Text fontSize="sm" fontWeight="800" color={textColor}>{card.title}</Text>
@@ -418,16 +459,186 @@ export default function Dashboard() {
       
       {/* Footer Branding */}
 
+      {/* Command Center Quick Access Modal */}
+      <Modal isOpen={isCommandOpen} onClose={onCommandClose} size="2xl" isCentered>
+        <ModalOverlay backdropFilter="blur(10px)" bg="blackAlpha.300" />
+        <ModalContent 
+          bg={cardBg} 
+          borderRadius="3xl" 
+          overflow="hidden" 
+          border="1px solid" 
+          borderColor={borderColor}
+          shadow="2xl"
+        >
+          <ModalHeader py={6} borderBottom="1px solid" borderColor={borderColor}>
+            <VStack align="flex-start" spacing={0}>
+              <Text fontSize="xs" fontWeight="black" color="blue.500" textTransform="uppercase" letterSpacing="widest">System Intelligence</Text>
+              <Heading size="md">Command Center Hub</Heading>
+            </VStack>
+          </ModalHeader>
+          <ModalCloseButton borderRadius="full" mt={4} />
+          
+          <ModalBody py={8}>
+            <Text fontSize="sm" color={mutedText} mb={6} fontWeight="bold">QUICK SYSTEM ACTIONS</Text>
+            <SimpleGrid columns={{ base: 2, md: 3 }} spacing={4}>
+              <QuickActionBtn icon={LuDoorOpen} label="Manage Units" color="blue" onClick={() => { navigate("/dashboard/rooms"); onCommandClose(); }} />
+              <QuickActionBtn icon={FiUsers} label="Tenant Directory" color="purple" onClick={() => { navigate("/dashboard/tenants"); onCommandClose(); }} />
+              <QuickActionBtn icon={LuReceipt} label="Financials" color="emerald" onClick={() => { navigate("/dashboard/utility"); onCommandClose(); }} />
+              <QuickActionBtn icon={LuWrench} label="Service Desk" color="orange" onClick={() => { navigate("/dashboard/maintenance"); onCommandClose(); }} />
+              <QuickActionBtn icon={FiCalendar} label="Lease Tracking" color="pink" onClick={() => { navigate("/dashboard/lease"); onCommandClose(); }} />
+              <QuickActionBtn icon={FiTrendingUp} label="Real-time Stats" color="cyan" onClick={onCommandClose} />
+            </SimpleGrid>
+
+            <Box mt={10} p={6} bg={bg} borderRadius="2xl" border="1px solid" borderColor={borderColor}>
+              <HStack spacing={4}>
+                <Center w="12" h="12" bg="blue.500" color="white" rounded="xl" shadow="lg">
+                  <Icon as={FiActivity} boxSize={6} />
+                </Center>
+                <VStack align="flex-start" spacing={0}>
+                  <Text fontWeight="black" fontSize="sm">System Status: Operational</Text>
+                  <Text fontSize="xs" color={mutedText}>All automated billing cycles are synchronized.</Text>
+                </VStack>
+              </HStack>
+            </Box>
+          </ModalBody>
+
+          <ModalFooter bg={tableHeaderBg} py={4}>
+            <Button variant="ghost" onClick={onCommandClose} fontWeight="black" textTransform="uppercase" fontSize="xs" letterSpacing="widest">
+              Close Hub
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Overdue Bills Modal */}
+      <Modal isOpen={isOverdueOpen} onClose={onOverdueClose} size="4xl" isCentered>
+        <ModalOverlay backdropFilter="blur(10px)" bg="blackAlpha.300" />
+        <ModalContent 
+          bg={cardBg} 
+          borderRadius="3xl" 
+          overflow="hidden" 
+          border="1px solid" 
+          borderColor={borderColor}
+          shadow="2xl"
+        >
+          <ModalHeader py={6} borderBottom="1px solid" borderColor={borderColor}>
+            <VStack align="flex-start" spacing={0}>
+              <Text fontSize="xs" fontWeight="black" color="red.500" textTransform="uppercase" letterSpacing="widest">Outstanding Payments</Text>
+              <Heading size="md">Overdue Bills Directory</Heading>
+            </VStack>
+          </ModalHeader>
+          <ModalCloseButton borderRadius="full" mt={4} />
+          
+          <ModalBody py={0}>
+            <Box maxH="500px" overflowY="auto" px={1}>
+              <Table variant="simple" size="sm">
+                <Thead position="sticky" top={0} bg={cardBg} zIndex={1} shadow="sm">
+                  <Tr>
+                    <Th py={4} color={mutedText} borderBottom="2px" borderColor={borderColor}>Tenant / Unit</Th>
+                    <Th py={4} color={mutedText} borderBottom="2px" borderColor={borderColor}>Bill Type</Th>
+                    <Th py={4} color={mutedText} borderBottom="2px" borderColor={borderColor} isNumeric>Amount</Th>
+                    <Th py={4} color={mutedText} borderBottom="2px" borderColor={borderColor}>Due Date</Th>
+                    <Th py={4} color={mutedText} borderBottom="2px" borderColor={borderColor}>Action</Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {overdueBills.map((bill) => (
+                    <Tr key={bill.id} _hover={{ bg: hoverBg }}>
+                      <Td py={5}>
+                        <VStack align="start" spacing={0}>
+                          <Text fontWeight="black" fontSize="sm" color={textColor}>{bill.lease?.tenant?.name || "N/A"}</Text>
+                          <Text fontSize="xs" color={mutedText} textTransform="uppercase" fontWeight="bold">{bill.room?.name || bill.lease?.room?.name || "N/A"}</Text>
+                        </VStack>
+                      </Td>
+                      <Td py={5}>
+                        <Badge size="md" colorScheme="orange" variant="subtle" rounded="lg" px={3} py={1} textTransform="uppercase" fontSize="10px" fontWeight="black">
+                          {bill.type}
+                        </Badge>
+                      </Td>
+                      <Td py={5} isNumeric fontWeight="900" color="red.500" fontSize="md">
+                        {fmt(bill.amount)}
+                      </Td>
+                      <Td py={5} fontSize="sm">
+                        <Text fontWeight="bold" color={textColor}>{dayjs(bill.due_date).format('MMM DD, YYYY')}</Text>
+                        <Text fontSize="11px" color="red.400" fontWeight="black" textTransform="uppercase">{dayjs().diff(dayjs(bill.due_date), 'day')} days late</Text>
+                      </Td>
+                      <Td py={5}>
+                        <Button 
+                          size="sm" 
+                          colorScheme="blue" 
+                          variant="solid" 
+                          borderRadius="xl"
+                          fontWeight="black"
+                          textTransform="uppercase"
+                          fontSize="xs"
+                          px={4}
+                          onClick={() => { navigate("/dashboard/utility"); onOverdueClose(); }}
+                        >
+                          Process
+                        </Button>
+                      </Td>
+                    </Tr>
+                  ))}
+                  {overdueBills.length === 0 && (
+                    <Tr>
+                      <Td colSpan={5} py={20} textAlign="center">
+                        <VStack spacing={3}>
+                          <Icon as={FiCheckCircle} boxSize={10} color="green.400" />
+                          <Text color={mutedText} fontStyle="italic" fontWeight="bold">Excellent! All bills are currently paid up.</Text>
+                        </VStack>
+                      </Td>
+                    </Tr>
+                  )}
+                </Tbody>
+              </Table>
+            </Box>
+          </ModalBody>
+
+          <ModalFooter bg={tableHeaderBg} py={4}>
+            <Button 
+              variant="outline" 
+              mr={3} 
+              onClick={onOverdueClose}
+              fontWeight="black" textTransform="uppercase" fontSize="xs" letterSpacing="widest"
+            >
+              Dismiss
+            </Button>
+            <Button 
+              colorScheme="blue" 
+              onClick={() => { navigate("/dashboard/utility"); onOverdueClose(); }}
+              fontWeight="black" textTransform="uppercase" fontSize="xs" letterSpacing="widest"
+            >
+              View All Billing
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
     </Box>
   );
 }
 
-function KPIStat({ label, value, sub, percent, icon, color }) {
-  const textColor = useColorModeValue("gray.800", "white");
-  const mutedText = useColorModeValue("gray.500", "gray.400");
-  const borderColor = useColorModeValue("gray.100", "#30363d");
-  const cardBg = useColorModeValue("white", "#161b22");
-  const kpiProgressBg = useColorModeValue("gray.100", "gray.700");
+function QuickActionBtn({ icon, label, color, onClick }) {
+  const hoverBg = useColorModeValue(`${color}.50`, `${color}.900`);
+  return (
+    <VStack 
+      as="button"
+      onClick={onClick}
+      p={6} 
+      bg={useColorModeValue("gray.50", "whiteAlpha.50")} 
+      borderRadius="2xl" 
+      spacing={3}
+      transition="all 0.2s"
+      _hover={{ bg: hoverBg, transform: "translateY(-2px)", shadow: "md" }}
+    >
+      <Icon as={icon} boxSize={6} color={`${color}.500`} />
+      <Text fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="tight">{label}</Text>
+    </VStack>
+  );
+}
+
+function KPIStat({ label, value, sub, percent, icon, color, styles }) {
+  const { textColor, mutedText, borderColor, cardBg, kpiProgressBg } = styles;
 
   return (
     <MotionBox 

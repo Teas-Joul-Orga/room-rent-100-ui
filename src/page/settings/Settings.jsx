@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box, Flex, Text, Button,
   FormControl, FormLabel, Input, Select, SimpleGrid, useColorModeValue,
   Spinner, useToast, Heading, FormHelperText, InputGroup, InputLeftAddon,
-  Icon, Divider, Stack, VStack, HStack, Container
+  Icon, Divider, Stack, VStack, HStack, Container, useDisclosure
 } from '@chakra-ui/react';
 import { 
   FiSave, FiGlobe, FiPhone, FiMail, FiMapPin, FiCreditCard, 
-  FiZap, FiDroplet, FiInfo, FiBriefcase, FiDollarSign, FiPercent 
+  FiZap, FiDroplet, FiInfo, FiBriefcase, FiDollarSign, FiPercent,
+  FiDatabase, FiUpload, FiDownload, FiAlertTriangle
 } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 
 const API = "http://localhost:8000/api/v1";
 
@@ -18,9 +20,14 @@ export default function Settings() {
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
   
   const toast = useToast();
+  const fileInputRef = useRef();
+  const restoreDisc = useDisclosure();
+  const [selectedFile, setSelectedFile] = useState(null);
+
   const mainBg = useColorModeValue("sky.50", "#0d1117");
   const cardBg = useColorModeValue("white", "#161b22");
   const borderColor = useColorModeValue("gray.200", "#30363d");
@@ -31,33 +38,33 @@ export default function Settings() {
   
   // Fetch existing settings
   useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`${API}/admin/settings`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const flatSettings = {};
-          Object.keys(data).forEach(k => {
-            flatSettings[k] = data[k].value;
-          });
-          setSettings(flatSettings);
-          // Cache key values in localStorage so bill forms can read them without an extra API call
-          if (flatSettings.finance_currency) localStorage.setItem("currency", flatSettings.finance_currency);
-          if (flatSettings.finance_exchange_rate) localStorage.setItem("exchangeRate", flatSettings.finance_exchange_rate);
-          if (flatSettings.utility_rate_electricity) localStorage.setItem("utility_rate_electricity", flatSettings.utility_rate_electricity);
-          if (flatSettings.utility_rate_water) localStorage.setItem("utility_rate_water", flatSettings.utility_rate_water);
-        }
-      } catch (e) {
-        toast({ title: t('common.error_loading'), status: 'error', position: 'top-right' });
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchSettings();
-  }, [toast, t]);
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API}/admin/settings`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const flatSettings = {};
+        Object.keys(data).forEach(k => {
+          flatSettings[k] = data[k].value;
+        });
+        setSettings(flatSettings);
+        if (flatSettings.finance_currency) localStorage.setItem("currency", flatSettings.finance_currency);
+        if (flatSettings.finance_exchange_rate) localStorage.setItem("exchangeRate", flatSettings.finance_exchange_rate);
+        if (flatSettings.utility_rate_electricity) localStorage.setItem("utility_rate_electricity", flatSettings.utility_rate_electricity);
+        if (flatSettings.utility_rate_water) localStorage.setItem("utility_rate_water", flatSettings.utility_rate_water);
+      }
+    } catch (e) {
+      toast({ title: t('common.error_loading'), status: 'error', position: 'top-right' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -81,19 +88,8 @@ export default function Settings() {
       const result = await res.json();
       
       if (res.ok) {
-        if (settings.finance_currency) {
-          localStorage.setItem("currency", settings.finance_currency);
-        }
-        if (settings.finance_exchange_rate) {
-          localStorage.setItem("exchangeRate", settings.finance_exchange_rate);
-        }
-        if (settings.utility_rate_electricity) {
-          localStorage.setItem("utility_rate_electricity", settings.utility_rate_electricity);
-        }
-        if (settings.utility_rate_water) {
-          localStorage.setItem("utility_rate_water", settings.utility_rate_water);
-        }
         toast({ title: t('settings_page.save_success'), status: 'success', duration: 3000, position: 'top-right' });
+        fetchSettings();
       } else {
         toast({ title: t('common.error'), description: result.error || 'Server error', status: 'error', position: 'top-right' });
       }
@@ -101,6 +97,73 @@ export default function Settings() {
       toast({ title: t('common.network_error'), status: 'error', duration: 3000, position: 'top-right' });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleBackup = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API}/admin/settings/backup`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (!res.ok) throw new Error('Backup failed');
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup_${new Date().toISOString().split('T')[0]}.sql`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast({ title: 'Backup downloaded successfully', status: 'success', position: 'top-right' });
+    } catch (e) {
+      toast({ title: `Backup failed: ${e.message}`, status: 'error', position: 'top-right' });
+    }
+  };
+
+  const onFileChange = (e) => {
+    if (e.target.files.length > 0) {
+      setSelectedFile(e.target.files[0]);
+      restoreDisc.onOpen();
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!selectedFile) return;
+    setRestoring(true);
+    try {
+      const formData = new FormData();
+      formData.append('backup_file', selectedFile);
+      
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API}/admin/settings/restore`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+      });
+      
+      const result = await res.json();
+      if (res.ok) {
+        toast({ 
+          title: 'Database restored successfully', 
+          description: 'The system has been updated with the backup data.',
+          status: 'success', 
+          duration: 5000,
+          position: 'top-right' 
+        });
+        fetchSettings();
+      } else {
+        toast({ title: 'Restore failed', description: result.error, status: 'error', position: 'top-right' });
+      }
+    } catch (e) {
+      toast({ title: 'Network error during restore', status: 'error', position: 'top-right' });
+    } finally {
+      setRestoring(false);
+      restoreDisc.onClose();
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -140,7 +203,6 @@ export default function Settings() {
   return (
     <Box bg={mainBg} minH="calc(100vh - 80px)" p={{ base: 4, md: 8 }}>
       <Container maxW="container.xxl" p={0}>
-        {/* Top bar header */}
         <Flex justify="space-between" align="center" mb={10} flexWrap="wrap" gap={4}>
           <Box>
             <Heading size="xl" fontWeight="black" color={textColor} letterSpacing="tight">
@@ -166,13 +228,13 @@ export default function Settings() {
         </Flex>
 
         <Flex gap={8} direction={{ base: "column", lg: "row" }}>
-          {/* Sidebar Navigation */}
           <Box w={{ base: "100%", lg: "280px" }} flexShrink={0}>
             <VStack bg={cardBg} p={4} borderRadius="2xl" border="1px solid" borderColor={borderColor} align="stretch" spacing={2} shadow="sm">
               <SidebarItem id="general" label={t('settings_page.nav.general')} icon={FiGlobe} />
               <SidebarItem id="contact" label={t('settings_page.nav.contact')} icon={FiPhone} />
               <SidebarItem id="finance" label={t('settings_page.nav.finance')} icon={FiDollarSign} />
               <SidebarItem id="utilities" label={t('settings_page.nav.utilities')} icon={FiZap} />
+              <SidebarItem id="maintenance" label="System Maintenance" icon={FiDatabase} />
             </VStack>
             
             <Box bg="blue.500" p={6} borderRadius="2xl" mt={6} color="white" shadow="xl" position="relative" overflow="hidden">
@@ -184,90 +246,29 @@ export default function Settings() {
             </Box>
           </Box>
 
-          {/* Main Content Area */}
           <Box flex={1} bg={cardBg} p={{ base: 6, md: 10 }} borderRadius="3xl" border="1px solid" borderColor={borderColor} shadow="sm">
             
-            {/* 1. GENERAL TAB */}
             {activeTab === 'general' && (
               <Box>
-                <SectionHeader 
-                   title={t('settings_page.general.header')} 
-                   subtitle={t('settings_page.general.desc')}
-                   icon={FiGlobe}
-                />
+                <SectionHeader title={t('settings_page.general.header')} subtitle={t('settings_page.general.desc')} icon={FiGlobe} />
                 <Stack spacing={8}>
                   <FormControl>
                     <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.general.label_app_name')}</FormLabel>
-                    <InputGroup size="lg">
-                      <Input name="app_name" value={settings.app_name || ''} onChange={handleChange} placeholder={t('settings_page.general.app_name_placeholder')} borderRadius="xl" focusBorderColor="blue.500" />
-                    </InputGroup>
+                    <Input name="app_name" value={settings.app_name || ''} onChange={handleChange} placeholder={t('settings_page.general.app_name_placeholder')} borderRadius="xl" focusBorderColor="blue.500" size="lg" />
                     <FormHelperText fontSize="xs">{t('settings_page.general.app_name_helper')}</FormHelperText>
                   </FormControl>
-
                   <FormControl>
                     <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.general.label_company_name')}</FormLabel>
                     <Input size="lg" name="company_name" value={settings.company_name || ''} onChange={handleChange} placeholder={t('settings_page.general.company_name_placeholder')} borderRadius="xl" focusBorderColor="blue.500" />
                     <FormHelperText fontSize="xs">{t('settings_page.general.company_name_helper')}</FormHelperText>
                   </FormControl>
                 </Stack>
-
-                {/* System Data Backup */}
-                <Box bg={mainBg} p={8} borderRadius="2xl" border="1px dashed" borderColor={borderColor} mt={10}>
-                   <HStack spacing={3} mb={4}>
-                      <Icon as={FiSave} boxSize={5} color="blue.500" />
-                      <Heading size="sm" color={textColor} textTransform="uppercase" letterSpacing="widest">System Backup</Heading>
-                   </HStack>
-                   <Text fontSize="sm" color={mutedText} mb={6}>
-                     Download a complete backup of your system's database, including all rooms, leases, and financial records. Keep this file secure to prevent data loss.
-                   </Text>
-                   <Button 
-                      colorScheme="blue" 
-                      onClick={async () => {
-                          try {
-                            const token = localStorage.getItem('token');
-                            const res = await fetch(`${API}/admin/settings/backup`, {
-                              headers: { Authorization: `Bearer ${token}` }
-                            });
-                            
-                            if (!res.ok) {
-                              const errorData = await res.json().catch(() => ({ error: 'Unknown server error' }));
-                              console.error('Backup API Error:', {
-                                status: res.status,
-                                statusText: res.statusText,
-                                error: errorData
-                              });
-                              throw new Error(errorData.error || `Server returned ${res.status}`);
-                            }
-                            
-                            const blob = await res.blob();
-                            const url = window.URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = `tesjul_backup_${new Date().toISOString().split('T')[0]}.sql`;
-                            document.body.appendChild(a);
-                            a.click();
-                            window.URL.revokeObjectURL(url);
-                            toast({ title: 'Backup downloaded successfully', status: 'success', position: 'top-right' });
-                          } catch (e) {
-                            console.error('Frontend Backup Exception:', e);
-                            toast({ title: `Backup failed: ${e.message}`, status: 'error', position: 'top-right' });
-                          }
-                      }}
-                   >
-                     Download Backup
-                   </Button>
-                </Box>
               </Box>
             )}
 
-            {/* 2. CONTACT TAB */}
             {activeTab === 'contact' && (
               <Box>
-                <SectionHeader 
-                   title={t('settings_page.contact.header')} 
-                   subtitle={t('settings_page.contact.desc')}
-                   icon={FiBriefcase}
-                />
+                <SectionHeader title={t('settings_page.contact.header')} subtitle={t('settings_page.contact.desc')} icon={FiBriefcase} />
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8}>
                   <FormControl gridColumn={{ md: "span 2" }}>
                     <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.contact.label_address')}</FormLabel>
@@ -276,7 +277,6 @@ export default function Settings() {
                       <Input name="contact_address" value={settings.contact_address || ''} onChange={handleChange} placeholder="123 Main St, City" borderRadius="xl" focusBorderColor="blue.500" />
                     </InputGroup>
                   </FormControl>
-
                   <FormControl>
                     <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.contact.label_phone')}</FormLabel>
                     <InputGroup size="lg">
@@ -284,7 +284,6 @@ export default function Settings() {
                       <Input name="contact_phone" value={settings.contact_phone || ''} onChange={handleChange} placeholder="+855 12 345 678" borderRadius="xl" focusBorderColor="blue.500" />
                     </InputGroup>
                   </FormControl>
-
                   <FormControl>
                     <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.contact.label_email')}</FormLabel>
                     <InputGroup size="lg">
@@ -296,14 +295,9 @@ export default function Settings() {
               </Box>
             )}
 
-            {/* 3. FINANCE TAB */}
             {activeTab === 'finance' && (
               <Box>
-                <SectionHeader 
-                   title={t('settings_page.finance.header')} 
-                   subtitle={t('settings_page.finance.desc')}
-                   icon={FiDollarSign}
-                />
+                <SectionHeader title={t('settings_page.finance.header')} subtitle={t('settings_page.finance.desc')} icon={FiDollarSign} />
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8} mb={10}>
                   <FormControl>
                     <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.finance.label_currency')}</FormLabel>
@@ -312,16 +306,13 @@ export default function Settings() {
                       <option value="៛">Khmer Riel (៛)</option>
                     </Select>
                   </FormControl>
-
                   <FormControl>
                     <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.finance.label_tax')}</FormLabel>
                     <InputGroup size="lg">
                       <Input type="number" step="0.01" name="finance_tax_rate" value={settings.finance_tax_rate || ''} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500" />
                       <InputLeftAddon borderRightRadius="xl"><FiPercent /></InputLeftAddon>
                     </InputGroup>
-                    <FormHelperText fontSize="xs">{t('settings_page.finance.tax_helper')}</FormHelperText>
                   </FormControl>
-
                   <FormControl>
                     <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.finance.label_exchange')}</FormLabel>
                     <InputGroup size="lg">
@@ -329,76 +320,100 @@ export default function Settings() {
                       <Input type="number" step="1" name="finance_exchange_rate" value={settings.finance_exchange_rate || ''} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500" />
                       <InputLeftAddon borderRightRadius="xl">KHR (៛)</InputLeftAddon>
                     </InputGroup>
-                    <FormHelperText fontSize="xs">{t('settings_page.finance.exchange_helper')}</FormHelperText>
                   </FormControl>
                 </SimpleGrid>
-
                 <Box bg={mainBg} p={8} borderRadius="2xl" border="1px dashed" borderColor={borderColor}>
-                   <HStack spacing={3} mb={6}>
-                      <Icon as={FiCreditCard} boxSize={5} color="blue.500" />
-                      <Heading size="sm" color={textColor} textTransform="uppercase" letterSpacing="widest">{t('settings_page.finance.bank_header')}</Heading>
-                   </HStack>
+                   <HStack spacing={3} mb={6}><Icon as={FiCreditCard} boxSize={5} color="blue.500" /><Heading size="sm" color={textColor} textTransform="uppercase" letterSpacing="widest">{t('settings_page.finance.bank_header')}</Heading></HStack>
                    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-                      <FormControl>
-                        <FormLabel fontSize="xs" fontWeight="bold">{t('settings_page.finance.label_bank_name')}</FormLabel>
-                        <Input size="md" name="bank_name" value={settings.bank_name || ''} onChange={handleChange} placeholder="e.g. ABA Bank" borderRadius="lg" bg={cardBg} />
-                      </FormControl>
-                      <FormControl>
-                        <FormLabel fontSize="xs" fontWeight="bold">{t('settings_page.finance.label_account_number')}</FormLabel>
-                        <Input size="md" name="bank_account_number" value={settings.bank_account_number || ''} onChange={handleChange} borderRadius="lg" bg={cardBg} />
-                      </FormControl>
-                      <FormControl gridColumn={{ md: "span 2" }}>
-                        <FormLabel fontSize="xs" fontWeight="bold">{t('settings_page.finance.label_account_name')}</FormLabel>
-                        <Input size="md" name="bank_account_name" value={settings.bank_account_name || ''} onChange={handleChange} placeholder="John Doe" borderRadius="lg" bg={cardBg} />
-                      </FormControl>
+                      <FormControl><FormLabel fontSize="xs" fontWeight="bold">{t('settings_page.finance.label_bank_name')}</FormLabel><Input size="md" name="bank_name" value={settings.bank_name || ''} onChange={handleChange} placeholder="e.g. ABA Bank" borderRadius="lg" bg={cardBg} /></FormControl>
+                      <FormControl><FormLabel fontSize="xs" fontWeight="bold">{t('settings_page.finance.label_account_number')}</FormLabel><Input size="md" name="bank_account_number" value={settings.bank_account_number || ''} onChange={handleChange} borderRadius="lg" bg={cardBg} /></FormControl>
+                      <FormControl gridColumn={{ md: "span 2" }}><FormLabel fontSize="xs" fontWeight="bold">{t('settings_page.finance.label_account_name')}</FormLabel><Input size="md" name="bank_account_name" value={settings.bank_account_name || ''} onChange={handleChange} placeholder="John Doe" borderRadius="lg" bg={cardBg} /></FormControl>
                    </SimpleGrid>
-                   <Text fontSize="xs" mt={4} color={mutedText} fontStyle="italic">
-                     {t('settings_page.finance.bank_helper')}
-                   </Text>
                 </Box>
               </Box>
             )}
 
-            {/* 4. UTILITIES TAB */}
             {activeTab === 'utilities' && (
               <Box>
-                <SectionHeader 
-                   title={t('settings_page.utilities.header')} 
-                   subtitle={t('settings_page.utilities.desc')}
-                   icon={FiZap}
-                />
+                <SectionHeader title={t('settings_page.utilities.header')} subtitle={t('settings_page.utilities.desc')} icon={FiZap} />
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8}>
                   <FormControl>
                     <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.utilities.label_electricity')}</FormLabel>
                     <InputGroup size="lg">
                       <InputLeftAddon borderLeftRadius="xl"><Icon as={FiZap} color="orange.400" /></InputLeftAddon>
-                      <Input type="number" step="0.001" name="utility_rate_electricity" value={settings.utility_rate_electricity || ''} onChange={handleChange} placeholder="0.25" borderRadius="xl" focusBorderColor="blue.500" />
+                      <Input type="number" step="0.001" name="utility_rate_electricity" value={settings.utility_rate_electricity || ''} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500" />
                       <InputLeftAddon borderRightRadius="xl">$/kWh</InputLeftAddon>
                     </InputGroup>
                   </FormControl>
-
                   <FormControl>
                     <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.utilities.label_water')}</FormLabel>
                     <InputGroup size="lg">
                       <InputLeftAddon borderLeftRadius="xl"><Icon as={FiDroplet} color="blue.400" /></InputLeftAddon>
-                      <Input type="number" step="0.001" name="utility_rate_water" value={settings.utility_rate_water || ''} onChange={handleChange} placeholder="0.50" borderRadius="xl" focusBorderColor="blue.500" />
+                      <Input type="number" step="0.001" name="utility_rate_water" value={settings.utility_rate_water || ''} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500" />
                       <InputLeftAddon borderRightRadius="xl">$/m³</InputLeftAddon>
                     </InputGroup>
                   </FormControl>
                 </SimpleGrid>
-                
-                <Flex bg="orange.50" _dark={{ bg: "orange.900" }} p={4} borderRadius="xl" mt={10} align="center" gap={3}>
-                   <Icon as={FiInfo} boxSize={5} color="orange.500" />
-                   <Text fontSize="xs" color="orange.600" _dark={{ color: "orange.200" }} fontWeight="bold">
-                     {t('settings_page.utilities.note')}
-                   </Text>
-                </Flex>
+              </Box>
+            )}
+
+            {activeTab === 'maintenance' && (
+              <Box>
+                <SectionHeader title="System Maintenance" subtitle="Backup and restore your system data safely." icon={FiDatabase} />
+                <VStack spacing={8} align="stretch">
+                  <Box p={6} borderRadius="2xl" border="1px solid" borderColor={borderColor} bg={mainBg}>
+                    <HStack spacing={4} mb={4}>
+                      <CircleIcon icon={FiDownload} color="blue" />
+                      <Box>
+                        <Heading size="sm" color={textColor}>Database Backup</Heading>
+                        <Text fontSize="xs" color={mutedText}>Download a full copy of your database.</Text>
+                      </Box>
+                    </HStack>
+                    <Text fontSize="sm" mb={6}>Generating a backup will export all your rooms, tenants, leases, and financial records into a single SQL file. We recommend doing this weekly.</Text>
+                    <Button leftIcon={<FiDownload />} colorScheme="blue" onClick={handleBackup} borderRadius="xl">Download .SQL Backup</Button>
+                  </Box>
+
+                  <Box p={6} borderRadius="2xl" border="1px solid" borderColor="red.200" _dark={{ borderColor: "red.900" }} bg={useColorModeValue("red.50", "rgba(255,0,0,0.05)")}>
+                    <HStack spacing={4} mb={4}>
+                      <CircleIcon icon={FiUpload} color="red" />
+                      <Box>
+                        <Heading size="sm" color={textColor}>Database Restore</Heading>
+                        <Text fontSize="xs" color={mutedText}>Restore data from a previously saved backup.</Text>
+                      </Box>
+                    </HStack>
+                    <Text fontSize="sm" color="red.700" _dark={{ color: "red.200" }} mb={6} fontWeight="medium">
+                      Warning: Restoring will completely overwrite your current database. This action cannot be undone.
+                    </Text>
+                    <input type="file" accept=".sql" ref={fileInputRef} style={{ display: 'none' }} onChange={onFileChange} />
+                    <Button leftIcon={<FiUpload />} colorScheme="red" onClick={() => fileInputRef.current.click()} borderRadius="xl">Upload & Restore Data</Button>
+                  </Box>
+                </VStack>
               </Box>
             )}
 
           </Box>
         </Flex>
       </Container>
+
+      <ConfirmDialog 
+        isOpen={restoreDisc.isOpen}
+        onClose={() => {
+          restoreDisc.onClose();
+          setSelectedFile(null);
+          if (fileInputRef.current) fileInputRef.current.value = "";
+        }}
+        onConfirm={handleRestore}
+        title="Critical: Restore Database?"
+        message={`You are about to restore the database using file: "${selectedFile?.name}". All current data will be PERMANENTLY DELETED and replaced. Are you absolutely sure?`}
+        confirmText="Yes, Restore Everything"
+        isLoading={restoring}
+      />
     </Box>
   );
 }
+
+const CircleIcon = ({ icon, color }) => (
+  <Flex w="10" h="10" borderRadius="full" align="center" justify="center" bg={`${color}.100`} color={`${color}.600`} _dark={{ bg: `${color}.900`, color: `${color}.200` }}>
+    <Icon as={icon} boxSize={5} />
+  </Flex>
+);

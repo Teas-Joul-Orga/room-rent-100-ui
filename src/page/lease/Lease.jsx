@@ -524,7 +524,7 @@ export default function Leases() {
                 'scrollbarWidth': 'none',
               }}
             >
-              {paginated.filter(l => l.status === 'active').map((l) => {
+              {processed.filter(l => l.status === 'active').slice(0, 10).map((l) => {
                 const expiring = isExpiringSoon(l);
                 const isChecked = selectedIds.includes(l.uid);
                 

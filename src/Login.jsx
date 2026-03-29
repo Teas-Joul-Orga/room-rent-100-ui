@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Flex,
@@ -17,15 +17,22 @@ import {
   InputRightElement,
   IconButton,
   FormErrorMessage,
+  useColorModeValue,
+  Container,
+  Icon,
 } from "@chakra-ui/react";
 import { toast } from "react-hot-toast";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
-import loginPic from "./assets/login.jpg";
+import { FiEye, FiEyeOff, FiArrowLeft, FiLock, FiUser } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
+import { useApi } from "./hooks/useApi";
 
-export default function LoginForm1() {
+import logoSvg from "./assets/Artboard 1.svg";
+
+export default function LoginForm() {
   const [show, setShow] = useState(false);
   const navigate = useNavigate();
+  const { request, loading } = useApi();
+  const [appName, setAppName] = useState(localStorage.getItem("app_name") || "RoomRent 100");
 
   const [form, setForm] = useState({
     email: "",
@@ -33,234 +40,207 @@ export default function LoginForm1() {
   });
 
   const [errors, setErrors] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
 
-  // ================= VALIDATION =================
+  // Background and UI Colors
+  const bg = useColorModeValue("gray.50", "#0d1117");
+  const cardBg = useColorModeValue("white", "#161b22");
+  const textColor = useColorModeValue("gray.800", "white");
+  const mutedText = useColorModeValue("gray.500", "gray.400");
+  const borderColor = useColorModeValue("gray.200", "#30363d");
+
+  useEffect(() => {
+    // Try to get the latest app name from the public settings
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch("http://localhost:8000/api/v1/public/settings");
+        const data = await response.json();
+        if (data && data.app_name) {
+          localStorage.setItem("app_name", data.app_name);
+        }
+      } catch (e) {
+        // Silent fail, use default
+      }
+    };
+    fetchSettings();
+  }, []);
+
   const validate = () => {
     const newErrors = {};
-
-    if (!form.email.trim()) {
-      newErrors.email = "Username or Email is required";
-    }
-
-    if (!form.password) {
-      newErrors.password = "Password is required";
-    }
-
+    if (!form.email.trim()) newErrors.email = "Username or Email is required";
+    if (!form.password) newErrors.password = "Password is required";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // ================= SUBMIT =================
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrors({});
-
     if (!validate()) return;
-    
-    setIsLoading(true);
 
-    try {
-      const response = await fetch("http://localhost:8000/api/v1/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        },
-        body: JSON.stringify({
-          email: form.email,
-          password: form.password,
-        }),
-      });
+    const [data] = await request({
+      url: "/login",
+      method: "POST",
+      data: {
+        email: form.email,
+        password: form.password,
+      },
+    }, { 
+      showToast: false // We handle toast manually for specific welcome message
+    });
 
-      const data = await response.json().catch(() => ({}));
-
-      if (response.ok && data?.token) {
-        localStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-        localStorage.setItem("role", data.role);
-        
-        if (data.settings) {
-          localStorage.setItem("currency", data.settings.currency || "$");
-          localStorage.setItem("exchangeRate", data.settings.exchangeRate || "4000");
-        }
-        
-        toast.success("Welcome back!");
-
-        navigate("/dashboard");
-      } else {
-        const errorMsg = data?.message || "Invalid email or password.";
-        toast.error(errorMsg);
-        setErrors({ email: errorMsg });
+    if (data && data.token) {
+      localStorage.setItem("isLoggedIn", "true");
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("role", data.role);
+      
+      if (data.settings) {
+        localStorage.setItem("currency", data.settings.currency || "$");
+        localStorage.setItem("exchangeRate", data.settings.exchangeRate || "4000");
       }
-    } catch (error) {
-      toast.error("Failed to connect to the server. Please check your internet connection.");
-    } finally {
-      setIsLoading(false);
+      
+      toast.success(`Welcome back, ${data.user.name}!`);
+      navigate("/dashboard");
     }
   };
 
   return (
-    <Flex minH="100vh" direction={{ base: "column", lg: "row" }} bg="gray.50">
-      {/* Left side: Graphic/Image */}
-      <Flex
-        display={{ base: "none", lg: "flex" }}
-        flex={1}
-        bg="blue.600"
-        align="center"
-        justify="center"
-        position="relative"
-        overflow="hidden"
-      >
-        <Image
-          src={loginPic}
-          alt="Login illustration"
-          w="full"
-          h="full"
-          objectFit="cover"
-          opacity={0.8}
-          zIndex={1}
-        />
-        <Box
-          position="absolute"
-          top={0}
-          left={0}
-          right={0}
-          bottom={0}
-          bgGradient="linear(to-br, blue.800, transparent)"
-          opacity={0.7}
-          zIndex={2}
-        />
-        <VStack
-          position="absolute"
-          zIndex={3}
-          align="flex-start"
-          bottom={16}
-          left={16}
-          color="white"
-          spacing={4}
-        >
-          <Heading size="2xl" fontWeight="bold">
-            RoomRent 100
-          </Heading>
-          <Text fontSize="xl" maxW="md">
-            Manage your tenants, leases, and utility bills seamlessly.
-          </Text>
-        </VStack>
-      </Flex>
+    <Flex minH="100vh" bg={bg} align="center" justify="center" position="relative" overflow="hidden">
+      {/* Abstract Background Shapes */}
+      <Box 
+        position="absolute" top="-10%" right="-5%" w="400px" h="400px" 
+        bg="blue.500" borderRadius="full" filter="blur(80px)" opacity={0.15} zIndex={0} 
+      />
+      <Box 
+        position="absolute" bottom="-10%" left="-5%" w="400px" h="400px" 
+        bg="purple.500" borderRadius="full" filter="blur(80px)" opacity={0.15} zIndex={0} 
+      />
 
-      {/* Right side: Login Form */}
-      <Flex
-        flex={1}
-        align="center"
-        justify="center"
-        bg="white"
-        p={{ base: 8, md: 10, lg: 16 }}
-        boxShadow={{ base: "none", lg: "-10px 0 30px rgba(0,0,0,0.05)" }}
-        zIndex={10}
-      >
-        <Box w="full" maxW="md">
-          <VStack spacing={8} align="stretch">
-            <Box textAlign="left">
-              <Heading size="xl" color="gray.800" mb={3} fontWeight="extrabold">
-                Welcome Back
-              </Heading>
-              <Text color="gray.500" fontSize="md">
-                Please enter your credentials to access your dashboard.
-              </Text>
-            </Box>
-
-            <form onSubmit={handleSubmit} style={{ width: "100%" }}>
-              <VStack spacing={6} align="stretch">
-                <FormControl isInvalid={!!errors.email} isRequired>
-                  <FormLabel color="gray.700" fontWeight="bold">
-                    Username
-                  </FormLabel>
-                  <Input
-                    type="text"
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    placeholder="Enter your username or email"
-                    size="lg"
-                    borderRadius="md"
-                    focusBorderColor="blue.500"
-                    bg="white"
-                    _hover={{ borderColor: "blue.300" }}
-                  />
-                  {errors.email && (
-                    <FormErrorMessage>{errors.email}</FormErrorMessage>
-                  )}
-                </FormControl>
-
-                <FormControl isInvalid={!!errors.password} isRequired>
-                  <FormLabel color="gray.700" fontWeight="bold">
-                    Password
-                  </FormLabel>
-                  <InputGroup size="lg">
-                    <Input
-                      type={show ? "text" : "password"}
-                      value={form.password}
-                      onChange={(e) =>
-                        setForm({ ...form, password: e.target.value })
-                      }
-                      placeholder="••••••••"
-                      borderRadius="md"
-                      focusBorderColor="blue.500"
-                      bg="white"
-                      _hover={{ borderColor: "blue.300" }}
-                    />
-                    <InputRightElement h="full" px={2}>
-                      <IconButton
-                        variant="ghost"
-                        size="md"
-                        color="gray.400"
-                        _hover={{ color: "blue.500", bg: "transparent" }}
-                        aria-label={show ? "Hide password" : "Show password"}
-                        icon={show ? <FaEyeSlash /> : <FaEye />}
-                        onClick={() => setShow(!show)}
-                      />
-                    </InputRightElement>
-                  </InputGroup>
-                  {errors.password && (
-                    <FormErrorMessage>{errors.password}</FormErrorMessage>
-                  )}
-                </FormControl>
-
-                <HStack w="full" justify="space-between" pt={1}>
-                  <Checkbox 
-                    colorScheme="blue" 
-                    color="gray.600"
-                    size="md"
-                  >
-                    Remember me
-                  </Checkbox>
-                  <ChakraLink color="blue.500" fontWeight="bold" fontSize="sm" _hover={{ textDecoration: "none", color: "blue.600" }}>
-                    Forgot password?
-                  </ChakraLink>
-                </HStack>
-
-                <Button
-                  type="submit"
-                  colorScheme="blue"
-                  size="lg"
-                  w="full"
-                  isLoading={isLoading}
-                  loadingText="Signing in..."
-                  mt={4}
-                  borderRadius="md"
-                  boxShadow="0 4px 14px 0 rgba(0,118,255,0.39)"
-                  _hover={{ boxShadow: "0 6px 20px rgba(0,118,255,0.23)", transform: "translateY(-1px)" }}
-                  _active={{ transform: "translateY(1px)" }}
-                  transition="all 0.2s"
-                >
-                  Sign in
-                </Button>
+      <Container maxW="md" zIndex={1}>
+        <VStack spacing={8} align="stretch">
+          {/* Login Card */}
+          <Box 
+            bg={cardBg} p={{ base: 8, md: 10 }} borderRadius="3xl" 
+            shadow="2xl" border="1px solid" borderColor={borderColor}
+          >
+            <VStack spacing={6} align="stretch">
+              {/* Logo inside card */}
+              <VStack spacing={2} align="center" mb={2}>
+                <Image src={logoSvg} alt="Logo" boxSize="150px" objectFit="contain" />
               </VStack>
-            </form>
-          </VStack>
-        </Box>
-      </Flex>
+
+              <VStack align="flex-start" spacing={1} mb={2}>
+                <Heading size="md" color={textColor} fontWeight="extrabold">
+                  Sign In
+                </Heading>
+                <Text color={mutedText} fontSize="sm">
+                  Enter your credentials to access your account
+                </Text>
+              </VStack>
+
+              <form onSubmit={handleSubmit}>
+                <VStack spacing={5}>
+                  <FormControl isInvalid={!!errors.email}>
+                    <FormLabel fontSize="xs" fontWeight="black" textTransform="uppercase" color={mutedText} mb={2}>
+                      Username or Email
+                    </FormLabel>
+                    <InputGroup size="lg">
+                      <InputRightElement pointerEvents="none" h="full" children={<Icon as={FiUser} color="gray.400" />} />
+                      <Input
+                        type="text"
+                        value={form.email}
+                        onChange={(e) => setForm({ ...form, email: e.target.value })}
+                        placeholder="user@example.com"
+                        bg={useColorModeValue("gray.50", "#0d1117")}
+                        border="none"
+                        borderRadius="xl"
+                        fontSize="sm"
+                        _focus={{ bg: useColorModeValue("white", "#0d1117"), boxShadow: "0 0 0 2px #3182ce" }}
+                      />
+                    </InputGroup>
+                    <FormErrorMessage>{errors.email}</FormErrorMessage>
+                  </FormControl>
+
+                  <FormControl isInvalid={!!errors.password}>
+                    <FormLabel fontSize="xs" fontWeight="black" textTransform="uppercase" color={mutedText} mb={2}>
+                      Password
+                    </FormLabel>
+                    <InputGroup size="lg">
+                      <Input
+                        type={show ? "text" : "password"}
+                        value={form.password}
+                        onChange={(e) => setForm({ ...form, password: e.target.value })}
+                        placeholder="••••••••"
+                        bg={useColorModeValue("gray.50", "#0d1117")}
+                        border="none"
+                        borderRadius="xl"
+                        fontSize="sm"
+                        _focus={{ bg: useColorModeValue("white", "#0d1117"), boxShadow: "0 0 0 2px #3182ce" }}
+                      />
+                      <InputRightElement h="full">
+                        <IconButton
+                          variant="ghost"
+                          size="sm"
+                          icon={show ? <FiEyeOff /> : <FiEye />}
+                          onClick={() => setShow(!show)}
+                          aria-label="Toggle password"
+                          _hover={{ bg: "transparent", color: "blue.500" }}
+                        />
+                      </InputRightElement>
+                    </InputGroup>
+                    <FormErrorMessage>{errors.password}</FormErrorMessage>
+                  </FormControl>
+
+                  <HStack w="full" justify="space-between">
+                    <Checkbox colorScheme="blue" size="sm" defaultChecked>
+                      <Text fontSize="xs" fontWeight="bold" color={mutedText}>Remember me</Text>
+                    </Checkbox>
+                    <ChakraLink fontSize="xs" fontWeight="bold" color="blue.500">
+                      Forgot Password?
+                    </ChakraLink>
+                  </HStack>
+
+                  <Button
+                    type="submit"
+                    colorScheme="blue"
+                    size="lg"
+                    w="full"
+                    h="14"
+                    isLoading={loading}
+                    loadingText="AUTHENTICATING..."
+                    borderRadius="xl"
+                    shadow="lg"
+                    fontSize="xs"
+                    fontWeight="black"
+                    textTransform="uppercase"
+                    letterSpacing="widest"
+                    mt={4}
+                    _hover={{ transform: "translateY(-2px)", shadow: "xl" }}
+                    _active={{ transform: "translateY(0)" }}
+                    transition="all 0.2s"
+                  >
+                    Sign In
+                  </Button>
+                </VStack>
+              </form>
+            </VStack>
+          </Box>
+
+          {/* Footer Links */}
+          <HStack justify="center" spacing={4}>
+            <Button 
+              variant="ghost" 
+              leftIcon={<FiArrowLeft />} 
+              size="sm" 
+              onClick={() => navigate("/")}
+              color={mutedText}
+              _hover={{ color: "blue.500", bg: "transparent" }}
+              fontWeight="bold"
+            >
+              Back to Home
+            </Button>
+          </HStack>
+        </VStack>
+      </Container>
     </Flex>
   );
 }

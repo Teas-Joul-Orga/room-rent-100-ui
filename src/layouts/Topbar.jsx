@@ -26,7 +26,7 @@ import {
 import { IoMenu, IoNotificationsOutline, IoMoon, IoSunny, IoKeyOutline, IoChatbubbleEllipsesOutline } from "react-icons/io5";
 import { LuCircleUser, LuLogOut, LuSettings } from "react-icons/lu";
 import { useNavigate, NavLink } from "react-router-dom";
-import logo from "../assets/logo.jpg";
+import logo from "../assets/Arun_MuyKea.png";
 import profile from "../assets/profile.jpg"; // Fallback profile image
 import ChangePasswordModal from "../components/ChangePasswordModal";
 import useUnreadChatCount from "../hooks/useUnreadChatCount";
@@ -93,21 +93,16 @@ const Topbar = ({ onOpenSidebar }) => {
           />
 
           {/* Logo & Title */}
-          <HStack display={{ base: "none", sm: "flex" }} spacing={2} minW={0}>
-            <Image src={logo} boxSize="8" rounded="md" objectFit="cover" ignoreFallback />
-            <Text fontSize="sm" fontWeight="black" letterSpacing="tight" color={textColor} isTruncated>
-              Laravel
-            </Text>
-            <Text
-              fontSize="10px"
-              fontWeight="black"
-              textTransform="uppercase"
-              letterSpacing="0.25em"
-              color={workspaceColor}
-              ml={1}
-            >
-              Workspace
-            </Text>
+          <HStack display={{ base: "none", sm: "flex" }} spacing={2} minW={0} ml={2}>
+            <Image 
+              src={logo} 
+              h="12" 
+              w="auto" 
+              objectFit="contain" 
+              ignoreFallback 
+              alt="Arun Muykea" 
+              _dark={{ filter: "brightness(0) invert(1)" }} 
+            />
           </HStack>
         </Flex>
 

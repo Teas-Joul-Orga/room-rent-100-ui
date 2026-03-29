@@ -32,8 +32,8 @@ import dayjs from "dayjs";
 import toast, { Toaster } from "react-hot-toast";
 import { QRCodeCanvas } from "qrcode.react";
 
-const KHQR_LOGO = "https://upload.wikimedia.org/wikipedia/commons/e/e8/KHQR_Logo.png";
-const BAKONG_LOGO_RED = "https://bakong.nbc.gov.kh/images/bakong-logo.png";
+const KHQR_LOGO = "https://api-bakong.nbc.gov.kh/images/khqr.png";
+const BAKONG_LOGO_RED = "https://api-bakong.nbc.gov.kh/images/logo.png";
 
 const API = "http://localhost:8000/api/v1/tenant";
 

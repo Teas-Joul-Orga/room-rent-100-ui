@@ -28,6 +28,7 @@ export default function Payment() {
   const { t } = useTranslation();
   const [payments, setPayments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
 
   // Modal State
@@ -38,6 +39,8 @@ export default function Payment() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [methodFilter, setMethodFilter] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [paymentGroup, setPaymentGroup] = useState("admin");
 
   useEffect(() => {
@@ -83,6 +86,8 @@ export default function Payment() {
       if (typeFilter) params.append("type", typeFilter);
       if (methodFilter) params.append("payment_method", methodFilter);
       if (paymentGroup) params.append("payment_group", paymentGroup);
+      if (startDate) params.append("start_date", startDate);
+      if (endDate) params.append("end_date", endDate);
 
       const res = await fetch(`${API}/payments?${params}`, { headers: h });
       if (res.ok) {
@@ -109,7 +114,7 @@ export default function Payment() {
       return;
     }
     fetchPayments(); 
-  }, [debouncedSearch, typeFilter, methodFilter, sortField, sortOrder, currentPage, paymentGroup]);
+  }, [debouncedSearch, typeFilter, methodFilter, sortField, sortOrder, currentPage, paymentGroup, startDate, endDate]);
 
   const toggleSelect = (id) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
@@ -133,6 +138,59 @@ export default function Payment() {
         toast.error("Failed to delete record");
       }
     } catch (e) { toast.error("Network error"); }
+  };
+
+  const handleExportExcel = async () => {
+    setIsExporting(true);
+    try {
+      const token = localStorage.getItem("token");
+      // Use the same filters as the current view but request all records
+      const params = new URLSearchParams();
+      params.append("per_page", "all");
+      if (search) params.append("search", search);
+      if (typeFilter) params.append("type", typeFilter);
+      if (startDate) params.append("start_date", startDate);
+      if (endDate) params.append("end_date", endDate);
+      if (methodFilter) params.append("payment_method", methodFilter);
+      if (paymentGroup) params.append("payment_group", paymentGroup);
+      if (sortField) params.append("sort", sortField);
+      if (sortOrder) params.append("direction", sortOrder);
+
+      const res = await fetch(`http://localhost:8000/api/v1/admin/payments?${params.toString()}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch data for export");
+      
+      const result = await res.json();
+      const allPayments = result.data || [];
+
+      if (allPayments.length === 0) {
+        toast.error("No data found to export");
+        return;
+      }
+
+      const dataToExport = allPayments.map(p => ({
+        "Tenant": p.lease?.tenant?.name || "—",
+        "Room": p.lease?.room?.name || "No Room",
+        "Date": p.payment_date,
+        "Type": t(`payment.${p.type}`).toUpperCase(),
+        "Amount": Number(p.amount_paid),
+        "Method": p.payment_method.toUpperCase(),
+        "Notes": p.notes || "—"
+      }));
+
+      exportToExcel(dataToExport, "Payment_History_" + new Date().toISOString().split('T')[0]);
+      toast.success(`Exported ${allPayments.length} records successfully`);
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Export failed. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handlePrintReceipt = (ids) => {
@@ -213,18 +271,9 @@ export default function Payment() {
               colorScheme="green"
               variant="outline"
               leftIcon={<FiDownload />}
-              onClick={() => {
-                const dataToExport = payments.map(p => ({
-                  "Tenant": p.lease?.tenant?.name || "—",
-                  "Room": p.lease?.room?.name || "No Room",
-                  "Date": p.payment_date,
-                  "Type": p.type,
-                  "Amount": Number(p.amount_paid),
-                  "Method": p.payment_method,
-                  "Notes": p.notes || "—"
-                }));
-                exportToExcel(dataToExport, "All_Payments_" + new Date().toISOString().split('T')[0]);
-              }}
+              isLoading={isExporting}
+              loadingText="Exporting..."
+              onClick={handleExportExcel}
             >
               Export Excel
             </Button>
@@ -280,6 +329,31 @@ export default function Payment() {
             <option value="deposit">{t("payment.deposit")}</option>
             <option value="other">{t("payment.other")}</option>
           </Select>
+
+          <Flex align="center" gap={2} bg={cardBg} px={4} h="40px" borderRadius="md" border="1px solid" borderColor={borderColor}>
+            <Input
+              type="date"
+              value={startDate}
+              size="sm"
+              variant="unstyled"
+              onChange={(e) => setStartDate(e.target.value)}
+              placeholder="From"
+            />
+            <Text fontSize="xs" color="gray.400">→</Text>
+            <Input
+              type="date"
+              value={endDate}
+              size="sm"
+              variant="unstyled"
+              onChange={(e) => setEndDate(e.target.value)}
+              placeholder="To"
+            />
+          </Flex>
+
+          <Select size="md" bg={cardBg} borderColor={borderColor} maxW="160px" value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
+            <option value="desc">{t("payment.newest_first")}</option>
+            <option value="asc">{t("payment.oldest_first")}</option>
+          </Select>
           {paymentGroup === "admin" && (
             <Select size="md" bg={cardBg} borderColor={borderColor} maxW="160px" value={methodFilter} onChange={e => setMethodFilter(e.target.value)}>
               <option value="">{t("payment.all_methods")}</option>
@@ -299,7 +373,14 @@ export default function Payment() {
                     <Checkbox onChange={(e) => toggleAll(e.target.checked)} isChecked={selectedIds.length === payments.length && payments.length > 0} />
                   </Th>
                   <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">{t("payment.tenant_room")}</Th>
-                  <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase" cursor="pointer" onClick={() => handleSort("payment_date")}>{t("payment.date")}</Th>
+                  <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase" cursor="pointer" onClick={() => handleSort("payment_date")}>
+                    <Flex align="center" gap={1}>
+                      {t("payment.date")}
+                      {sortField === "payment_date" && (
+                        sortOrder === "asc" ? <FiArrowUp size={14} /> : <FiArrowDown size={14} />
+                      )}
+                    </Flex>
+                  </Th>
                   <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">{t("payment.type")}</Th>
                   <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">{t("payment.amount")}</Th>
                   <Th borderBottom="2px solid" borderColor={borderColor} color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">{t("payment.method")}</Th>

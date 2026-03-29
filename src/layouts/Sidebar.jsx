@@ -1,8 +1,9 @@
 import React from "react";
-import { Box, VStack, Text, useColorModeValue, Flex, Icon, Tooltip, Drawer, DrawerOverlay, DrawerContent, DrawerCloseButton, Collapse } from "@chakra-ui/react";
+import { Box, VStack, Text, useColorModeValue, Flex, Icon, Tooltip, Drawer, DrawerOverlay, DrawerContent, DrawerCloseButton, Collapse, Image, Heading, HStack } from "@chakra-ui/react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import echo from "../lib/echo";
+import logoImg from "../assets/Artboard 1.svg";
 
 // Custom Icon Component to render Blade SVG paths
 const SvgIcon = ({ pathD, ...props }) => (
@@ -35,8 +36,8 @@ const getSidebarGroups = (role, t) => {
           { label: t("sidebar.lease_history") || "Lease History", path: "/dashboard/lease/history", exact: false, pathD: ["M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"] },
           { label: t("sidebar.my_billing"), path: "/dashboard/utility", exact: false, pathD: ["M7 3h10v18H7z", "M9 7h6M9 11h6M9 15h4"] },
           { label: t("sidebar.maintenance"), path: "/dashboard/maintenance", exact: false, pathD: ["M14.7 6.3a4 4 0 0 0-5.7 5.7l-6.3 6.3 2 2 6.3-6.3a4 4 0 0 0 5.7-5.7Z", "M16 8l4-4"] },
-          { label: t("sidebar.community"), path: "/dashboard/chat", exact: false, pathD: ["M4 11v2a1 1 0 0 0 1 1h2l5 5V6L7 11H5a1 1 0 0 0-1 1Z", "M15 9a4 4 0 0 1 0 6"] },
           { label: t("sidebar.announcements"), path: "/dashboard/announcements", exact: false, pathD: ["M4 11v2a1 1 0 0 0 1 1h2l5 5V6L7 11H5a1 1 0 0 0-1 1Z", "M15 9a4 4 0 0 1 0 6", "M17 7a7 7 0 0 1 0 10"] },
+          { label: t("sidebar.available_rooms") || "Available Rooms", path: "/dashboard/available-rooms", exact: false, pathD: ["M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"] },
         ]
       }
     ];
@@ -83,12 +84,6 @@ const getSidebarGroups = (role, t) => {
         },
         { label: t("sidebar.recycle_bin"), path: "/dashboard/recyclebin", exact: false, pathD: ["M4 7h16", "M6 7l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14", "M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"] },
         { label: t("sidebar.announcements"), path: "/dashboard/announcements", exact: false, pathD: ["M4 11v2a1 1 0 0 0 1 1h2l5 5V6L7 11H5a1 1 0 0 0-1 1Z", "M15 9a4 4 0 0 1 0 6", "M17 7a7 7 0 0 1 0 10"] },
-      ]
-    },
-    {
-      title: t("sidebar.system"),
-      links: [
-        { label: t("sidebar.settings"), path: "/dashboard/settings", exact: false, pathD: ["M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z", "M15 12a3 3 0 11-6 0 3 3 0 016 0z"] },
       ]
     }
   ];
@@ -235,7 +230,27 @@ const Sidebar = ({ isOpen, onClose }) => {
   };
 
   const [pendingMaintenanceCount, setPendingMaintenanceCount] = React.useState(0);
+  const [appName, setAppName] = React.useState(localStorage.getItem("app_name") || "RoomRent 100");
   const userRole = localStorage.getItem('role')?.toLowerCase();
+
+  React.useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch("http://localhost:8000/api/v1/public/settings");
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.app_name) {
+            setAppName(data.app_name);
+            localStorage.setItem("app_name", data.app_name);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching settings:", error);
+      }
+    };
+
+    fetchSettings();
+  }, []);
 
   React.useEffect(() => {
     if (userRole !== 'admin') return;
@@ -278,39 +293,77 @@ const Sidebar = ({ isOpen, onClose }) => {
   }, [userRole]);
 
   const sidebarContent = (
-      <VStack spacing={6} align="stretch" p={3} pb={20}>
-        {getSidebarGroups(userRole, t).map((group, index) => (
-          <Box key={index}>
-            <Text
-              px={3}
-              fontSize="10px"
-              fontWeight="black"
-              textTransform="uppercase"
-              letterSpacing="0.25em"
-              color={groupTitleColor}
-              mb={2}
-            >
-              {group.title}
-            </Text>
-            
-            <VStack spacing={1} align="stretch">
-              {group.links.map((link) => (
-                <SidebarLinkItem 
-                  key={link.path} 
-                  link={link} 
-                  location={location} 
-                  linkColor={linkColor} 
-                  hoverBg={hoverBg} 
-                  onClose={onClose} 
-                  pendingMaintenanceCount={pendingMaintenanceCount} 
-                  userRole={userRole} 
-                  useColorModeValue={useColorModeValue}
-                />
-              ))}
-            </VStack>
-          </Box>
-        ))}
-      </VStack>
+    <VStack spacing={6} align="stretch" p={3} pb={20}>
+      {getSidebarGroups(userRole, t).map((group, index) => (
+        <Box key={index}>
+          <Text
+            px={3}
+            fontSize="10px"
+            fontWeight="black"
+            textTransform="uppercase"
+            letterSpacing="0.25em"
+            color={groupTitleColor}
+            mb={2}
+          >
+            {group.title}
+          </Text>
+          
+          <VStack spacing={1} align="stretch">
+            {group.links.map((link) => (
+              <SidebarLinkItem 
+                key={link.path} 
+                link={link} 
+                location={location} 
+                linkColor={linkColor} 
+                hoverBg={hoverBg} 
+                onClose={onClose} 
+                pendingMaintenanceCount={pendingMaintenanceCount} 
+                userRole={userRole} 
+                useColorModeValue={useColorModeValue}
+              />
+            ))}
+          </VStack>
+        </Box>
+      ))}
+    </VStack>
+  );
+
+  const Brand = (
+    <Box px={6} py={8}>
+      <HStack spacing={3}>
+        <Image
+          src={logoImg}
+          alt="Logo"
+          boxSize="40px"
+          borderRadius="lg"
+          fallbackSrc="https://via.placeholder.com/40"
+        />
+        <VStack align="flex-start" spacing={0}>
+          <Heading size="sm" color="blue.600" letterSpacing="tight">
+            {appName}
+          </Heading>
+          <Text fontSize="xs" color="gray.500" fontWeight="bold">
+            Room Rental System
+          </Text>
+        </VStack>
+      </HStack>
+    </Box>
+  );
+
+  const settingsLink = { label: t("sidebar.settings"), path: "/dashboard/settings", exact: false, pathD: ["M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z", "M15 12a3 3 0 11-6 0 3 3 0 016 0z"] };
+
+  const FixedBottom = userRole === 'admin' && (
+    <Box p={3} borderTop="1px" borderColor={borderColor}>
+      <SidebarLinkItem 
+        link={settingsLink} 
+        location={location} 
+        linkColor={linkColor} 
+        hoverBg={hoverBg} 
+        onClose={onClose} 
+        userRole={userRole} 
+        useColorModeValue={useColorModeValue}
+      />
+    </Box>
   );
 
   return (
@@ -324,35 +377,46 @@ const Sidebar = ({ isOpen, onClose }) => {
         position="fixed"
         left={0}
         top={0}
-        display={{ base: "none", lg: "block" }}
+        display={{ base: "none", lg: "flex" }}
+        flexDirection="column"
         zIndex={40}
-        overflowY="auto"
-        css={{
-          '&::-webkit-scrollbar': {
-            width: '4px',
-          },
-          '&::-webkit-scrollbar-track': {
-            width: '6px',
-          },
-          '&::-webkit-scrollbar-thumb': {
-            background: useColorModeValue('rgba(0,0,0,0.05)', '#30363d'),
-            borderRadius: '24px',
-          },
-          '&:hover::-webkit-scrollbar-thumb': {
-            background: useColorModeValue('rgba(0,0,0,0.1)', '#484f58'),
-          }
-        }}
       >
-        {sidebarContent}
+        <Box 
+          flex="1" 
+          overflowY="auto"
+          css={{
+            '&::-webkit-scrollbar': {
+              width: '4px',
+            },
+            '&::-webkit-scrollbar-track': {
+              width: '6px',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: useColorModeValue('rgba(0,0,0,0.05)', '#30363d'),
+              borderRadius: '24px',
+            },
+            '&:hover::-webkit-scrollbar-thumb': {
+              background: useColorModeValue('rgba(0,0,0,0.1)', '#484f58'),
+            }
+          }}
+        >
+          {Brand}
+          {sidebarContent}
+        </Box>
+        {FixedBottom}
       </Box>
 
       <Drawer isOpen={isOpen} placement="left" onClose={onClose}>
         <DrawerOverlay />
         <DrawerContent bg={bg} maxW="280px">
           <DrawerCloseButton mt={1} />
-          <Box h="100%" overflowY="auto" pt={10}>
-            {sidebarContent}
-          </Box>
+          <Flex h="100%" flexDirection="column">
+            <Box flex="1" overflowY="auto">
+              {Brand}
+              {sidebarContent}
+            </Box>
+            {FixedBottom}
+          </Flex>
         </DrawerContent>
       </Drawer>
     </>

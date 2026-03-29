@@ -33,8 +33,8 @@ const MotionBox = motion(Box);
 const MotionFlex = motion(Flex);
 
 const COLORS = ['#6366f1', '#10b981', '#f43f5e', '#f59e0b', '#8b5cf6'];
-const KHQR_LOGO = "https://upload.wikimedia.org/wikipedia/commons/e/e8/KHQR_Logo.png";
-const BAKONG_LOGO_RED = "https://bakong.nbc.gov.kh/images/bakong-logo.png";
+const KHQR_LOGO = "https://api-bakong.nbc.gov.kh/images/khqr.png";
+const BAKONG_LOGO_RED = "https://api-bakong.nbc.gov.kh/images/logo.png";
 
 export default function TenantDashboard() {
   const [data, setData] = useState(null);

@@ -32,6 +32,8 @@ import TenantLeaseDetail from "./page/tenant/LeaseDetail";
 import TenantUtility from "./page/tenant/Utility";
 import TenantAnnouncements from "./page/tenant/Announcements";
 import TenantChat from "./page/tenant/Chat";
+import AvailableRooms from "./page/tenant/AvailableRooms";
+import AvailableRoomDetail from "./page/tenant/AvailableRoomDetail";
 
 // Shared/Common
 import AllRoom from "./page/room/AllRoom";
@@ -62,6 +64,7 @@ import RoomFurniture from "./page/furniture/RoomFurniture";
 import ViewFurniture from "./page/furniture/ViewFurniture";
 import Bills from "./page/utility/Bills";
 
+import Landing from "./page/Landing";
 import Login from "./Login";
 import ProtectedRoute from "./protectedroute";
 
@@ -95,8 +98,8 @@ function App() {
         <Routes>
           {/* login page public */}
           <Route path="/login" element={<Login />} />
-          {/* Redirect root to login */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          {/* Public Landing Page */}
+          <Route path="/" element={<Landing />} />
 
           {/* Dashboard Area */}
           <Route
@@ -187,6 +190,12 @@ function App() {
             <Route path="expenses" element={<AdminExpense />} />
             <Route path="payments" element={<Payment />} />
             <Route path="bills" element={<Bills />} />
+            
+            {/* Tenant Discovery */}
+            <Route path="available-rooms">
+              <Route index element={<AvailableRooms />} />
+              <Route path=":id" element={<AvailableRoomDetail />} />
+            </Route>
           </Route>
         </Routes>
       </BrowserRouter>
