@@ -150,6 +150,7 @@ export default function ViewLease() {
   const { isOpen: isExpOpen, onOpen: onExpOpen, onClose: onExpClose } = useDisclosure();
   const [expForm, setExpForm] = useState({ title: "", category: "Repairs", amount: "", expense_date: new Date().toISOString().split("T")[0], description: "" });
   const [isSavingExp, setIsSavingExp] = useState(false);
+  const { isOpen: isOverdueModalOpen, onOpen: onOverdueModalOpen, onClose: onOverdueModalClose } = useDisclosure();
 
   const bg = useColorModeValue("gray.50", "#0d1117");
   const cardBg = useColorModeValue("white", "#161b22");
@@ -603,11 +604,34 @@ export default function ViewLease() {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case "active": return { bg: "green.100", color: "green.700" };
-      case "expired": return { bg: "red.100", color: "red.700" };
-      case "terminated": return { bg: "gray.200", color: "gray.700" };
-      default: return { bg: "gray.100", color: "gray.600" };
+      case "active": return { bg: "green.50", color: "green.700", icon: FiCheckCircle, label: "Active" };
+      case "expired": return { bg: "red.50", color: "red.700", icon: FiClock, label: "Expired" };
+      case "terminated": return { bg: "gray.100", color: "gray.600", icon: FiXCircle, label: "Terminated" };
+      default: return { bg: "blue.50", color: "blue.600", icon: FiInfo, label: status };
     }
+  };
+
+  const renderStatusPill = (config) => {
+    if (!config) return null;
+    const { bg, color, icon, label } = config;
+    return (
+      <Badge
+        bg={bg}
+        color={color}
+        px={4} py={1.5}
+        borderRadius="full"
+        fontSize="xs"
+        fontWeight="black"
+        textTransform="uppercase"
+        letterSpacing="wider"
+        display="inline-flex"
+        alignItems="center"
+        gap={2}
+      >
+        {icon && <Icon as={icon} boxSize={3} />}
+        {label}
+      </Badge>
+    );
   };
 
   const handlePrintContract = (lang = 'en') => {
@@ -959,18 +983,7 @@ export default function ViewLease() {
                   />
                 </Box>
               </Box>
-              <Badge
-                bg={statusBadge.bg}
-                color={statusBadge.color}
-                px={4} py={1.5}
-                borderRadius="full"
-                fontSize="xs"
-                fontWeight="black"
-                textTransform="uppercase"
-                letterSpacing="wider"
-              >
-                {lease.status}
-              </Badge>
+              {renderStatusPill(statusBadge)}
             </Flex>
 
             {/* Info */}
@@ -1012,9 +1025,15 @@ export default function ViewLease() {
                   <Badge
                     fontSize="xs"
                     px={3} py={1}
-                    colorScheme={lease.deposit_status === "held" ? "green" : lease.deposit_status === "refunded" ? "gray" : "orange"}
+                    borderRadius="full"
+                    variant="subtle"
+                    display="inline-flex"
+                    alignItems="center"
+                    gap={1.5}
+                    colorScheme={lease.deposit_status === "held" ? "green" : lease.deposit_status === "refunded" ? "purple" : "orange"}
                     textTransform="uppercase"
                   >
+                    <Icon as={lease.deposit_status === "held" ? FiCheckCircle : lease.deposit_status === "refunded" ? FiRefreshCw : FiClock} boxSize={3} />
                     {lease.deposit_status || "unpaid"}
                   </Badge>
                 </Box>
@@ -1099,7 +1118,7 @@ export default function ViewLease() {
 
           {/* Security Deposit */}
           <Box bg={cardBg} p={8} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor} position="relative">
-            <Badge position="absolute" top={8} right={8} fontSize="xs" fontWeight="black" textTransform="uppercase" colorScheme={lease.deposit_status === "held" ? "green" : "gray"} variant="outline" px={3} py={1}>
+            <Badge position="absolute" top={8} right={8} fontSize="xs" fontWeight="black" textTransform="uppercase" colorScheme={lease.deposit_status === "held" ? "green" : "gray"} variant="subtle" px={3} py={1} borderRadius="full">
               {lease.deposit_status || "unpaid"}
             </Badge>
             <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={2}>{t("lease.security_deposit")}</Text>
@@ -1143,43 +1162,30 @@ export default function ViewLease() {
 
         {overdueBills.length > 0 && (
           <Box bg={dangerBg} borderRadius="xl" shadow="sm" border="1px solid" borderColor="red.200" mb={6} overflow="hidden">
-            <Flex align="center" gap={2} px={6} py={4} bg="red.100" borderBottom="1px solid" borderColor="red.200">
-              <FiAlertCircle color="#E53E3E" size={18} />
-              <Text fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="tight" color="red.700">
-                {t("lease.action_required_overdue", { count: overdueBills.length, s: overdueBills.length === 1 ? "" : "s" })}
-              </Text>
+            <Flex align="center" justify="space-between" px={6} py={4} bg="red.100" borderBottom="1px solid" borderColor="red.200">
+              <Flex align="center" gap={3}>
+                <FiAlertCircle color="#E53E3E" size={20} />
+                <Box>
+                  <Text fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="tight" color="red.700">
+                    {t("lease.action_required_overdue", { count: overdueBills.length, s: overdueBills.length === 1 ? "" : "s" })}
+                  </Text>
+                  <Text fontSize="10px" fontWeight="bold" color="red.500" mt="-1px">
+                    Total Overdue: {fmt(overdueBillsTotal)}
+                  </Text>
+                </Box>
+              </Flex>
+              <Button 
+                size="sm" 
+                colorScheme="red" 
+                rightIcon={<FiPlus />} 
+                onClick={onOverdueModalOpen}
+                fontSize="xs"
+                fontWeight="black"
+                textTransform="uppercase"
+              >
+                Resolve Now
+              </Button>
             </Flex>
-            <TableContainer>
-              <Table variant="simple" size="sm">
-                <Thead bg="white">
-                  <Tr>
-                    <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={3}>{t("common.type")}</Th>
-                    <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={3}>{t("common.amount")}</Th>
-                    <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={3}>{t("lease.due_date")}</Th>
-                    <Th textAlign="right" py={3}></Th>
-                  </Tr>
-                </Thead>
-                <Tbody bg="white">
-                  {overdueBills.sort((a, b) => new Date(a.due_date) - new Date(b.due_date)).map(bill => (
-                    <Tr key={bill.id}>
-                      <Td>
-                        <Badge fontSize="xs" fontWeight="black" textTransform="uppercase" colorScheme={bill.type === "electricity" ? "yellow" : bill.type === "water" ? "blue" : "gray"} px={2} py={0.5}>
-                          {t(`utility.${bill.type}`)}
-                        </Badge>
-                      </Td>
-                      <Td fontWeight="black" fontSize="sm" color="red.600">{fmt(bill.amount)}</Td>
-                      <Td fontSize="xs" color="red.500" fontWeight="bold">{t("lease.due_since", { date: fmtDate(bill.due_date) })}</Td>
-                      <Td textAlign="right">
-                         <Button size="xs" colorScheme="red" variant="outline" onClick={() => {
-                           setSelectedBillIds([bill.id]);
-                           onPayAllOpen();
-                         }}>{t("lease.pay_now")}</Button>
-                      </Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
-            </TableContainer>
           </Box>
         )}
 
@@ -1273,21 +1279,63 @@ export default function ViewLease() {
                                 setSelectedBillIds(e.target.checked ? [...selectedBillIds, bill.id] : selectedBillIds.filter(i => i !== bill.id));
                               }} /></Td>
                               <Td>
-                                <Badge fontSize="xs" fontWeight="black" textTransform="uppercase" colorScheme={
-                                  bill.type === "electricity" ? "yellow" : bill.type === "water" ? "blue" : "gray"
-                                } px={3} py={1}>{t(`utility.${bill.type}`)}</Badge>
+                                {(() => {
+                                  const typeConfigs = {
+                                    electricity: { colorScheme: "yellow", icon: FiZap },
+                                    water: { colorScheme: "blue", icon: FiDroplet },
+                                    trash: { colorScheme: "gray", icon: FiTrash2 },
+                                    internet: { colorScheme: "purple", icon: FiPlus }, // or FiHome
+                                    other: { colorScheme: "gray", icon: FiPlus }
+                                  };
+                                  const cfg = typeConfigs[bill.type] || typeConfigs.other;
+                                  return (
+                                    <Badge
+                                      fontSize="10px"
+                                      fontWeight="black"
+                                      textTransform="uppercase"
+                                      variant="subtle"
+                                      colorScheme={cfg.colorScheme}
+                                      px={3} py={1}
+                                      borderRadius="full"
+                                      display="inline-flex"
+                                      alignItems="center"
+                                      gap={1.5}
+                                    >
+                                      <Icon as={cfg.icon} boxSize={3} />
+                                      {t(`utility.${bill.type}`)}
+                                    </Badge>
+                                  );
+                                })()}
                               </Td>
                               <Td fontWeight="black" fontSize="sm" color={textColor}>{fmt(bill.amount)}</Td>
                               <Td fontSize="xs" color={mutedText} fontWeight="bold">{fmtDate(bill.due_date)}</Td>
                               <Td>
-                                <Flex direction="column" gap={1} align="flex-start">
-                                  <Badge fontSize="xs" fontWeight="black" textTransform="uppercase" colorScheme={bill.status === "paid" ? "green" : "red"} px={3} py={1}>
-                                    {t(`utility.${bill.status}`)}
-                                  </Badge>
-                                  {bill.status === 'unpaid' && new Date(bill.due_date) < new Date(new Date().setHours(0,0,0,0)) && (
-                                    <Badge fontSize="10px" colorScheme="orange" variant="solid" px={2} py={0.5}>OVERDUE</Badge>
-                                  )}
-                                </Flex>
+                                {(() => {
+                                  const isOverdue = bill.status === 'unpaid' && new Date(bill.due_date) < new Date(new Date().setHours(0,0,0,0));
+                                  const config = bill.status === "paid" 
+                                    ? { bg: "green.50", color: "green.700", icon: FiCheckCircle, label: t("utility.paid") }
+                                    : isOverdue 
+                                      ? { bg: "red.50", color: "red.700", icon: FiAlertCircle, label: "OVERDUE" }
+                                      : { bg: "blue.50", color: "blue.700", icon: FiClock, label: t("utility.unpaid") };
+                                  
+                                  return (
+                                    <Badge
+                                      bg={config.bg}
+                                      color={config.color}
+                                      px={3} py={1}
+                                      borderRadius="full"
+                                      fontSize="10px"
+                                      fontWeight="black"
+                                      display="inline-flex"
+                                      alignItems="center"
+                                      gap={1.5}
+                                      textTransform="uppercase"
+                                    >
+                                      <Icon as={config.icon} boxSize={3} />
+                                      {config.label}
+                                    </Badge>
+                                  );
+                                })()}
                               </Td>
                               <Td fontSize="xs" color={mutedText}>{bill.description || "—"}</Td>
                               <Td textAlign="right">
@@ -1371,7 +1419,27 @@ export default function ViewLease() {
                               <Td fontSize="xs" color={mutedText} fontWeight="bold">{fmtDate(payment.payment_date)}</Td>
                               <Td fontWeight="black" fontSize="sm" color={textColor}>{fmt(payment.amount_paid)}</Td>
                               <Td>
-                                <Badge fontSize="xs" fontWeight="black" textTransform="uppercase" colorScheme="purple" px={3} py={1}>{payment.type || "rent"}</Badge>
+                                {(() => {
+                                  const pType = payment.type || "rent";
+                                  const icon = pType === "rent" ? FiDollarSign : pType === "deposit" ? FiCheckCircle : FiZap;
+                                  return (
+                                    <Badge 
+                                      fontSize="10px" 
+                                      fontWeight="black" 
+                                      textTransform="uppercase" 
+                                      colorScheme="purple" 
+                                      variant="subtle" 
+                                      px={3} py={1} 
+                                      borderRadius="full"
+                                      display="inline-flex"
+                                      alignItems="center"
+                                      gap={1.5}
+                                    >
+                                      <Icon as={icon} boxSize={3} />
+                                      {pType}
+                                    </Badge>
+                                  );
+                                })()}
                               </Td>
                               <Td fontSize="sm" fontWeight="bold" color={textColor} textTransform="uppercase">{payment.payment_method}</Td>
                               <Td fontSize="xs" color={mutedText} maxW="400px">{(payment.notes || "—").replace(/\(Hash: [^\)]+\)/gi, "").trim()}</Td>
@@ -1443,19 +1511,44 @@ export default function ViewLease() {
                                 </Badge>
                               </Td>
                               <Td>
-                                <Select
-                                  size="xs"
-                                  value={req.status}
-                                  variant="filled"
-                                  borderRadius="md"
-                                  w="140px"
-                                  onChange={(e) => handleUpdateMaintStatus(req.uid, e.target.value)}
-                                >
-                                  <option value="pending">Pending</option>
-                                  <option value="in_progress">In Progress</option>
-                                  <option value="resolved">Resolved</option>
-                                  <option value="cancelled">Cancelled</option>
-                                </Select>
+                                {(() => {
+                                  const getMaintConfig = (s) => {
+                                    switch (s) {
+                                      case "pending": return { colorScheme: "orange", bg: "orange.50", color: "orange.700" };
+                                      case "in_progress": return { colorScheme: "blue", bg: "blue.50", color: "blue.700" };
+                                      case "resolved": return { colorScheme: "green", bg: "green.50", color: "green.700" };
+                                      case "cancelled": return { colorScheme: "gray", bg: "gray.50", color: "gray.700" };
+                                      default: return { colorScheme: "gray", bg: "gray.50", color: "gray.700" };
+                                    }
+                                  };
+                                  const mCfg = getMaintConfig(req.status);
+                                  return (
+                                    <Select
+                                      size="xs"
+                                      value={req.status}
+                                      variant="unstyled"
+                                      bg={mCfg.bg}
+                                      color={mCfg.color}
+                                      fontWeight="black"
+                                      textTransform="uppercase"
+                                      fontSize="10px"
+                                      borderRadius="full"
+                                      px={3}
+                                      h="24px"
+                                      w="130px"
+                                      textAlign="center"
+                                      onChange={(e) => handleUpdateMaintStatus(req.uid, e.target.value)}
+                                      cursor="pointer"
+                                      _hover={{ bg: `${mCfg.colorScheme}.100` }}
+                                      transition="all 0.2s"
+                                    >
+                                      <option value="pending">PENDING</option>
+                                      <option value="in_progress">IN PROGRESS</option>
+                                      <option value="resolved">RESOLVED</option>
+                                      <option value="cancelled">CANCELLED</option>
+                                    </Select>
+                                  );
+                                })()}
                               </Td>
                               <Td fontSize="xs" color={mutedText}>{fmtDate(req.created_at)}</Td>
                               <Td textAlign="right">
@@ -2345,6 +2438,84 @@ export default function ViewLease() {
                 </Button>
               </Flex>
             </Flex>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* ===== OVERDUE BILLS MODAL ===== */}
+      <Modal isOpen={isOverdueModalOpen} onClose={onOverdueModalClose} isCentered size="4xl">
+        <ModalOverlay bg="blackAlpha.600" />
+        <ModalContent bg={cardBg} borderRadius="xl">
+          <ModalHeader color="red.500">
+            <Flex align="center" gap={2}>
+              <FiAlertCircle />
+              <Text>Resolve Overdue Payments</Text>
+            </Flex>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <TableContainer>
+              <Table variant="simple" size="sm">
+                <Thead>
+                  <Tr>
+                    <Th fontSize="xs" fontWeight="black" textTransform="uppercase" py={4}>{t("common.type")}</Th>
+                    <Th fontSize="xs" fontWeight="black" textTransform="uppercase" py={4}>{t("common.amount")}</Th>
+                    <Th fontSize="xs" fontWeight="black" textTransform="uppercase" py={4}>{t("lease.due_date")}</Th>
+                    <Th textAlign="right" py={4}></Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {overdueBills.sort((a, b) => new Date(a.due_date) - new Date(b.due_date)).map(bill => {
+                    const typeConfigs = {
+                      electricity: { colorScheme: "yellow", icon: FiZap },
+                      water: { colorScheme: "blue", icon: FiDroplet },
+                      trash: { colorScheme: "gray", icon: FiTrash2 },
+                      internet: { colorScheme: "purple", icon: FiPlus },
+                      other: { colorScheme: "gray", icon: FiPlus }
+                    };
+                    const cfg = typeConfigs[bill.type] || typeConfigs.other;
+                    return (
+                      <Tr key={bill.id}>
+                        <Td>
+                          <Badge
+                            fontSize="10px"
+                            fontWeight="black"
+                            textTransform="uppercase"
+                            variant="subtle"
+                            colorScheme={cfg.colorScheme}
+                            px={3} py={1}
+                            borderRadius="full"
+                            display="inline-flex"
+                            alignItems="center"
+                            gap={1.5}
+                          >
+                            <Icon as={cfg.icon} boxSize={3} />
+                            {t(`utility.${bill.type}`)}
+                          </Badge>
+                        </Td>
+                        <Td fontWeight="black" fontSize="sm" color="red.600">{fmt(bill.amount)}</Td>
+                        <Td fontSize="xs" color="red.500" fontWeight="bold">{t("lease.due_since", { date: fmtDate(bill.due_date) })}</Td>
+                        <Td textAlign="right">
+                          <Button size="xs" colorScheme="red" variant="outline" onClick={() => {
+                            setSelectedBillIds([bill.id]);
+                            onOverdueModalClose();
+                            onPayAllOpen();
+                          }}>{t("lease.pay_now")}</Button>
+                        </Td>
+                      </Tr>
+                    );
+                  })}
+                </Tbody>
+              </Table>
+            </TableContainer>
+          </ModalBody>
+          <ModalFooter>
+             <Button onClick={onOverdueModalClose} variant="ghost" mr={3} size="sm">Close</Button>
+             <Button colorScheme="red" size="sm" onClick={() => {
+                setSelectedBillIds(overdueBills.map(b => b.id));
+                onOverdueModalClose();
+                onPayAllOpen();
+             }}>Pay All Overdue</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

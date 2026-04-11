@@ -23,6 +23,10 @@ const DashboardLayout = () => {
         if (d?.settings) {
            if (d.settings.currency) localStorage.setItem("currency", d.settings.currency);
            if (d.settings.exchangeRate) localStorage.setItem("exchangeRate", d.settings.exchangeRate);
+           if (d.settings.utility_rate_electricity) localStorage.setItem("utility_rate_electricity", d.settings.utility_rate_electricity);
+           if (d.settings.utility_rate_water) localStorage.setItem("utility_rate_water", d.settings.utility_rate_water);
+           if (d.settings.utility_fixed_trash) localStorage.setItem("utility_fixed_trash", d.settings.utility_fixed_trash);
+           if (d.settings.utility_fixed_internet) localStorage.setItem("utility_fixed_internet", d.settings.utility_fixed_internet);
         }
       })
       .catch(e => console.error("Could not fetch global settings."));

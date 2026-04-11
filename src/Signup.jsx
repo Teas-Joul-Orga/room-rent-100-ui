@@ -104,6 +104,10 @@ export default function SignupForm() {
     if (data.settings) {
       storage.setItem("currency", data.settings.currency || "$");
       storage.setItem("exchangeRate", data.settings.exchangeRate || "4000");
+      if (data.settings.utility_rate_electricity) storage.setItem("utility_rate_electricity", data.settings.utility_rate_electricity);
+      if (data.settings.utility_rate_water) storage.setItem("utility_rate_water", data.settings.utility_rate_water);
+      if (data.settings.utility_fixed_trash) storage.setItem("utility_fixed_trash", data.settings.utility_fixed_trash);
+      if (data.settings.utility_fixed_internet) storage.setItem("utility_fixed_internet", data.settings.utility_fixed_internet);
     }
   }
   const handleSubmit = async (e) => {

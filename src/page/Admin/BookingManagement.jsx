@@ -117,13 +117,13 @@ export default function AdminBookingManagement() {
 
   const handleQuickApprove = async (booking, months) => {
     if (!window.confirm(`Quick approve for ${months} months?`)) return;
-    
+
     setIsApproving(true);
     const previousBookings = [...bookings];
     setBookings(bookings.map(b => b.id === booking.id ? { ...b, status: 'approved' } : b));
 
     try {
-      await api.post(`/admin/bookings/${booking.id}/approve`, {
+      await api.post(`/admin/bookings/${booking.uid}/approve`, {
         rent_amount: booking.room?.base_rent_price || 0,
         security_deposit: booking.room?.base_rent_price || 0,
         lease_duration_months: months,
@@ -140,15 +140,15 @@ export default function AdminBookingManagement() {
   const submitApprove = async () => {
     if (!selectedBooking) return;
     setIsApproving(true);
-    
+
     // Optimistic UI update
     const previousBookings = [...bookings];
-    setBookings(bookings.map(b => 
+    setBookings(bookings.map(b =>
       b.id === selectedBooking.id ? { ...b, status: 'approved' } : b
     ));
 
     try {
-      await api.post(`/admin/bookings/${selectedBooking.id}/approve`, {
+      await api.post(`/admin/bookings/${selectedBooking.uid}/approve`, {
         rent_amount: rentAmount,
         security_deposit: securityDeposit,
         lease_duration_months: leaseDuration,
@@ -163,24 +163,23 @@ export default function AdminBookingManagement() {
     }
   };
 
-  const handleReject = async (id) => {
+  const handleReject = async (booking) => {
     if (!window.confirm("Are you sure you want to reject this booking?")) return;
-    
+
     // Optimistic UI update
     const previousBookings = [...bookings];
-    setBookings(bookings.map(b => 
-      b.id === id ? { ...b, status: 'rejected' } : b
+    setBookings(bookings.map(b =>
+      b.id === booking.id ? { ...b, status: 'rejected' } : b
     ));
 
     try {
-      await api.post(`/admin/bookings/${id}/reject`);
+      await api.post(`/admin/bookings/${booking.uid}/reject`);
       toast.success("Booking rejected");
     } catch (error) {
       setBookings(previousBookings);
       toast.error("Failed to reject booking");
     }
   };
-
   const getStatusBadge = (status) => {
     const config = {
       pending: { color: "yellow", icon: FiClock },
@@ -355,7 +354,7 @@ export default function AdminBookingManagement() {
                               colorScheme="red"
                               variant="ghost"
                               leftIcon={<FiXCircle />}
-                              onClick={() => handleReject(b.id)}
+                              onClick={() => handleReject(b)}
                               borderRadius="full"
                             >
                               Reject
