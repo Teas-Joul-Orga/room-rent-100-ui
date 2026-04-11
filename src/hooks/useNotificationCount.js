@@ -8,7 +8,7 @@ export default function useNotificationCount(currentUser) {
 
   const fetchCount = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
       if (!token) return;
       
       const res = await fetch(`${API}/notifications?limit=100`, {

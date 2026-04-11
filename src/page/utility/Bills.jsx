@@ -7,8 +7,8 @@ import toast from "react-hot-toast";
 const API = "http://localhost:8000/api/v1/admin";
 
 const formatCurrency = (val) => {
-  const c = localStorage.getItem("currency") || "$";
-  const r = parseFloat(localStorage.getItem("exchangeRate") || "4000");
+  const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
+  const r = parseFloat((localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate")) || "4000");
   const isRiel = c === "៛" || c === "KHR" || c === "Riel";
   return isRiel ? `៛ ${(Number(val) * r).toLocaleString("en-US", { maximumFractionDigits: 0 })}` : `$ ${Number(val).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
 };
@@ -34,7 +34,7 @@ export default function Bills() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
       const headers = { Authorization: `Bearer ${token}`, Accept: "application/json" };
       
       const [leaseRes, utilRes] = await Promise.all([
@@ -65,7 +65,7 @@ export default function Bills() {
   const handleNotifyRent = async (leaseId) => {
     setIsNotifying(leaseId);
     try {
-      const token = localStorage.getItem("token");
+      const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
       const res = await fetch(`${API}/leases/${leaseId}/notify-rent`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }
@@ -86,7 +86,7 @@ export default function Bills() {
   const handleNotifyUtility = async (billId) => {
     setIsNotifying(billId);
     try {
-      const token = localStorage.getItem("token");
+      const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
       const res = await fetch(`${API}/utility-bills/${billId}/notify`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }
@@ -119,7 +119,7 @@ export default function Bills() {
   const executeNotifyAllRent = async () => {
     setIsNotifyingAllRent(true);
     let successCount = 0;
-    const token = localStorage.getItem("token");
+    const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
     
     await Promise.all(overdueRentLeases.map(async (lease) => {
       try {
@@ -138,7 +138,7 @@ export default function Bills() {
   const executeNotifyAllUtilities = async () => {
     setIsNotifyingAllUtil(true);
     let successCount = 0;
-    const token = localStorage.getItem("token");
+    const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
     
     await Promise.all(unpaidUtilities.map(async (bill) => {
       try {

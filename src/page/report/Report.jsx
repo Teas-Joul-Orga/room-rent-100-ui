@@ -3,18 +3,19 @@ import { useLocation } from "react-router-dom";
 import {
   Box, Flex, Text, useColorModeValue, Spinner, Select, Button,
   Icon, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Badge, SimpleGrid,
-  Input
+  Input, Menu, MenuButton, MenuList, MenuItem
 } from "@chakra-ui/react";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
+import { FiChevronDown } from "react-icons/fi";
 
 const API = "http://localhost:8000/api/v1";
 const fmt = (n) => {
-  const c = localStorage.getItem("currency") || "$";
+  const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
   const num = Number(n || 0);
   if (c === "៛" || c === "KHR" || c === "Riel") {
-    const rateItem = localStorage.getItem("exchangeRate");
+    const rateItem = (localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate"));
     const r = rateItem ? Number(rateItem) : 4000;
     return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
   }
@@ -47,7 +48,7 @@ export default function Report() {
   const loadingBg = useColorModeValue("whiteAlpha.700", "blackAlpha.600");
 
   const headers = () => {
-    const token = localStorage.getItem("token");
+    const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
@@ -69,7 +70,8 @@ export default function Report() {
         room_id: roomId,
         date: filterDate,
         month: filterMonth,
-        year: filterYear
+        year: filterYear,
+        detailed: 'true'
       });
 
       const res = await fetch(`${API}/admin/reports/${activeTab}?${params.toString()}`, { headers: headers() });
@@ -93,19 +95,16 @@ export default function Report() {
     fetchData();
   }, [activeTab, filterType, filterDate, filterMonth, filterYear, roomId]);
 
-  const handleExport = () => {
+  const handleExport = (format = 'xlsx') => {
     const params = new URLSearchParams({
       tab: activeTab,
       filter_type: filterType,
       room_id: roomId,
       date: filterDate,
       month: filterMonth,
-      year: filterYear
+      year: filterYear,
+      format: format
     });
-    
-    // Redirect to backend export endpoint
-    // Note: This relies on session or cookie-based auth if directly redirected, 
-    // or we could use fetch with headers if needed. But standard practice for downloads is a direct link.
     window.location.href = `http://localhost:8000/admin/reports/export?${params.toString()}`;
   };
 
@@ -135,7 +134,15 @@ export default function Report() {
             </Select>
           )}
 
-          <Button size="sm" colorScheme="green" px={6} onClick={handleExport}>{t("report.export")}</Button>
+          <Menu>
+            <MenuButton as={Button} size="sm" colorScheme="green" px={6} rightIcon={<FiChevronDown />}>
+              {t("report.export")}
+            </MenuButton>
+            <MenuList bg={bg} borderColor={borderColor}>
+              <MenuItem onClick={() => handleExport('xlsx')} _hover={{ bg: hoverBg }}>Excel (.xlsx)</MenuItem>
+              <MenuItem onClick={() => handleExport('csv')} _hover={{ bg: hoverBg }}>CSV (.csv)</MenuItem>
+            </MenuList>
+          </Menu>
         </Flex>
       </Flex>
 

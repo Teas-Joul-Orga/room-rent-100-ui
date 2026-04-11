@@ -47,9 +47,9 @@ export default function Dashboard() {
 
   // Cached localization parsing
   const currencySettings = useMemo(() => {
-    const rateItem = localStorage.getItem("exchangeRate");
+    const rateItem = (localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate"));
     return {
-      c: localStorage.getItem("currency") || "$",
+      c: (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$",
       r: rateItem ? Number(rateItem) : 4000
     };
   }, []);
@@ -169,10 +169,10 @@ export default function Dashboard() {
           transition="all 0.2s"
         >
           <Heading size="xl" fontWeight="900" letterSpacing="tight" bgGradient="linear(to-r, blue.400, purple.500)" bgClip="text">
-            Command Center
+            Admin Dashboard
           </Heading>
           <Text fontSize="sm" color={mutedText} fontWeight="600">
-            Strategic operations and real estate intelligence
+            Welcome to your admin dashboard
           </Text>
         </Box>
         <Flex gap={3} align="center">

@@ -15,7 +15,7 @@ export default function AddNewFurniture() {
     if (isEdit) {
       const fetchItem = async () => {
         try {
-          const token = localStorage.getItem("token");
+          const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
           const res = await fetch(`http://localhost:8000/api/v1/admin/furniture/${id}`, {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -54,7 +54,7 @@ export default function AddNewFurniture() {
     };
 
     try {
-      const token = localStorage.getItem("token");
+      const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
       const url = isEdit
         ? `http://localhost:8000/api/v1/admin/furniture/${id}`
         : `http://localhost:8000/api/v1/admin/furniture`;

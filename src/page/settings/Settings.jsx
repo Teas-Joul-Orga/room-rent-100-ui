@@ -8,7 +8,7 @@ import {
 import { 
   FiSave, FiGlobe, FiPhone, FiMail, FiMapPin, FiCreditCard, 
   FiZap, FiDroplet, FiInfo, FiBriefcase, FiDollarSign, FiPercent,
-  FiDatabase, FiUpload, FiDownload, FiAlertTriangle
+  FiDatabase, FiUpload, FiDownload, FiAlertTriangle, FiCalendar
 } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
@@ -35,6 +35,8 @@ export default function Settings() {
   const mutedText = useColorModeValue("gray.500", "gray.400");
   const sidebarItemActiveBg = useColorModeValue("blue.50", "#1c2128");
   const sidebarItemActiveText = useColorModeValue("blue.600", "blue.400");
+  const sidebarItemHoverBg = useColorModeValue("gray.100", "#1c2128");
+  const restoreBg = useColorModeValue("red.50", "rgba(255,0,0,0.05)");
   
   // Fetch existing settings
   useEffect(() => {
@@ -43,7 +45,7 @@ export default function Settings() {
 
   const fetchSettings = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       const res = await fetch(`${API}/admin/settings`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -58,6 +60,8 @@ export default function Settings() {
         if (flatSettings.finance_exchange_rate) localStorage.setItem("exchangeRate", flatSettings.finance_exchange_rate);
         if (flatSettings.utility_rate_electricity) localStorage.setItem("utility_rate_electricity", flatSettings.utility_rate_electricity);
         if (flatSettings.utility_rate_water) localStorage.setItem("utility_rate_water", flatSettings.utility_rate_water);
+        if (flatSettings.utility_fixed_trash) localStorage.setItem("utility_fixed_trash", flatSettings.utility_fixed_trash);
+        if (flatSettings.utility_fixed_internet) localStorage.setItem("utility_fixed_internet", flatSettings.utility_fixed_internet);
       }
     } catch (e) {
       toast({ title: t('common.error_loading'), status: 'error', position: 'top-right' });
@@ -74,7 +78,7 @@ export default function Settings() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       const res = await fetch(`${API}/admin/settings`, {
         method: 'POST',
         headers: { 
@@ -102,24 +106,49 @@ export default function Settings() {
 
   const handleBackup = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       const res = await fetch(`${API}/admin/settings/backup`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      if (!res.ok) throw new Error('Backup failed');
+      if (!res.ok) {
+        let errorData;
+        try {
+          errorData = await res.json();
+        } catch (je) {
+          throw new Error('Backup failed: Server returned error status ' + res.status);
+        }
+        throw new Error(errorData.error || 'Backup failed');
+      }
       
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `backup_${new Date().toISOString().split('T')[0]}.sql`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      toast({ title: 'Backup downloaded successfully', status: 'success', position: 'top-right' });
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `backup_${new Date().toISOString().split('T')[0]}.sql`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup with small delay to ensure download starts
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 500);
+      
+      toast({ 
+        title: 'Backup downloaded successfully', 
+        status: 'success', 
+        position: 'top-right' 
+      });
     } catch (e) {
-      toast({ title: `Backup failed: ${e.message}`, status: 'error', position: 'top-right' });
+      toast({ 
+        title: `Backup failed`, 
+        description: e.message, 
+        status: 'error', 
+        position: 'top-right',
+        duration: 8000 
+      });
     }
   };
 
@@ -137,10 +166,13 @@ export default function Settings() {
       const formData = new FormData();
       formData.append('backup_file', selectedFile);
       
-      const token = localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       const res = await fetch(`${API}/admin/settings/restore`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Accept': 'application/json' 
+        },
         body: formData
       });
       
@@ -167,42 +199,15 @@ export default function Settings() {
     }
   };
 
-  const SidebarItem = ({ id, label, icon }) => (
-    <Flex
-      align="center"
-      p={3}
-      cursor="pointer"
-      borderRadius="xl"
-      transition="all 0.2s"
-      bg={activeTab === id ? sidebarItemActiveBg : 'transparent'}
-      color={activeTab === id ? sidebarItemActiveText : textColor}
-      _hover={{ bg: activeTab === id ? sidebarItemActiveBg : useColorModeValue("gray.100", "#1c2128") }}
-      onClick={() => setActiveTab(id)}
-      fontWeight={activeTab === id ? "black" : "medium"}
-    >
-      <Icon as={icon} boxSize={5} mr={3} />
-      <Text fontSize="sm">{label}</Text>
-    </Flex>
-  );
-
-  const SectionHeader = ({ title, subtitle, icon }) => (
-    <Box mb={8}>
-      <HStack spacing={3} mb={1}>
-        <Icon as={icon} boxSize={6} color="blue.500" />
-        <Heading size="md" color={textColor} letterSpacing="tight">{title}</Heading>
-      </HStack>
-      <Text fontSize="sm" color={mutedText}>{subtitle}</Text>
-      <Divider mt={4} borderColor={borderColor} />
-    </Box>
-  );
-
-  if (loading) {
-    return <Flex py={40} justify="center" bg={mainBg} h="100vh"><Spinner size="xl" color="blue.500" thickness="4px" /></Flex>;
-  }
-
   return (
     <Box bg={mainBg} minH="calc(100vh - 80px)" p={{ base: 4, md: 8 }}>
-      <Container maxW="container.xxl" p={0}>
+      {loading ? (
+        <Flex py={40} justify="center" h="50vh">
+          <Spinner size="xl" color="blue.500" thickness="4px" />
+        </Flex>
+      ) : (
+        <>
+          <Container maxW="container.xxl" p={0}>
         <Flex justify="space-between" align="center" mb={10} flexWrap="wrap" gap={4}>
           <Box>
             <Heading size="xl" fontWeight="black" color={textColor} letterSpacing="tight">
@@ -230,11 +235,12 @@ export default function Settings() {
         <Flex gap={8} direction={{ base: "column", lg: "row" }}>
           <Box w={{ base: "100%", lg: "280px" }} flexShrink={0}>
             <VStack bg={cardBg} p={4} borderRadius="2xl" border="1px solid" borderColor={borderColor} align="stretch" spacing={2} shadow="sm">
-              <SidebarItem id="general" label={t('settings_page.nav.general')} icon={FiGlobe} />
-              <SidebarItem id="contact" label={t('settings_page.nav.contact')} icon={FiPhone} />
-              <SidebarItem id="finance" label={t('settings_page.nav.finance')} icon={FiDollarSign} />
-              <SidebarItem id="utilities" label={t('settings_page.nav.utilities')} icon={FiZap} />
-              <SidebarItem id="maintenance" label="System Maintenance" icon={FiDatabase} />
+              <SidebarItem id="general" label={t('settings_page.nav.general')} icon={FiGlobe} isActive={activeTab === 'general'} onClick={() => setActiveTab('general')} activeBg={sidebarItemActiveBg} activeText={sidebarItemActiveText} textColor={textColor} hoverBg={sidebarItemHoverBg} />
+              <SidebarItem id="contact" label={t('settings_page.nav.contact')} icon={FiPhone} isActive={activeTab === 'contact'} onClick={() => setActiveTab('contact')} activeBg={sidebarItemActiveBg} activeText={sidebarItemActiveText} textColor={textColor} hoverBg={sidebarItemHoverBg} />
+              <SidebarItem id="finance" label={t('settings_page.nav.finance')} icon={FiDollarSign} isActive={activeTab === 'finance'} onClick={() => setActiveTab('finance')} activeBg={sidebarItemActiveBg} activeText={sidebarItemActiveText} textColor={textColor} hoverBg={sidebarItemHoverBg} />
+              <SidebarItem id="utilities" label={t('settings_page.nav.utilities')} icon={FiZap} isActive={activeTab === 'utilities'} onClick={() => setActiveTab('utilities')} activeBg={sidebarItemActiveBg} activeText={sidebarItemActiveText} textColor={textColor} hoverBg={sidebarItemHoverBg} />
+              <SidebarItem id="booking" label={t('settings_page.nav.booking')} icon={FiCalendar} isActive={activeTab === 'booking'} onClick={() => setActiveTab('booking')} activeBg={sidebarItemActiveBg} activeText={sidebarItemActiveText} textColor={textColor} hoverBg={sidebarItemHoverBg} />
+              <SidebarItem id="maintenance" label="System Maintenance" icon={FiDatabase} isActive={activeTab === 'maintenance'} onClick={() => setActiveTab('maintenance')} activeBg={sidebarItemActiveBg} activeText={sidebarItemActiveText} textColor={textColor} hoverBg={sidebarItemHoverBg} />
             </VStack>
             
             <Box bg="blue.500" p={6} borderRadius="2xl" mt={6} color="white" shadow="xl" position="relative" overflow="hidden">
@@ -250,7 +256,7 @@ export default function Settings() {
             
             {activeTab === 'general' && (
               <Box>
-                <SectionHeader title={t('settings_page.general.header')} subtitle={t('settings_page.general.desc')} icon={FiGlobe} />
+                <SectionHeader title={t('settings_page.general.header')} subtitle={t('settings_page.general.desc')} icon={FiGlobe} textColor={textColor} mutedText={mutedText} borderColor={borderColor} />
                 <Stack spacing={8}>
                   <FormControl>
                     <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.general.label_app_name')}</FormLabel>
@@ -268,7 +274,7 @@ export default function Settings() {
 
             {activeTab === 'contact' && (
               <Box>
-                <SectionHeader title={t('settings_page.contact.header')} subtitle={t('settings_page.contact.desc')} icon={FiBriefcase} />
+                <SectionHeader title={t('settings_page.contact.header')} subtitle={t('settings_page.contact.desc')} icon={FiBriefcase} textColor={textColor} mutedText={mutedText} borderColor={borderColor} />
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8}>
                   <FormControl gridColumn={{ md: "span 2" }}>
                     <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.contact.label_address')}</FormLabel>
@@ -297,7 +303,7 @@ export default function Settings() {
 
             {activeTab === 'finance' && (
               <Box>
-                <SectionHeader title={t('settings_page.finance.header')} subtitle={t('settings_page.finance.desc')} icon={FiDollarSign} />
+                <SectionHeader title={t('settings_page.finance.header')} subtitle={t('settings_page.finance.desc')} icon={FiDollarSign} textColor={textColor} mutedText={mutedText} borderColor={borderColor} />
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8} mb={10}>
                   <FormControl>
                     <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.finance.label_currency')}</FormLabel>
@@ -335,7 +341,7 @@ export default function Settings() {
 
             {activeTab === 'utilities' && (
               <Box>
-                <SectionHeader title={t('settings_page.utilities.header')} subtitle={t('settings_page.utilities.desc')} icon={FiZap} />
+                <SectionHeader title={t('settings_page.utilities.header')} subtitle={t('settings_page.utilities.desc')} icon={FiZap} textColor={textColor} mutedText={mutedText} borderColor={borderColor} />
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8}>
                   <FormControl>
                     <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.utilities.label_electricity')}</FormLabel>
@@ -354,12 +360,59 @@ export default function Settings() {
                     </InputGroup>
                   </FormControl>
                 </SimpleGrid>
+
+                <Box mt={10}>
+                  <SectionHeader title="Fixed Services" subtitle="Set standard monthly fees for extra services like trash and internet." icon={FiBriefcase} textColor={textColor} mutedText={mutedText} borderColor={borderColor} />
+                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8}>
+                    <FormControl>
+                      <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">Trash Collection Fee</FormLabel>
+                      <InputGroup size="lg">
+                        <InputLeftAddon borderLeftRadius="xl">$</InputLeftAddon>
+                        <Input type="number" step="0.01" name="utility_fixed_trash" value={settings.utility_fixed_trash || ''} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500" />
+                        <InputLeftAddon borderRightRadius="xl">/month</InputLeftAddon>
+                      </InputGroup>
+                    </FormControl>
+                    <FormControl>
+                      <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">Internet Service Fee</FormLabel>
+                      <InputGroup size="lg">
+                        <InputLeftAddon borderLeftRadius="xl">$</InputLeftAddon>
+                        <Input type="number" step="0.01" name="utility_fixed_internet" value={settings.utility_fixed_internet || ''} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500" />
+                        <InputLeftAddon borderRightRadius="xl">/month</InputLeftAddon>
+                      </InputGroup>
+                    </FormControl>
+                  </SimpleGrid>
+                </Box>
+              </Box>
+            )}
+
+            {activeTab === 'booking' && (
+              <Box>
+                <SectionHeader title={t('settings_page.booking.header')} subtitle={t('settings_page.booking.desc')} icon={FiCalendar} textColor={textColor} mutedText={mutedText} borderColor={borderColor} />
+                <Stack spacing={8}>
+                  <FormControl>
+                    <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.booking.label_down_payment')}</FormLabel>
+                    <InputGroup size="lg">
+                      <Input type="number" step="1" min="0" max="100" name="booking_down_payment_percent" value={settings.booking_down_payment_percent || '20'} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500" />
+                      <InputLeftAddon borderRightRadius="xl"><FiPercent /></InputLeftAddon>
+                    </InputGroup>
+                    <FormHelperText fontSize="xs">{t('settings_page.booking.down_payment_helper')}</FormHelperText>
+                  </FormControl>
+                  <Box bg={mainBg} p={6} borderRadius="2xl" border="1px dashed" borderColor={borderColor}>
+                    <HStack spacing={3} mb={3}>
+                      <Icon as={FiInfo} boxSize={5} color="blue.500" />
+                      <Text fontWeight="bold" color={textColor} fontSize="sm">{t('settings_page.booking.info_title')}</Text>
+                    </HStack>
+                    <Text fontSize="sm" color={mutedText} lineHeight="tall">
+                      {t('settings_page.booking.info_desc')}
+                    </Text>
+                  </Box>
+                </Stack>
               </Box>
             )}
 
             {activeTab === 'maintenance' && (
               <Box>
-                <SectionHeader title="System Maintenance" subtitle="Backup and restore your system data safely." icon={FiDatabase} />
+                <SectionHeader title="System Maintenance" subtitle="Backup and restore your system data safely." icon={FiDatabase} textColor={textColor} mutedText={mutedText} borderColor={borderColor} />
                 <VStack spacing={8} align="stretch">
                   <Box p={6} borderRadius="2xl" border="1px solid" borderColor={borderColor} bg={mainBg}>
                     <HStack spacing={4} mb={4}>
@@ -373,7 +426,7 @@ export default function Settings() {
                     <Button leftIcon={<FiDownload />} colorScheme="blue" onClick={handleBackup} borderRadius="xl">Download .SQL Backup</Button>
                   </Box>
 
-                  <Box p={6} borderRadius="2xl" border="1px solid" borderColor="red.200" _dark={{ borderColor: "red.900" }} bg={useColorModeValue("red.50", "rgba(255,0,0,0.05)")}>
+                  <Box p={6} borderRadius="2xl" border="1px solid" borderColor="red.200" _dark={{ borderColor: "red.900" }} bg={restoreBg}>
                     <HStack spacing={4} mb={4}>
                       <CircleIcon icon={FiUpload} color="red" />
                       <Box>
@@ -393,24 +446,54 @@ export default function Settings() {
 
           </Box>
         </Flex>
-      </Container>
-
-      <ConfirmDialog 
-        isOpen={restoreDisc.isOpen}
-        onClose={() => {
-          restoreDisc.onClose();
-          setSelectedFile(null);
-          if (fileInputRef.current) fileInputRef.current.value = "";
-        }}
-        onConfirm={handleRestore}
-        title="Critical: Restore Database?"
-        message={`You are about to restore the database using file: "${selectedFile?.name}". All current data will be PERMANENTLY DELETED and replaced. Are you absolutely sure?`}
-        confirmText="Yes, Restore Everything"
-        isLoading={restoring}
-      />
+          </Container>
+          <ConfirmDialog 
+            isOpen={restoreDisc.isOpen}
+            onClose={() => {
+              restoreDisc.onClose();
+              setSelectedFile(null);
+              if (fileInputRef.current) fileInputRef.current.value = "";
+            }}
+            onConfirm={handleRestore}
+            title="Critical: Restore Database?"
+            message={`You are about to restore the database using file: "${selectedFile?.name}". All current data will be PERMANENTLY DELETED and replaced. Are you absolutely sure?`}
+            confirmText="Yes, Restore Everything"
+            isLoading={restoring}
+          />
+        </>
+      )}
     </Box>
   );
 }
+
+const SidebarItem = ({ id, label, icon, isActive, onClick, activeBg, activeText, textColor, hoverBg }) => (
+  <Flex
+    align="center"
+    p={3}
+    cursor="pointer"
+    borderRadius="xl"
+    transition="all 0.2s"
+    bg={isActive ? activeBg : 'transparent'}
+    color={isActive ? activeText : textColor}
+    _hover={{ bg: isActive ? activeBg : hoverBg }}
+    onClick={onClick}
+    fontWeight={isActive ? "black" : "medium"}
+  >
+    <Icon as={icon} boxSize={5} mr={3} />
+    <Text fontSize="sm">{label}</Text>
+  </Flex>
+);
+
+const SectionHeader = ({ title, subtitle, icon, textColor, mutedText, borderColor }) => (
+  <Box mb={8}>
+    <HStack spacing={3} mb={1}>
+      <Icon as={icon} boxSize={6} color="blue.500" />
+      <Heading size="md" color={textColor} letterSpacing="tight">{title}</Heading>
+    </HStack>
+    <Text fontSize="sm" color={mutedText}>{subtitle}</Text>
+    <Divider mt={4} borderColor={borderColor} />
+  </Box>
+);
 
 const CircleIcon = ({ icon, color }) => (
   <Flex w="10" h="10" borderRadius="full" align="center" justify="center" bg={`${color}.100`} color={`${color}.600`} _dark={{ bg: `${color}.900`, color: `${color}.200` }}>

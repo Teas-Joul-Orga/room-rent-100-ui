@@ -34,21 +34,36 @@ window.fetch = async (...args) => {
         url: cleanUrl,
         method,
         data,
+        responseType: (method === 'GET' && url.includes('backup')) ? 'arraybuffer' : 'json' // Handle binary for backup
       });
-      // Emulate the standard Web Response object so existing components do not crash
+
+      // Emulate the standard Web Response object more accurately
       return {
         ok: true,
         status: res.status,
-        json: async () => res.data,
-        text: async () => JSON.stringify(res.data),
-        blob: async () => res.data,
+        headers: {
+          get: (headerName) => res.headers[headerName.toLowerCase()]
+        },
+        json: async () => typeof res.data === 'string' ? JSON.parse(res.data) : res.data,
+        text: async () => typeof res.data === 'object' ? JSON.stringify(res.data) : String(res.data),
+        blob: async () => new Blob([res.data], { type: res.headers['content-type'] }),
+        arrayBuffer: async () => {
+          if (res.data instanceof ArrayBuffer) return res.data;
+          const enc = new TextEncoder();
+          return enc.encode(typeof res.data === 'object' ? JSON.stringify(res.data) : String(res.data)).buffer;
+        }
       };
     } catch (error) {
        return {
          ok: false,
          status: error.response?.status || 500,
+         headers: {
+           get: (headerName) => error.response?.headers?.[headerName.toLowerCase()]
+         },
          json: async () => error.response?.data || {},
          text: async () => JSON.stringify(error.response?.data || {}),
+         blob: async () => new Blob([JSON.stringify(error.response?.data || {})]),
+         arrayBuffer: async () => new TextEncoder().encode(JSON.stringify(error.response?.data || {})).buffer
        };
     }
   }
@@ -260,9 +275,7 @@ const theme = extendTheme({
 });
 
 createRoot(document.getElementById("root")).render(
-  <StrictMode>
     <ChakraProvider theme={theme}>
       <App />
     </ChakraProvider>
-  </StrictMode>,
 );

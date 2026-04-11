@@ -47,10 +47,10 @@ const NavItem = ({ icon, label, path, isActive, onClick, badgeCount }) => {
 export default function BottomNav({ onOpenSidebar }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const role = localStorage.getItem("role");
+  const role = (localStorage.getItem("role") || sessionStorage.getItem("role"));
   let userDetails = null;
   try {
-    userDetails = JSON.parse(localStorage.getItem("user"));
+    userDetails = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user")));
   } catch(e) {}
 
   const unreadChatCount = useUnreadChatCount(userDetails);

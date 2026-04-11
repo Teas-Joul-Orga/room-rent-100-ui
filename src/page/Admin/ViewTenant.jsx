@@ -15,11 +15,11 @@ import dayjs from "dayjs";
 import { FiDollarSign } from "react-icons/fi";
 
 const fmtCurrency = (n) => {
-  const c = localStorage.getItem("currency") || "$";
+  const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
   const num = Number(n || 0);
   // Check for both the symbol and common code variations
   if (c === "៛" || c === "KHR" || c === "Riel") {
-    const rateItem = localStorage.getItem("exchangeRate");
+    const rateItem = (localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate"));
     const r = rateItem ? Number(rateItem) : 4000;
     return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
   }
@@ -30,7 +30,7 @@ export default function ViewTenant() {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
-  const token = localStorage.getItem("token");
+  const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
 
   // Chakra UI colors
   const { colorMode } = useColorMode();

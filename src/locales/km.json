@@ -12,6 +12,7 @@
     "furniture": "គ្រឿងសង្ហារឹម",
     "leases": "កិច្ចសន្យាជួល",
     "utilities": "ទឹកភ្លើង",
+    "bills": "វិក្កយបត្រ",
     "payments": "ការបង់ប្រាក់",
     "maintenance": "ការជួសជុល",
     "expenses": "ចំណាយ",
@@ -21,7 +22,7 @@
     "settings": "ការកំណត់",
     "my_lease": "កិច្ចសន្យារបស់ខ្ញុំ",
     "lease_history": "ប្រវត្តិជួល",
-    "my_billing": "វិក្កយបត្ររបស់ខ្ញុំ",
+    "my_billing": "វិក្កយបត្រ",
     "community": "សហគមន៍",
     "tenant_mgmt": "ការគ្រប់គ្រងអ្នកជួល",
     "all_rooms": "បន្ទប់ទាំងអស់",
@@ -64,7 +65,8 @@
     "error_occurred": "មានកំហុសមួយបានកើតឡើង",
     "network_error": "កំហុសបណ្តាញ សូមព្យាយាមម្តងទៀត",
     "saving": "កំពុងរក្សាទុក...",
-    "view_detail": "មើលលម្អិត"
+    "view_detail": "មើលលម្អិត",
+    "login": "ចូលប្រើ"
   },
   "lease": {
     "statement": "របាយការណ៍កិច្ចសន្យាជួល",
@@ -253,7 +255,21 @@
     "name_rent_required": "ឈ្មោះបន្ទប់ និងតម្លៃឈ្នួលគោលចាំបាច់",
     "create_success": "បានបង្កើតបន្ទប់ដោយជោគជ័យ",
     "create_failed": "បរាជ័យក្នុងការបង្កើតបន្ទប់",
-    "network_error": "កំហុសប្រព័ន្ធបណ្តាញ។"
+    "network_error": "កំហុសប្រព័ន្ធបណ្តាញ។",
+    "bulk_create": "បង្កើតជាច្រើន",
+    "bulk_create_title": "បង្កើតបន្ទប់ជាច្រើន",
+    "bulk_create_subtitle": "បង្កើតបន្ទប់ច្រើនក្នុងពេលតែមួយដោយប្រើលក្ខណៈរួម",
+    "prefix": "បុព្វបទឈ្មោះ",
+    "prefix_placeholder": "ឧ. បន្ទប់ A",
+    "start_number": "លេខចាប់ផ្តើម",
+    "count": "ចំនួនបន្ទប់",
+    "preview_names": "មើលឈ្មោះដែលបង្កើត",
+    "shared_properties": "លក្ខណៈរួម",
+    "summary_text": "អ្នកនឹងបង្កើត {{count}} បន្ទប់",
+    "bulk_create_confirm": "បង្កើត {{count}} បន្ទប់",
+    "bulk_creating": "កំពុងបង្កើត...",
+    "bulk_create_success": "បានបង្កើត {{count}} បន្ទប់ដោយជោគជ័យ!",
+    "bulk_create_failed": "បរាជ័យក្នុងការបង្កើតបន្ទប់"
   },
   "dashboard": {
     "overview": "ទិដ្ឋភាពទូទៅនៃផ្ទាំងគ្រប់គ្រង",

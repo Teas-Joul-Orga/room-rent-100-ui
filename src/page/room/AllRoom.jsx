@@ -28,7 +28,7 @@ import {
   Tooltip,
   Spinner,
 } from "@chakra-ui/react";
-import { FiEdit2, FiTrash2, FiEye, FiPlus, FiDownload, FiLayout, FiBriefcase, FiStar, FiAward, FiUser, FiUserX, FiBellOff, FiDroplet } from "react-icons/fi";
+import { FiEdit2, FiTrash2, FiEye, FiPlus, FiDownload, FiLayout, FiBriefcase, FiStar, FiAward, FiUser, FiUserX, FiBellOff, FiDroplet, FiLayers } from "react-icons/fi";
 import { exportToExcel } from "../../utils/exportExcel";
 
 const getRoomIcon = (name = "") => {
@@ -55,7 +55,7 @@ export default function AllRoom() {
   const [sortField, setSortField] = useState(null);
   const [sortDir, setSortDir] = useState("desc");
 
-  const token = localStorage.getItem("token");
+  const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -140,13 +140,14 @@ export default function AllRoom() {
           Authorization: `Bearer ${token}`,
         },
       });
+      const data = await res.json();
       if (res.ok) {
         toast.success("Room disabled successfully");
         fetchRooms();
         setShowModal(false);
         setSelectedItem(null);
       } else {
-        toast.error("Failed to disable room");
+        toast.error(data.error || "Failed to disable room");
       }
     } catch(err) {
       toast.error("Network Error");
@@ -180,6 +181,17 @@ export default function AllRoom() {
             shadow="sm"
           >
             {t("room.add_new")}
+          </Button>
+
+          <Button
+            display={{ base: "none", sm: "flex" }}
+            leftIcon={<FiLayers />}
+            colorScheme="purple"
+            variant="outline"
+            onClick={() => navigate("/dashboard/rooms/bulk-create")}
+            shadow="sm"
+          >
+            {t("room.bulk_create")}
           </Button>
 
           <Button
@@ -513,22 +525,32 @@ export default function AllRoom() {
               </Button>
               <Button colorScheme="red" onClick={async () => {
                 let successCount = 0;
+                let failCount = 0;
+                let lastError = "";
                 setIsLoading(true);
                 for (let id of selectedIds) {
                   try {
-                    await fetch(`http://localhost:8000/api/v1/admin/rooms/${id}`, {
+                    const res = await fetch(`http://localhost:8000/api/v1/admin/rooms/${id}`, {
                       method: "DELETE",
                       headers: {
                         Accept: "application/json",
                         Authorization: `Bearer ${token}`
                       }
                     });
-                    successCount++;
+                    if (res.ok) {
+                      successCount++;
+                    } else {
+                      failCount++;
+                      const data = await res.json().catch(() => ({}));
+                      lastError = data.error || "Unknown error";
+                    }
                   } catch(e) {
+                    failCount++;
                     console.error(`Failed to disable room ${id}`, e);
                   }
                 }
-                toast.success(`${successCount} rooms disabled`);
+                if (successCount > 0) toast.success(`${successCount} rooms disabled`);
+                if (failCount > 0) toast.error(`${failCount} rooms could not be disabled: ${lastError}`);
                 setSelectedIds([]);
                 setShowBulkDelete(false);
                 fetchRooms();

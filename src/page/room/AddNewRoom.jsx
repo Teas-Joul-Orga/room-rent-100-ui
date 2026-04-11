@@ -24,7 +24,7 @@ import { useTranslation } from "react-i18next";
 export default function AddNewRoom() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
+  const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
 
   const [isLoading, setIsLoading] = useState(false);
   const [fetchingFurniture, setFetchingFurniture] = useState(true);

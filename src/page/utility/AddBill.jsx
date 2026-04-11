@@ -42,11 +42,13 @@ const API = "http://localhost:8000/api/v1/admin";
 const getDefaultRate = (type) => {
   const rawUSD = type === "electricity" ? localStorage.getItem("utility_rate_electricity")
                 : type === "water"       ? localStorage.getItem("utility_rate_water")
+                : type === "trash"       ? localStorage.getItem("utility_fixed_trash")
+                : type === "internet"    ? localStorage.getItem("utility_fixed_internet")
                 : null;
   if (!rawUSD) return "";
-  const c = localStorage.getItem("currency") || "$";
+  const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
   if (c === "៛" || c === "KHR" || c === "Riel") {
-    const rate = Number(localStorage.getItem("exchangeRate") || 4000);
+    const rate = Number((localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate")) || 4000);
     return (Number(rawUSD) * rate).toFixed(0); // e.g. 0.25 * 4000 = 1000
   }
   return rawUSD; // already in USD
@@ -61,10 +63,10 @@ const BILL_TYPES = [
 ];
 
 const fmt = (n) => {
-  const c = localStorage.getItem("currency") || "$";
+  const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
   const num = Number(n || 0);
   if (c === "៛" || c === "KHR" || c === "Riel") {
-    const rateItem = localStorage.getItem("exchangeRate");
+    const rateItem = (localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate"));
     const r = rateItem ? Number(rateItem) : 4000;
     return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
   }
@@ -72,10 +74,10 @@ const fmt = (n) => {
 };
 
 const toUSD = (n) => {
-  const c = localStorage.getItem("currency") || "$";
+  const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
   const num = Number(n || 0);
   if (c === "៛" || c === "KHR" || c === "Riel") {
-    const r = Number(localStorage.getItem("exchangeRate") || 4000);
+    const r = Number((localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate")) || 4000);
     return (num / r).toFixed(2);
   }
   return num;
@@ -83,7 +85,7 @@ const toUSD = (n) => {
 
 export default function AddBill() {
   const navigate = useNavigate();
-  const curr = localStorage.getItem("currency") || "$";
+  const curr = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -119,7 +121,7 @@ export default function AddBill() {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-      const token = localStorage.getItem("token");
+      const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
       if (!token) { setIsLoading(false); return; }
       const headers = { Authorization: `Bearer ${token}`, Accept: "application/json" };
 
@@ -144,7 +146,7 @@ export default function AddBill() {
   useEffect(() => {
     const fetchLastReading = async () => {
       if (!formData.room_id || !["electricity", "water"].includes(formData.type)) return;
-      const token = localStorage.getItem("token");
+      const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
       try {
         const res = await fetch(`${API}/utility-bills/last-reading/${formData.room_id}?type=${formData.type}`, {
           headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
@@ -182,7 +184,7 @@ export default function AddBill() {
       return toast.error("Please fill all required fields");
     }
     setIsSaving(true);
-    const token = localStorage.getItem("token");
+    const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
     try {
       const res = await fetch(`${API}/utility-bills`, {
         method: "POST",
@@ -353,7 +355,7 @@ export default function AddBill() {
                             bg={isActive ? useColorModeValue(`${bt.color}.50`, `${bt.color}.900`) : cardBg}
                             _hover={{ borderColor: `${bt.color}.400`, transform: "translateY(-1px)", shadow: "sm" }}
                             transition="all 0.2s"
-                            onClick={() => setFormData({ ...formData, type: bt.value, amount: "", previous_reading: "", current_reading: "", cost_per_unit: getDefaultRate(bt.value) })}
+                            onClick={() => setFormData({ ...formData, type: bt.value, amount: ["trash", "internet"].includes(bt.value) ? getDefaultRate(bt.value) : "", previous_reading: "", current_reading: "", cost_per_unit: getDefaultRate(bt.value) })}
                             position="relative"
                           >
                             {isActive && (

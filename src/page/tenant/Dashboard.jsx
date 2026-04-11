@@ -33,8 +33,7 @@ const MotionBox = motion(Box);
 const MotionFlex = motion(Flex);
 
 const COLORS = ['#6366f1', '#10b981', '#f43f5e', '#f59e0b', '#8b5cf6'];
-const KHQR_LOGO = "https://api-bakong.nbc.gov.kh/images/khqr.png";
-const BAKONG_LOGO_RED = "https://api-bakong.nbc.gov.kh/images/logo.png";
+const BAKONG_LOGO_RED = "https://bakong.nbc.gov.kh/images/logo.png";
 
 export default function TenantDashboard() {
   const [data, setData] = useState(null);
@@ -67,9 +66,9 @@ export default function TenantDashboard() {
 
   // Cached localization parsing
   const currencySettings = useMemo(() => {
-    const rateItem = localStorage.getItem("exchangeRate");
+    const rateItem = (localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate"));
     return {
-      c: localStorage.getItem("currency") || "$",
+      c: (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$",
       r: rateItem ? Number(rateItem) : 4000
     };
   }, []);
@@ -199,11 +198,17 @@ export default function TenantDashboard() {
     name: b.type, value: Number(b.amount)
   })) || [];
 
-  const consumptionData = utilityTrends?.months?.map((m, i) => ({
-    month: m,
-    electric: utilityTrends.electric[i] || 0,
-    water: utilityTrends.water[i] || 0
-  })) || [];
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const consumptionData = utilityTrends?.monthlyStats 
+    ? monthNames.map((m, i) => {
+        const stat = utilityTrends.monthlyStats[i + 1];
+        return {
+          month: m,
+          electric: stat?.electricity || 0,
+          water: stat?.water || 0
+        };
+      })
+    : [];
 
   return (
     <Box p={{ base: 4, md: 8 }} bg={bg} minH="100vh">

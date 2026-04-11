@@ -18,20 +18,20 @@ import echo from "../../lib/echo";
 dayjs.extend(relativeTime);
 const API = "http://localhost:8000/api/v1";
 const fmt = (n) => {
-  const c = localStorage.getItem("currency") || "$";
+  const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
   const num = Number(n || 0);
   if (c === "៛" || c === "KHR" || c === "Riel") {
-    const rateItem = localStorage.getItem("exchangeRate");
+    const rateItem = (localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate"));
     const r = rateItem ? Number(rateItem) : 4000;
     return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
   }
   return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 const toUSD = (n, explicitCurrency) => {
-  const c = explicitCurrency || localStorage.getItem("currency") || "$";
+  const c = explicitCurrency || (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
   const num = Number(n || 0);
   if (c === "៛" || c === "KHR" || c === "Riel") {
-    const r = Number(localStorage.getItem("exchangeRate") || 4000);
+    const r = Number((localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate")) || 4000);
     return (num / r).toFixed(2);
   }
   return num;
@@ -39,7 +39,7 @@ const toUSD = (n, explicitCurrency) => {
 
 function MaintenanceRoom() {
   const { t } = useTranslation();
-  const [role] = useState(localStorage.getItem('role') || 'tenant');
+  const [role] = useState((localStorage.getItem('role') || sessionStorage.getItem('role')) || 'tenant');
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   
@@ -52,7 +52,7 @@ function MaintenanceRoom() {
   // Admin Update Modal
   const [isUpdateOpen, setIsUpdateOpen] = useState(false);
   const [selectedReq, setSelectedReq] = useState(null);
-  const [updateForm, setUpdateForm] = useState({ status: "", expense_amount: "", expense_description: "", expense_currency: localStorage.getItem("currency") || "$" });
+  const [updateForm, setUpdateForm] = useState({ status: "", expense_amount: "", expense_description: "", expense_currency: (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$" });
   
   // Tenant Report Modal
   const [isReportOpen, setIsReportOpen] = useState(false);
@@ -90,7 +90,7 @@ function MaintenanceRoom() {
   const trHoverBg = useColorModeValue("gray.50", "#1c2333");
 
   const headers = () => {
-    const token = localStorage.getItem("token");
+    const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
@@ -197,7 +197,7 @@ function MaintenanceRoom() {
 
       const res = await fetch(`${API}/tenant/maintenance`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}`, Accept: "application/json" },
+        headers: { Authorization: `Bearer ${(localStorage.getItem("token") || sessionStorage.getItem("token"))}`, Accept: "application/json" },
         body: formData
       });
       
@@ -398,7 +398,7 @@ function MaintenanceRoom() {
                                   variant="outline"
                                   onClick={() => {
                                     setSelectedReq(r);
-                                    setUpdateForm({ status: r.status, expense_amount: "", expense_description: "", expense_currency: localStorage.getItem("currency") || "$" });
+                                    setUpdateForm({ status: r.status, expense_amount: "", expense_description: "", expense_currency: (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$" });
                                     setIsUpdateOpen(true);
                                   }}
                                 >
@@ -490,7 +490,7 @@ function MaintenanceRoom() {
                               variant="outline"
                               onClick={() => {
                                 setSelectedReq(r);
-                                setUpdateForm({ status: r.status, expense_amount: "", expense_description: "", expense_currency: localStorage.getItem("currency") || "$" });
+                                setUpdateForm({ status: r.status, expense_amount: "", expense_description: "", expense_currency: (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$" });
                                 setIsUpdateOpen(true);
                               }}
                             >

@@ -24,7 +24,7 @@ export default function Announcements() {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [deleteTarget, setDeleteTarget] = useState(null);
   
-  const role = localStorage.getItem('role')?.toLowerCase();
+  const role = (localStorage.getItem('role') || sessionStorage.getItem('role'))?.toLowerCase();
   const isAdmin = role === 'admin';
 
   const toast = useToast();
@@ -42,7 +42,7 @@ export default function Announcements() {
   const fetchAnnouncements = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       const endpoint = isAdmin ? `${API}/admin/announcements` : `${API}/tenant/announcements`;
       const res = await fetch(endpoint, {
         headers: { Authorization: `Bearer ${token}` }
@@ -70,7 +70,7 @@ export default function Announcements() {
   const executeDelete = async () => {
     if (!deleteTarget) return;
     try {
-      const token = localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       const res = await fetch(`${API}/admin/announcements/${deleteTarget}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }

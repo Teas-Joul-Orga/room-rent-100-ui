@@ -35,7 +35,7 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
     }
 
     setIsLoading(true);
-    const token = localStorage.getItem("token");
+    const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
 
     try {
       const res = await fetch("http://localhost:8000/api/v1/password", {

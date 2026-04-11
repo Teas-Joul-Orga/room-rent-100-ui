@@ -31,17 +31,17 @@ import {
 import dayjs from "dayjs";
 import toast, { Toaster } from "react-hot-toast";
 import { QRCodeCanvas } from "qrcode.react";
+import echo from "../../lib/echo";
 
-const KHQR_LOGO = "https://api-bakong.nbc.gov.kh/images/khqr.png";
-const BAKONG_LOGO_RED = "https://api-bakong.nbc.gov.kh/images/logo.png";
+const BAKONG_LOGO_RED = "https://bakong.nbc.gov.kh/images/logo.png";
 
 const API = "http://localhost:8000/api/v1/tenant";
 
 const fmt = (n) => {
-  const c = localStorage.getItem("currency") || "$";
+  const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
   const num = Number(n || 0);
   if (c === "៛" || c === "KHR" || c === "Riel") {
-    const rateItem = localStorage.getItem("exchangeRate");
+    const rateItem = (localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate"));
     const r = rateItem ? Number(rateItem) : 4000;
     return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
   }
@@ -71,7 +71,7 @@ export default function TenantUtility() {
     try {
       const res = await fetch(`${API}/billing`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${(localStorage.getItem("token") || sessionStorage.getItem("token"))}`,
           Accept: "application/json",
         },
       });
@@ -118,13 +118,13 @@ export default function TenantUtility() {
     setLoadingQr(true);
     setPaymentConfirmed(false);
     try {
-      const rate = localStorage.getItem("exchangeRate") || 4000;
+      const rate = (localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate")) || 4000;
       const amountKhr = Math.round(bill.amount * rate);
 
       const res = await fetch(`${API}/payment/bakong/generate-qr`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${(localStorage.getItem("token") || sessionStorage.getItem("token"))}`,
           "Content-Type": "application/json",
           Accept: "application/json",
         },
@@ -163,7 +163,7 @@ export default function TenantUtility() {
         const res = await fetch(`${API}/payment/bakong/check-transaction`, {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${(localStorage.getItem("token") || sessionStorage.getItem("token"))}`,
             "Content-Type": "application/json",
             Accept: "application/json",
           },
@@ -183,6 +183,25 @@ export default function TenantUtility() {
       } catch (_) {}
     }, 5000);
   };
+
+  useEffect(() => {
+    if (!qrMd5) return;
+
+    const channel = echo().channel(`bakong.payment.${qrMd5}`)
+      .listen('.App\\Events\\BakongPaymentConfirmed', (e) => {
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          setPaymentConfirmed(true);
+          toast.success("🎉 Webhook: Payment Verified instantly!", { duration: 6000 });
+          fetchBills();
+          setTimeout(() => {
+            handleClose();
+          }, 3000);
+      });
+
+    return () => {
+      echo().leaveChannel(`bakong.payment.${qrMd5}`);
+    };
+  }, [qrMd5]);
 
   const handleOpenBill = (bill) => {
     setSelectedBill(bill);
@@ -215,11 +234,11 @@ export default function TenantUtility() {
   const unpaidCount = bills.filter(b => b.status === 'unpaid').length;
 
   return (
-    <Box p={{ base: 4, md: 6 }}>
+    <Box p={{ base: 3, md: 1 }} maxW="1600px" mx="auto">
       <Toaster position="top-right" />
       <Flex justify="space-between" align="center" mb={10} flexWrap="wrap" gap={4}>
         <Box>
-          <Heading size="lg" letterSpacing="tight" color={textColor}>
+          <Heading size="xl" letterSpacing="tight" color={textColor}>
             {t("utility.title")}
           </Heading>
           <Text fontSize="sm" color={mutedText} mt={1}>
@@ -229,20 +248,20 @@ export default function TenantUtility() {
         
         {unpaidTotal > 0 && (
           <Box bg="red.50" border="1px solid" borderColor="red.100" p={4} borderRadius="xl" textAlign="right">
-            <Text fontSize="10px" fontWeight="black" color="red.400" textTransform="uppercase" letterSpacing="widest">
+            <Text fontSize="xs" fontWeight="bold" color="red.400" textTransform="uppercase" letterSpacing="widest">
               Total Outstanding
             </Text>
-            <Heading size="md" color="red.600" fontWeight="black">
+            <Heading size="lg" color="red.600" fontWeight="bold">
               {fmt(unpaidTotal)}
             </Heading>
-            <Text fontSize="10px" color="red.400" fontWeight="bold">
+            <Text fontSize="sm" color="red.400" fontWeight="bold">
               {unpaidCount} Unpaid Bill(s)
             </Text>
           </Box>
         )}
       </Flex>
 
-      <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} spacing={10}>
+      <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} spacing={6}>
         {bills.length === 0 ? (
           <Box gridColumn="1 / -1" textAlign="center" py={20}>
             <Icon as={FiFileText} boxSize={12} color="gray.300" mb={4} />
@@ -298,10 +317,10 @@ export default function TenantUtility() {
                     <Icon as={getBillIcon(bill.type)} boxSize={5} />
                   </Flex>
                   <Box>
-                    <Text fontSize="sm" fontWeight="black" color={textColor} textTransform="uppercase">
+                    <Text fontSize="md" fontWeight="black" color={textColor} textTransform="uppercase">
                       {t(`utility.${bill.type}`)}
                     </Text>
-                    <Text fontSize="xs" color={mutedText} fontWeight="bold">
+                    <Text fontSize="sm" color={mutedText} fontWeight="bold">
                       {dayjs(bill.due_date).format('MMMM YYYY')}
                     </Text>
                   </Box>
@@ -338,15 +357,15 @@ export default function TenantUtility() {
                   <Text fontWeight="bold" color={textColor}>{fmtDate(bill.due_date)}</Text>
                 </Flex>
                 <Flex justify="space-between" align="flex-end" pt={2}>
-                  <Text color={mutedText} fontSize="xs" fontWeight="black" textTransform="uppercase">Total Amount</Text>
-                  <Text fontSize="xl" fontWeight="black" color={bill.status === 'unpaid' ? "red.500" : "green.500"}>
+                  <Text fontSize="sm" fontWeight="bold" textTransform="uppercase">Total Amount</Text>
+                  <Text fontSize="2xl" fontWeight="bold" color={bill.status === 'unpaid' ? "red.500" : "green.500"}>
                     {fmt(bill.amount)}
                   </Text>
                 </Flex>
                 {bill.status === 'paid' && bill.payments?.[0] && (
                   <Flex justify="space-between" fontSize="10px" mt={1} pt={1} borderTop="1px dashed" borderColor="green.100">
                     <Text color="green.500" fontWeight="bold">{t("utility.paid_on")}</Text>
-                    <Text color="green.600" fontWeight="black">
+                    <Text color="green.600" fontWeight="bold">
                       {dayjs(bill.payments[0].created_at || bill.payments[0].payment_date).format('MMM D, YYYY | h:mm A')}
                     </Text>
                   </Flex>
@@ -354,16 +373,20 @@ export default function TenantUtility() {
               </VStack>
 
               <Box mt="auto">
-                <Button 
-                  w="full" 
-                  size="sm" 
-                  colorScheme={bill.status === 'unpaid' ? "blue" : "gray"} 
-                  variant={bill.status === 'unpaid' ? "solid" : "outline"}
-                  leftIcon={<FiEye />}
-                  onClick={() => handleOpenBill(bill)}
-                >
-                  {t("common.view_detail")}
-                </Button>
+                  <Button 
+                    w="full" 
+                    size="md" 
+                    colorScheme={bill.status === 'unpaid' ? "blue" : "gray"} 
+                    variant={bill.status === 'unpaid' ? "solid" : "outline"}
+                    leftIcon={<FiEye />}
+                    onClick={() => handleOpenBill(bill)}
+                    fontWeight="bold"
+                    textTransform="uppercase"
+                    rounded="full"
+                    fontSize="sm"
+                  >
+                    {t("common.view_detail")}
+                  </Button>
               </Box>
             </Box>
           );
@@ -381,8 +404,8 @@ export default function TenantUtility() {
                 <Icon as={selectedBill ? getBillIcon(selectedBill.type) : FiFileText} />
               </Box>
               <Box>
-                <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor}>
-                  {selectedBill ? t(`utility.${selectedBill.type}`) : t("utility.details")} {t("utility.details")}
+                <Text fontSize="md" fontWeight="bold" textTransform="uppercase" color={textColor}>
+                  {selectedBill ? t(`utility.${selectedBill.type}`) : t("utility.details")}
                 </Text>
                 <Text fontSize="xs" color={mutedText} fontWeight="bold">
                   {selectedBill ? dayjs(selectedBill.due_date).format('MMMM YYYY') : ""}
@@ -398,14 +421,14 @@ export default function TenantUtility() {
                 {/* Status & Amount */}
                 <Flex justify="space-between" align="center" p={4} bg={useColorModeValue("gray.50", "whiteAlpha.50")} borderRadius="xl">
                   <Box>
-                    <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={1}>{t("utility.status")}</Text>
+                    <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase" mb={1}>{t("utility.status")}</Text>
                     <Badge colorScheme={getStatusBadge(selectedBill.status)} variant="solid" px={3} py={1} borderRadius="full">
                       {t(`utility.${selectedBill.status}`)}
                     </Badge>
                   </Box>
                   <Box textAlign="right">
-                    <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={1}>{t("utility.amount")}</Text>
-                    <Heading size="lg" fontWeight="black" color={selectedBill.status === 'unpaid' ? "red.500" : "green.500"}>
+                    <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase" mb={1}>{t("utility.amount")}</Text>
+                    <Heading size="lg" fontWeight="bold" color={selectedBill.status === 'unpaid' ? "red.500" : "green.500"}>
                       {fmt(selectedBill.amount)}
                     </Heading>
                   </Box>
@@ -414,7 +437,7 @@ export default function TenantUtility() {
                 {/* Usage Detail */}
                 {(selectedBill.previous_reading !== null || selectedBill.usage) && (
                   <Box>
-                    <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={3} letterSpacing="wider">
+                    <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase" mb={3} letterSpacing="wider">
                       {t("utility.consumption_details")}
                     </Text>
                     <SimpleGrid columns={2} spacing={4}>
@@ -428,7 +451,7 @@ export default function TenantUtility() {
                       </Box>
                       <Box p={3} border="1px" borderColor={borderColor} borderRadius="lg" bg="blue.50">
                         <Text fontSize="2xs" fontWeight="bold" color="blue.500" mb={1}>{t("utility.total_usage")}</Text>
-                        <Text fontWeight="black" color="blue.600">
+                        <Text fontWeight="bold" color="blue.600">
                           {selectedBill.usage || (selectedBill.current_reading - selectedBill.previous_reading).toFixed(2)} {t("utility.units")}
                         </Text>
                       </Box>
@@ -468,7 +491,7 @@ export default function TenantUtility() {
                 {/* Notes */}
                 {selectedBill.description && (
                   <Box>
-                    <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={2} letterSpacing="wider">
+                    <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase" mb={2} letterSpacing="wider">
                       {t("utility.remarks")}
                     </Text>
                     <Text fontSize="sm" color={textColor} fontStyle="italic" p={3} bg={useColorModeValue("gray.50", "whiteAlpha.50")} borderRadius="lg">
@@ -480,7 +503,7 @@ export default function TenantUtility() {
                 {/* Payment History */}
                 {selectedBill.payments && selectedBill.payments.length > 0 && (
                   <Box>
-                    <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={3} letterSpacing="wider">
+                    <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase" mb={3} letterSpacing="wider">
                       {t("utility.payment_records")}
                     </Text>
                     <VStack align="stretch" spacing={2}>
@@ -493,7 +516,7 @@ export default function TenantUtility() {
                               <Text fontSize="2xs" color="green.600">{dayjs(p.created_at || p.payment_date).format('MMM D, YYYY h:mm A')}</Text>
                             </Box>
                           </Flex>
-                          <Text fontWeight="black" color="green.700">{fmt(p.amount_paid)}</Text>
+                          <Text fontWeight="bold" color="green.700">{fmt(p.amount_paid)}</Text>
                         </Flex>
                       ))}
                     </VStack>
@@ -567,7 +590,7 @@ export default function TenantUtility() {
                           px={4} py={2} 
                           borderRadius="full" 
                           fontSize="xs" 
-                          fontWeight="black"
+                          fontWeight="bold"
                           textTransform="uppercase"
                           letterSpacing="wider"
                         >
@@ -581,7 +604,7 @@ export default function TenantUtility() {
                           <Flex align="center" justify="space-between">
                             <HStack spacing={2}>
                               <Icon as={FiZap} color="white" />
-                              <Text fontSize="sm" fontWeight="black" color="white" textTransform="uppercase" letterSpacing="wider">
+                              <Text fontSize="sm" fontWeight="bold" color="white" textTransform="uppercase" letterSpacing="wider">
                                 {qrString ? "Scan & Pay" : "Bakong KHQR"}
                               </Text>
                             </HStack>
@@ -651,7 +674,7 @@ export default function TenantUtility() {
                                   <VStack spacing={0}>
                                     <Text fontSize="md" fontWeight="black" color="gray.800">PHEAK SIEVTHAI</Text>
                                     <Text fontSize="sm" fontWeight="bold" color="blue.600">
-                                      {selectedBill.currency === "KHR" ? `${Number(selectedBill.amount * (localStorage.getItem("exchangeRate") || 4000)).toLocaleString()} KHR` : `$${Number(selectedBill.amount).toFixed(2)}`}
+                                      {selectedBill.currency === "KHR" ? `${Number(selectedBill.amount * ((localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate")) || 4000)).toLocaleString()} KHR` : `$${Number(selectedBill.amount).toFixed(2)}`}
                                     </Text>
                                   </VStack>
                                   <Divider my={3} />

@@ -17,16 +17,21 @@ import {
   InputRightElement,
   IconButton,
   FormErrorMessage,
-  useColorModeValue,
   Container,
+  Alert,
+  AlertIcon,
   Icon,
+  Divider,
 } from "@chakra-ui/react";
 import { toast } from "react-hot-toast";
 import { FiEye, FiEyeOff, FiArrowLeft, FiLock, FiUser } from "react-icons/fi";
+import { FcGoogle } from "react-icons/fc";
 import { useNavigate } from "react-router-dom";
 import { useApi } from "./hooks/useApi";
+import { auth, provider, signInWithPopup } from "./firebase";
 
 import logoSvg from "./assets/Artboard 1.svg";
+import topologyBg from "./assets/topology_bg.png";
 
 export default function LoginForm() {
   const [show, setShow] = useState(false);
@@ -38,21 +43,30 @@ export default function LoginForm() {
     email: "",
     password: "",
   });
+  
+  const [rememberMe, setRememberMe] = useState(true);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const [errors, setErrors] = useState({});
 
   // Background and UI Colors
-  const bg = useColorModeValue("gray.50", "#0d1117");
-  const cardBg = useColorModeValue("white", "#161b22");
-  const textColor = useColorModeValue("gray.800", "white");
-  const mutedText = useColorModeValue("gray.500", "gray.400");
-  const borderColor = useColorModeValue("gray.200", "#30363d");
+  const bg = "gray.50";
+  const cardBg = "white";
+  const textColor = "gray.800";
+  const mutedText = "gray.500";
+  const borderColor = "gray.200";
 
   useEffect(() => {
+    // Redirect if already logged in
+    if (localStorage.getItem("isLoggedIn") === "true" || sessionStorage.getItem("isLoggedIn") === "true") {
+      navigate("/dashboard");
+      return;
+    }
+
     // Try to get the latest app name from the public settings
     const fetchSettings = async () => {
       try {
-        const response = await fetch("http://localhost:8000/api/v1/public/settings");
+        const response = await fetch(import.meta.env.VITE_API_URL + "/public/settings");
         const data = await response.json();
         if (data && data.app_name) {
           localStorage.setItem("app_name", data.app_name);
@@ -68,43 +82,125 @@ export default function LoginForm() {
     const newErrors = {};
     if (!form.email.trim()) newErrors.email = "Username or Email is required";
     if (!form.password) newErrors.password = "Password is required";
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  const storeSession = (data) => {
+    // Admin tokens expire on browser close (always use sessionStorage)
+    const isAdmin = data.role === "admin";
+    const storage = (rememberMe && !isAdmin) ? localStorage : sessionStorage;
+    const otherStorage = (rememberMe && !isAdmin) ? sessionStorage : localStorage;
+
+    // Clear other storage just in case
+    otherStorage.removeItem("token");
+    otherStorage.removeItem("isLoggedIn");
+    otherStorage.removeItem("user");
+    otherStorage.removeItem("role");
+    otherStorage.removeItem("token_expires_at");
+
+    storage.setItem("isLoggedIn", "true");
+    storage.setItem("token", data.token);
+    storage.setItem("user", JSON.stringify(data.user));
+    storage.setItem("role", data.role);
+
+    // Store token expiration time for auto-logout
+    if (data.token_expires_at) {
+      storage.setItem("token_expires_at", data.token_expires_at);
+    } else {
+      storage.removeItem("token_expires_at");
+    }
+
+    if (data.settings) {
+      storage.setItem("currency", data.settings.currency || "$");
+      storage.setItem("exchangeRate", data.settings.exchangeRate || "4000");
+    }
+  }
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
 
-    const [data] = await request({
+    const [data, apiErr] = await request({
       url: "/login",
       method: "POST",
       data: {
         email: form.email,
         password: form.password,
+        remember: rememberMe,
       },
     }, { 
       showToast: false // We handle toast manually for specific welcome message
     });
 
+    if (apiErr) {
+      setErrors({ general: apiErr.response?.data?.message || "Invalid email or password." });
+      return;
+    }
+
     if (data && data.token) {
-      localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      localStorage.setItem("role", data.role);
-      
-      if (data.settings) {
-        localStorage.setItem("currency", data.settings.currency || "$");
-        localStorage.setItem("exchangeRate", data.settings.exchangeRate || "4000");
-      }
-      
+      storeSession(data);
       toast.success(`Welcome back, ${data.user.name}!`);
       navigate("/dashboard");
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    setErrors({});
+    
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const idToken = await result.user.getIdToken();
+      
+      const [data, apiErr] = await request({
+        url: "/google-login",
+        method: "POST",
+        data: {
+          id_token: idToken,
+          remember: rememberMe
+        },
+      }, { showToast: false });
+
+      if (apiErr) {
+        setErrors({ general: apiErr.response?.data?.message || "Google sign-in failed on our server." });
+        setGoogleLoading(false);
+        return;
+      }
+
+      if (data && data.action === 'signup_required') {
+        toast("Please complete your registration.", { duration: 4000, icon: 'ℹ️' });
+        navigate("/signup", { state: { email: data.email, name: data.name, fromGoogle: true } });
+        return;
+      }
+
+      if (data && data.token) {
+        storeSession(data);
+        toast.success(`Welcome, ${data.user.name}!`);
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      console.error(error);
+      setErrors({ general: "Google authentication failed or was cancelled." });
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   return (
-    <Flex minH="100vh" bg={bg} align="center" justify="center" position="relative" overflow="hidden">
+    <Flex 
+      minH="100vh" 
+      bg={bg} 
+      backgroundImage={`url(${topologyBg})`}
+      backgroundSize="cover"
+      backgroundPosition="center"
+      color="gray.800" 
+      align="center" 
+      justify="center" 
+      position="relative" 
+      overflow="hidden"
+      py={10}
+    >
       {/* Abstract Background Shapes */}
       <Box 
         position="absolute" top="-10%" right="-5%" w="400px" h="400px" 
@@ -139,6 +235,12 @@ export default function LoginForm() {
 
               <form onSubmit={handleSubmit}>
                 <VStack spacing={5}>
+                  {errors.general && (
+                    <Alert status="error" borderRadius="md" fontSize="sm">
+                      <AlertIcon />
+                      {errors.general}
+                    </Alert>
+                  )}
                   <FormControl isInvalid={!!errors.email}>
                     <FormLabel fontSize="xs" fontWeight="black" textTransform="uppercase" color={mutedText} mb={2}>
                       Username or Email
@@ -150,11 +252,12 @@ export default function LoginForm() {
                         value={form.email}
                         onChange={(e) => setForm({ ...form, email: e.target.value })}
                         placeholder="user@example.com"
-                        bg={useColorModeValue("gray.50", "#0d1117")}
+                        bg="gray.50"
+                        color="gray.800"
                         border="none"
                         borderRadius="xl"
                         fontSize="sm"
-                        _focus={{ bg: useColorModeValue("white", "#0d1117"), boxShadow: "0 0 0 2px #3182ce" }}
+                        _focus={{ bg: "white", boxShadow: "0 0 0 2px #3182ce" }}
                       />
                     </InputGroup>
                     <FormErrorMessage>{errors.email}</FormErrorMessage>
@@ -170,11 +273,12 @@ export default function LoginForm() {
                         value={form.password}
                         onChange={(e) => setForm({ ...form, password: e.target.value })}
                         placeholder="••••••••"
-                        bg={useColorModeValue("gray.50", "#0d1117")}
+                        bg="gray.50"
+                        color="gray.800"
                         border="none"
                         borderRadius="xl"
                         fontSize="sm"
-                        _focus={{ bg: useColorModeValue("white", "#0d1117"), boxShadow: "0 0 0 2px #3182ce" }}
+                        _focus={{ bg: "white", boxShadow: "0 0 0 2px #3182ce" }}
                       />
                       <InputRightElement h="full">
                         <IconButton
@@ -191,7 +295,12 @@ export default function LoginForm() {
                   </FormControl>
 
                   <HStack w="full" justify="space-between">
-                    <Checkbox colorScheme="blue" size="sm" defaultChecked>
+                    <Checkbox 
+                      colorScheme="blue" 
+                      size="sm" 
+                      isChecked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                    >
                       <Text fontSize="xs" fontWeight="bold" color={mutedText}>Remember me</Text>
                     </Checkbox>
                     <ChakraLink fontSize="xs" fontWeight="bold" color="blue.500">
@@ -213,15 +322,50 @@ export default function LoginForm() {
                     fontWeight="black"
                     textTransform="uppercase"
                     letterSpacing="widest"
-                    mt={4}
+                    mt={2}
                     _hover={{ transform: "translateY(-2px)", shadow: "xl" }}
                     _active={{ transform: "translateY(0)" }}
                     transition="all 0.2s"
                   >
                     Sign In
                   </Button>
+                  
+                  <HStack w="full" align="center" my={2}>
+                    <Divider borderColor="gray.300" />
+                    <Text fontSize="xs" fontWeight="bold" color="gray.400" px={2}>OR</Text>
+                    <Divider borderColor="gray.300" />
+                  </HStack>
+
+                  <Button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    variant="outline"
+                    size="lg"
+                    w="full"
+                    h="14"
+                    isLoading={googleLoading}
+                    loadingText="SIGNING IN WITH GOOGLE..."
+                    borderRadius="xl"
+                    fontSize="xs"
+                    fontWeight="black"
+                    textTransform="uppercase"
+                    letterSpacing="widest"
+                    leftIcon={<Icon as={FcGoogle} boxSize={5} />}
+                    _hover={{ bg: "gray.50" }}
+                  >
+                    Sign in with Google
+                  </Button>
+                  
                 </VStack>
               </form>
+              <HStack justify="center" mt={2}>
+                <Text fontSize="sm" color={mutedText}>
+                  Don't have an account?
+                </Text>
+                <ChakraLink fontSize="sm" fontWeight="bold" color="blue.500" onClick={() => navigate("/signup")}>
+                  Sign up
+                </ChakraLink>
+              </HStack>
             </VStack>
           </Box>
 

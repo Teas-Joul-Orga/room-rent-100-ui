@@ -10,34 +10,38 @@ import {
   ModalBody, ModalFooter, useDisclosure, FormControl, FormLabel,
   Input, Select, Textarea, Checkbox, IconButton, Tooltip,
   useColorModeValue, Divider, VStack, HStack, Stack, Icon, Image,
-  Stat, StatLabel, StatNumber, StatHelpText, StatGroup, Grid, GridItem
+  Stat, StatLabel, StatNumber, StatHelpText, StatGroup, Grid, GridItem,
+  Menu, MenuButton, MenuList, MenuItem
 } from "@chakra-ui/react";
 import {
   FiArrowLeft, FiEdit2, FiTrash2, FiPlus, FiPrinter, FiDollarSign, FiBell,
   FiRefreshCw, FiXCircle, FiClock, FiCheckCircle, FiAlertCircle,
-  FiTool, FiTrendingDown, FiZap, FiDroplet, FiImage, FiHome
+  FiTool, FiTrendingDown, FiZap, FiDroplet, FiImage, FiHome, FiChevronDown, FiMinus
 } from "react-icons/fi";
+import echo from "../../lib/echo";
 
 const API = "http://localhost:8000/api/v1/admin";
 
 const getDefaultRate = (type) => {
   const rawUSD = type === "electricity" ? localStorage.getItem("utility_rate_electricity")
                 : type === "water"       ? localStorage.getItem("utility_rate_water")
+                : type === "trash"       ? localStorage.getItem("utility_fixed_trash")
+                : type === "internet"    ? localStorage.getItem("utility_fixed_internet")
                 : null;
   if (!rawUSD) return "";
-  const c = localStorage.getItem("currency") || "$";
+  const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
   if (c === "៛" || c === "KHR" || c === "Riel") {
-    const rate = Number(localStorage.getItem("exchangeRate") || 4000);
+    const rate = Number((localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate")) || 4000);
     return (Number(rawUSD) * rate).toFixed(0);
   }
   return rawUSD;
 };
 
 const fmt = (n) => {
-  const c = localStorage.getItem("currency") || "$";
+  const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
   const num = Number(n || 0);
   if (c === "៛" || c === "KHR" || c === "Riel") {
-    const rateItem = localStorage.getItem("exchangeRate");
+    const rateItem = (localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate"));
     const r = rateItem ? Number(rateItem) : 4000;
     return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
   }
@@ -45,20 +49,20 @@ const fmt = (n) => {
 };
 
 const toCurrent = (n) => {
-  const c = localStorage.getItem("currency") || "$";
+  const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
   const num = Number(n || 0);
   if (c === "៛" || c === "KHR" || c === "Riel") {
-    const r = Number(localStorage.getItem("exchangeRate") || 4000);
+    const r = Number((localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate")) || 4000);
     return Math.round(num * r);
   }
   return num;
 };
 
 const toUSD = (n, explicitCurrency) => {
-  const c = explicitCurrency || localStorage.getItem("currency") || "$";
+  const c = explicitCurrency || (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
   const num = Number(n || 0);
   if (c === "៛" || c === "KHR" || c === "Riel") {
-    const r = Number(localStorage.getItem("exchangeRate") || 4000);
+    const r = Number((localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate")) || 4000);
     return (num / r).toFixed(2);
   }
   return num;
@@ -78,18 +82,24 @@ export default function ViewLease() {
 
   // Payment modal
   const { isOpen: isPayOpen, onOpen: onPayOpen, onClose: onPayClose } = useDisclosure();
-  const [payForm, setPayForm] = useState({ type: "rent", amount_paid: "", payment_method: "cash", payment_date: new Date().toISOString().split("T")[0], notes: "", currency: localStorage.getItem("currency") || "$" });
+  const [payForm, setPayForm] = useState({ type: "rent", amount_paid: "", payment_method: "cash", payment_date: new Date().toISOString().split("T")[0], notes: "", currency: (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$" });
   const [isSavingPay, setIsSavingPay] = useState(false);
 
   // Bill modal
   const { isOpen: isBillOpen, onOpen: onBillOpen, onClose: onBillClose } = useDisclosure();
-  const [billForm, setBillForm] = useState({ type: "electricity", amount: "", due_date: "", status: "unpaid", description: "", previous_reading: "", current_reading: "", cost_per_unit: getDefaultRate("electricity"), currency: localStorage.getItem("currency") || "$" });
+  const [billForm, setBillForm] = useState({ type: "electricity", amount: "", due_date: "", status: "unpaid", description: "", previous_reading: "", current_reading: "", cost_per_unit: getDefaultRate("electricity"), currency: (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$" });
   const [isSavingBill, setIsSavingBill] = useState(false);
   // eslint-disable-next-line no-unused-vars
   const [lastReading, setLastReading] = useState(0);
 
   const isMetered = ["electricity", "water"].includes(billForm.type);
   const usage = isMetered ? Math.max(0, Number(billForm.current_reading || 0) - Number(billForm.previous_reading || 0)) : 0;
+
+  // Bulk Bill modal
+  const { isOpen: isBulkBillOpen, onOpen: onBulkBillOpen, onClose: onBulkBillClose } = useDisclosure();
+  const [pendingBills, setPendingBills] = useState([]);
+  const [commonDueDate, setCommonDueDate] = useState(new Date().toISOString().split("T")[0]);
+  const [isSavingBulk, setIsSavingBulk] = useState(false);
 
   // Pay-All/Selected modal
   const { isOpen: isPayAllOpen, onOpen: onPayAllOpen, onClose: onPayAllClose } = useDisclosure();
@@ -157,7 +167,7 @@ export default function ViewLease() {
   const cautionBg = useColorModeValue("yellow.50", "yellow.900");
 
   const headers = () => ({
-    Authorization: `Bearer ${localStorage.getItem("token")}`,
+    Authorization: `Bearer ${(localStorage.getItem("token") || sessionStorage.getItem("token"))}`,
     Accept: "application/json",
     "Content-Type": "application/json",
   });
@@ -211,6 +221,31 @@ export default function ViewLease() {
   }, [id, fetchMaintenance, fetchExpenses]);
 
   useEffect(() => { fetchLease(); }, [fetchLease]);
+
+  // Real-time listener for any Lease updates (e.g., from Bakong)
+  useEffect(() => {
+    if (!lease?.id) return;
+    
+    const channel = echo().channel(`lease.updates.${lease.id}`)
+      .listen('.App\\Events\\LeaseUpdated', (e) => {
+        toast.custom((t) => (
+          <Box p={3} bg="blue.500" color="white" borderRadius="lg" shadow="lg">
+            <Flex align="center" gap={3}>
+              <Icon as={FiCheckCircle} boxSize={5} />
+              <Box>
+                <Text fontWeight="bold">Real-time Update!</Text>
+                <Text fontSize="xs">A payment or status change was just processed.</Text>
+              </Box>
+            </Flex>
+          </Box>
+        ), { duration: 4000 });
+        fetchLease();
+      });
+
+    return () => {
+      echo().leaveChannel(`lease.updates.${lease.id}`);
+    };
+  }, [lease?.id, fetchLease]);
 
   const handleDeletePayment = async (paymentId) => {
     if (!window.confirm("Delete this payment record?")) return;
@@ -312,6 +347,126 @@ export default function ViewLease() {
       }
     } catch (e) { console.error(e);  toast.error("Network error"); }
     finally { setIsSavingBill(false); }
+  };
+
+  const handleOpenBulkModal = () => {
+    const d = Date.now();
+    const initBills = [
+      { uid: d, type: "electricity", previous_reading: "", current_reading: "", amount: "", description: "" },
+      { uid: d + 1, type: "water", previous_reading: "", current_reading: "", amount: "", description: "" },
+      { uid: d + 2, type: "trash", previous_reading: "", current_reading: "", amount: getDefaultRate("trash") || "", description: "" },
+      { uid: d + 3, type: "internet", previous_reading: "", current_reading: "", amount: getDefaultRate("internet") || "", description: "" }
+    ];
+    setPendingBills(initBills);
+    setCommonDueDate(new Date().toISOString().split("T")[0]);
+    onBulkBillOpen();
+
+    if (lease && lease.room_id) {
+      fetch(`${API}/utility-bills/last-reading/${lease.room_id}?type=electricity`, { headers: headers() })
+        .then(res => res.json())
+        .then(data => {
+           setPendingBills(prev => prev.map(b => b.type === "electricity" ? { ...b, previous_reading: parseFloat(data.reading) || 0 } : b));
+        }).catch(e => console.error(e));
+        
+      fetch(`${API}/utility-bills/last-reading/${lease.room_id}?type=water`, { headers: headers() })
+        .then(res => res.json())
+        .then(data => {
+           setPendingBills(prev => prev.map(b => b.type === "water" ? { ...b, previous_reading: parseFloat(data.reading) || 0 } : b));
+        }).catch(e => console.error(e));
+    }
+  };
+
+  const handleRowTypeChange = async (uid, type) => {
+    setPendingBills(prev => prev.map(bill => 
+      bill.uid === uid ? { ...bill, type, previous_reading: "", current_reading: "", amount: "", description: "" } : bill
+    ));
+    if (["electricity", "water"].includes(type) && lease) {
+      try {
+        const pRes = await fetch(`${API}/utility-bills/last-reading/${lease.room_id}?type=${type}`, { headers: headers() });
+        const data = await pRes.json();
+        setPendingBills(prev => prev.map(bill => 
+          bill.uid === uid ? { ...bill, previous_reading: parseFloat(data.reading) || 0 } : bill
+        ));
+      } catch(e) {}
+    } else {
+       setPendingBills(prev => prev.map(bill => 
+          bill.uid === uid ? { ...bill, amount: getDefaultRate(type) || "" } : bill
+       ));
+    }
+  };
+
+  const handleRowChange = (uid, field, value) => {
+    setPendingBills(prev => prev.map(bill => 
+      bill.uid === uid ? { ...bill, [field]: value } : bill
+    ));
+  };
+
+  const handleAddBlankRow = () => {
+    const newUid = Date.now();
+    const usedTypes = pendingBills.map(b => b.type);
+    const options = ["electricity", "water", "trash", "internet"];
+    const nextType = options.find(o => !usedTypes.includes(o)) || "other";
+
+    setPendingBills(prev => [ ...prev, { uid: newUid, type: nextType, previous_reading: "", current_reading: "", amount: "", description: "" } ]);
+    handleRowTypeChange(newUid, nextType);
+  };
+
+  const handleRemovePendingBill = (uid) => {
+    setPendingBills(prev => prev.filter(b => b.uid !== uid));
+  };
+
+  const handleSaveBulkBills = async (e) => {
+    e.preventDefault();
+    if (pendingBills.length === 0) return toast.error("Please add at least one bill to the list.");
+    
+    // Quick validation
+    for (const bill of pendingBills) {
+        if (["electricity", "water"].includes(bill.type)) {
+            if (!bill.current_reading) return toast.error("A metered utility is missing its current reading.");
+            if (Number(bill.current_reading) < Number(bill.previous_reading)) return toast.error("Current reading cannot be less than previous.");
+        } else {
+            if (!bill.amount) return toast.error("A fixed utility is missing its amount.");
+        }
+    }
+
+    setIsSavingBulk(true);
+    const postObj = {
+      room_id: lease.room_id,
+      lease_id: lease.id,
+      due_date: commonDueDate,
+      status: "unpaid"
+    };
+    
+    const requests = pendingBills.map(bill => {
+       return fetch(`${API}/utility-bills`, {
+            method: "POST", headers: headers(),
+            body: JSON.stringify({ 
+              ...postObj, 
+              type: bill.type, 
+              previous_reading: bill.previous_reading || 0, 
+              current_reading: bill.current_reading, 
+              cost_per_unit: toUSD(getDefaultRate(bill.type)), 
+              amount: toUSD(bill.type === "electricity" || bill.type === "water" ? 0 : bill.amount), 
+              description: bill.description 
+            })
+        });
+    });
+
+    try {
+      const results = await Promise.all(requests);
+      if (results.every(r => r.ok)) {
+         toast.success("Package generated successfully!");
+         onBulkBillClose();
+         fetchLease();
+      } else {
+         toast.error("Some bills failed to save.");
+         fetchLease();
+      }
+    } catch (err) {
+      toast.error("Network error");
+    } finally {
+      setIsSavingBulk(false);
+    }
   };
 
   // Pay Selected Bills
@@ -420,25 +575,27 @@ export default function ViewLease() {
   };
 
   // Print Invoice for selected bills
-  const handlePrintInvoice = () => {
+  const handlePrintInvoice = (lang = 'en') => {
     if (selectedBillIds.length === 0) { toast.error("Select bills to print."); return; }
     
     const queryParams = new URLSearchParams();
     selectedBillIds.forEach(id => queryParams.append('bill_ids[]', id));
-    queryParams.append('token', localStorage.getItem("token"));
+    queryParams.append('token', (localStorage.getItem("token") || sessionStorage.getItem("token")));
+    queryParams.append('lang', lang);
     
     const printUrl = `http://localhost:8000/api/v1/admin/print/invoice?${queryParams.toString()}`;
     window.open(printUrl, "_blank");
   };
 
   // Print Receipt for selected/given payment IDs
-  const handlePrintReceipt = (paymentIds) => {
+  const handlePrintReceipt = (paymentIds, lang = 'en') => {
     const ids = Array.isArray(paymentIds) ? paymentIds : [paymentIds];
     if (ids.length === 0) { toast.error("Select payments to print."); return; }
     
     const queryParams = new URLSearchParams();
     ids.forEach(id => queryParams.append('payment_ids[]', id));
-    queryParams.append('token', localStorage.getItem("token"));
+    queryParams.append('token', (localStorage.getItem("token") || sessionStorage.getItem("token")));
+    queryParams.append('lang', lang);
     
     const printUrl = `http://localhost:8000/api/v1/admin/print/receipt?${queryParams.toString()}`;
     window.open(printUrl, "_blank");
@@ -453,9 +610,9 @@ export default function ViewLease() {
     }
   };
 
-  const handlePrintContract = () => {
+  const handlePrintContract = (lang = 'en') => {
     setIsPrintingContract(true);
-    const printUrl = `http://localhost:8000/api/v1/admin/print/contract/${id}?token=${localStorage.getItem("token")}`;
+    const printUrl = `http://localhost:8000/api/v1/admin/print/contract/${id}?token=${(localStorage.getItem("token") || sessionStorage.getItem("token"))}&lang=${lang}`;
     window.open(printUrl, "_blank");
     setTimeout(() => setIsPrintingContract(false), 1000);
   };
@@ -687,17 +844,15 @@ export default function ViewLease() {
               </Button>
             )}
 
-            <Button
-              leftIcon={<FiPrinter />}
-              size="sm"
-              colorScheme="purple"
-              variant="outline"
-              isLoading={isPrintingContract}
-              loadingText="Generating..."
-              onClick={handlePrintContract}
-            >
-              {t("lease.print_contract")}
-            </Button>
+            <Menu>
+              <MenuButton as={Button} leftIcon={<FiPrinter />} rightIcon={<FiChevronDown />} size="sm" colorScheme="purple" variant="outline" isLoading={isPrintingContract} loadingText="Generating...">
+                {t("lease.print_contract")}
+              </MenuButton>
+              <MenuList zIndex={10}>
+                <MenuItem onClick={() => handlePrintContract('en')}>Print (English)</MenuItem>
+                <MenuItem onClick={() => handlePrintContract('km')}>Print (Khmer)</MenuItem>
+              </MenuList>
+            </Menu>
 
             {/* Renew — only for expired leases */}
             {lease.status === "expired" && (
@@ -740,7 +895,7 @@ export default function ViewLease() {
                 setTenantSearch("");
                 setShowTenantDropdown(false);
                 onEditOpen();
-                const token = localStorage.getItem("token");
+                const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
                 const h = { Authorization: `Bearer ${token}`, Accept: "application/json" };
                 Promise.all([
                   fetch(`${API}/tenants?per_page=all`, { headers: h }),
@@ -936,7 +1091,7 @@ export default function ViewLease() {
                 ✓ {t("lease.fully_paid")}
               </Text>
             ) : (
-              <Button mt={4} size="sm" colorScheme="blue" variant="link" leftIcon={<FiDollarSign />} onClick={() => { setPayForm({ ...payForm, type: "rent", amount_paid: toCurrent(lease.rent_amount), currency: localStorage.getItem("currency") || "$" }); onPayOpen(); }}>
+              <Button mt={4} size="sm" colorScheme="blue" variant="link" leftIcon={<FiDollarSign />} onClick={() => { setPayForm({ ...payForm, type: "rent", amount_paid: toCurrent(lease.rent_amount), currency: (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$" }); onPayOpen(); }}>
                 {t("lease.record_payment")} →
               </Button>
             )}
@@ -950,7 +1105,7 @@ export default function ViewLease() {
             <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={2}>{t("lease.security_deposit")}</Text>
             <Heading size="xl" fontWeight="black" color={textColor}>{fmt(lease.security_deposit)}</Heading>
             {(!lease.deposit_status || lease.deposit_status === "unpaid") && (
-              <Button mt={4} size="sm" colorScheme="green" variant="link" onClick={() => { setPayForm({ ...payForm, type: "deposit", amount_paid: toCurrent(lease.security_deposit), currency: localStorage.getItem("currency") || "$" }); onPayOpen(); }}>
+              <Button mt={4} size="sm" colorScheme="green" variant="link" onClick={() => { setPayForm({ ...payForm, type: "deposit", amount_paid: toCurrent(lease.security_deposit), currency: (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$" }); onPayOpen(); }}>
                 {t("lease.collect_deposit")} →
               </Button>
             )}
@@ -1063,12 +1218,21 @@ export default function ViewLease() {
                   </Text>
                   <Flex align="center" gap={4}>
                     {selectedBillIds.length > 0 && (
-                      <Button size="xs" colorScheme="purple" variant="link" leftIcon={<FiPrinter />} onClick={handlePrintInvoice}>
-                        Print Invoice ({selectedBillIds.length})
-                      </Button>
+                      <Menu>
+                        <MenuButton as={Button} size="xs" colorScheme="purple" variant="link" leftIcon={<FiPrinter />} rightIcon={<FiChevronDown />}>
+                          Print Invoice ({selectedBillIds.length})
+                        </MenuButton>
+                        <MenuList zIndex={10}>
+                          <MenuItem onClick={() => handlePrintInvoice('en')}>English</MenuItem>
+                          <MenuItem onClick={() => handlePrintInvoice('km')}>Khmer</MenuItem>
+                        </MenuList>
+                      </Menu>
                     )}
                     <Button size="xs" colorScheme="blue" variant="link" leftIcon={<FiPlus />} onClick={onBillOpen}>
                       {t("lease.add_new_bill")}
+                    </Button>
+                    <Button size="xs" colorScheme="teal" variant="outline" leftIcon={<FiPlus />} onClick={handleOpenBulkModal}>
+                      Add Package
                     </Button>
                     {unpaidBillsTotal > 0 && (
                       <Button
@@ -1162,9 +1326,15 @@ export default function ViewLease() {
                   </Flex>
                   <Flex align="center" gap={3}>
                     {selectedPayments.length > 0 && (
-                      <Button size="xs" colorScheme="purple" variant="link" leftIcon={<FiPrinter />} onClick={() => handlePrintReceipt(selectedPayments)}>
-                        Print Receipt ({selectedPayments.length})
-                      </Button>
+                      <Menu>
+                        <MenuButton as={Button} size="xs" colorScheme="purple" variant="link" leftIcon={<FiPrinter />} rightIcon={<FiChevronDown />}>
+                          Print Receipt ({selectedPayments.length})
+                        </MenuButton>
+                        <MenuList zIndex={10}>
+                          <MenuItem onClick={() => handlePrintReceipt(selectedPayments, 'en')}>English</MenuItem>
+                          <MenuItem onClick={() => handlePrintReceipt(selectedPayments, 'km')}>Khmer</MenuItem>
+                        </MenuList>
+                      </Menu>
                     )}
                     <Button size="xs" colorScheme="blue" variant="link" leftIcon={<FiPlus />} onClick={onPayOpen}>
                       {t("lease.new_entry")}
@@ -1207,9 +1377,15 @@ export default function ViewLease() {
                               <Td fontSize="xs" color={mutedText} maxW="400px">{(payment.notes || "—").replace(/\(Hash: [^\)]+\)/gi, "").trim()}</Td>
                               <Td textAlign="right">
                                 <Flex gap={1} justify="flex-end">
-                                  <Tooltip label="Print Receipt" hasArrow>
-                                    <IconButton icon={<FiPrinter />} size="xs" colorScheme="purple" variant="ghost" onClick={() => handlePrintReceipt(payment.id)} aria-label="Print receipt" />
-                                  </Tooltip>
+                                  <Menu>
+                                    <Tooltip label="Print Receipt" hasArrow>
+                                      <MenuButton as={IconButton} icon={<FiPrinter />} size="xs" colorScheme="purple" variant="ghost" aria-label="Print receipt" />
+                                    </Tooltip>
+                                    <MenuList zIndex={10}>
+                                      <MenuItem onClick={() => handlePrintReceipt(payment.id, 'en')}>English</MenuItem>
+                                      <MenuItem onClick={() => handlePrintReceipt(payment.id, 'km')}>Khmer</MenuItem>
+                                    </MenuList>
+                                  </Menu>
                                   <Tooltip label="Delete" hasArrow>
                                     <IconButton icon={<FiTrash2 />} size="xs" colorScheme="red" variant="ghost" onClick={() => handleDeletePayment(payment.id)} aria-label="Delete payment" />
                                   </Tooltip>
@@ -1462,7 +1638,7 @@ export default function ViewLease() {
                   <Input size="sm" type="date" bg={inputBg} borderColor={borderColor} value={renewForm.end_date} onChange={e => setRenewForm({ ...renewForm, end_date: e.target.value })} />
                 </FormControl>
                 <FormControl isRequired gridColumn="span 2">
-                  <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Monthly Rent ({localStorage.getItem("currency") || "$"})</FormLabel>
+                  <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Monthly Rent ({(localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$"})</FormLabel>
                   <Input size="md" type="number" step="0.01" bg={inputBg} borderColor="teal.400" fontWeight="bold" value={renewForm.rent_amount} onChange={e => setRenewForm({ ...renewForm, rent_amount: e.target.value })} />
                   <Text fontSize="xs" color={mutedText} mt={1}>Adjust if needed, or keep the same.</Text>
                 </FormControl>
@@ -1767,7 +1943,7 @@ export default function ViewLease() {
             <ModalBody pb={6}>
               <SimpleGrid columns={1} spacing={4}>
                 <FormControl isRequired>
-                  <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Amount to Refund ({localStorage.getItem("currency") || "$"})</FormLabel>
+                  <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Amount to Refund ({(localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$"})</FormLabel>
                   <Input size="md" type="number" step="0.01" max={toCurrent(lease.security_deposit)} value={refundForm.amount} onChange={e => setRefundForm({ ...refundForm, amount: e.target.value })} />
                 </FormControl>
                 <FormControl>
@@ -1907,12 +2083,12 @@ export default function ViewLease() {
                     <Input size="sm" type="date" value={editForm.end_date} onChange={e => setEditForm({ ...editForm, end_date: e.target.value })} />
                   </FormControl>
                   <FormControl isRequired flex={1}>
-                    <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Agreed Monthly Rent ({localStorage.getItem("currency") || "$"})</FormLabel>
+                    <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Agreed Monthly Rent ({(localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$"})</FormLabel>
                     <Input size="md" type="number" step="0.01" value={editForm.rent_amount} onChange={e => setEditForm({ ...editForm, rent_amount: e.target.value })} borderColor="blue.400" />
                   </FormControl>
                 </Flex>
                 <FormControl mb={4}>
-                  <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Security Deposit ({localStorage.getItem("currency") || "$"})</FormLabel>
+                  <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Security Deposit ({(localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$"})</FormLabel>
                   <Input size="md" type="number" step="0.01" value={editForm.security_deposit} onChange={e => setEditForm({ ...editForm, security_deposit: e.target.value })} />
                 </FormControl>
 
@@ -2018,7 +2194,7 @@ export default function ViewLease() {
                     </Select>
                   </FormControl>
                   <FormControl isRequired>
-                    <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Amount ({localStorage.getItem("currency") || "$"})</FormLabel>
+                    <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Amount ({(localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$"})</FormLabel>
                     <Input size="sm" bg={inputBg} borderColor={borderColor} type="number" step="0.01" value={expForm.amount} onChange={e => setExpForm({...expForm, amount: e.target.value})} />
                   </FormControl>
                   <FormControl isRequired>
@@ -2032,6 +2208,144 @@ export default function ViewLease() {
               <Button colorScheme="blue" type="submit" size="sm" isLoading={isSavingExp}>Save Expense</Button>
             </ModalFooter>
           </form>
+        </ModalContent>
+      </Modal>
+
+      {/* ===== BULK BILL MODAL (DYNAMIC LIST) ===== */}
+      <Modal isOpen={isBulkBillOpen} onClose={onBulkBillClose} isCentered size="6xl">
+        <ModalOverlay bg="blackAlpha.600" />
+        <ModalContent bg={cardBg} borderRadius="xl" maxH="90vh" display="flex" flexDirection="column">
+          <ModalHeader color={textColor} borderBottom="1px solid" borderColor={borderColor}>
+            <Flex align="center" justify="space-between">
+              <Flex align="center" gap={2}>
+                <FiZap />
+                <Text>Generate Monthly Package</Text>
+              </Flex>
+              <Flex align="center" gap={4} mr={8}>
+                <Text fontSize="xs" color={mutedText}>Common Due Date:</Text>
+                <Input size="sm" type="date" bg={inputBg} borderColor={borderColor} value={commonDueDate} onChange={e => setCommonDueDate(e.target.value)} w="140px" />
+              </Flex>
+            </Flex>
+          </ModalHeader>
+          <ModalCloseButton />
+          
+          <ModalBody pb={6} overflowY="auto" flex="1">
+            {/* Lease Summary */}
+            <Box bg={subCardBg} p={4} borderRadius="lg" border="1px solid" borderColor={borderColor} mb={5}>
+              <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
+                <Box>
+                  <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider">Room</Text>
+                  <Text fontSize="sm" fontWeight="bold" color={textColor}>{lease?.room?.name || "—"}</Text>
+                </Box>
+                <Box>
+                  <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider">Tenant</Text>
+                  <Text fontSize="sm" fontWeight="bold" color={textColor}>{lease?.tenant?.name || "—"}</Text>
+                </Box>
+                <Box>
+                  <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider">Base Rent</Text>
+                  <Text fontSize="sm" fontWeight="bold" color={textColor}>{fmt(lease?.rent_amount)}</Text>
+                </Box>
+                <Box>
+                  <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider">Contract</Text>
+                  <Text fontSize="sm" fontWeight="bold" color={textColor}>{fmtDate(lease?.start_date)} — {fmtDate(lease?.end_date)}</Text>
+                </Box>
+              </SimpleGrid>
+            </Box>
+
+            <Text fontSize="sm" fontWeight="black" color={textColor} mb={3}>Add Utilities</Text>
+            
+            {pendingBills.length === 0 && (
+                <Button size="sm" onClick={handleAddBlankRow} colorScheme="blue" mb={6} variant="outline" borderStyle="dashed" w="full">+ Add a Utility</Button>
+            )}
+
+            {pendingBills.map((bill, index) => (
+              <Box key={bill.uid} bg={subCardBg} p={4} borderRadius="lg" border="1px solid" borderColor={borderColor} mb={3}>
+                <Grid templateColumns={{ base: "1fr", lg: "1.5fr 1fr 1fr 1fr 2fr auto" }} gap={4} alignItems="end">
+                  <FormControl isRequired>
+                    <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Utility Type</FormLabel>
+                    <Select size="sm" bg={inputBg} borderColor={borderColor} value={bill.type} onChange={e => handleRowTypeChange(bill.uid, e.target.value)}>
+                      <option value="electricity" disabled={bill.type !== "electricity" && pendingBills.some(b => b.type === "electricity")}>Electricity (Metered)</option>
+                      <option value="water" disabled={bill.type !== "water" && pendingBills.some(b => b.type === "water")}>Water (Metered)</option>
+                      <option value="trash" disabled={bill.type !== "trash" && pendingBills.some(b => b.type === "trash")}>Trash (Fixed)</option>
+                      <option value="internet" disabled={bill.type !== "internet" && pendingBills.some(b => b.type === "internet")}>Internet (Fixed)</option>
+                      <option value="other">Other</option>
+                    </Select>
+                  </FormControl>
+                  
+                  {["electricity", "water"].includes(bill.type) ? (
+                    <>
+                      <FormControl>
+                        <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Previous</FormLabel>
+                        <Input size="sm" isDisabled value={bill.previous_reading} bg={inputBg} />
+                      </FormControl>
+                      <FormControl isRequired>
+                        <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Current</FormLabel>
+                        <Input size="sm" type="number" step="0.01" bg={inputBg} borderColor="teal.400" value={bill.current_reading} onChange={e => handleRowChange(bill.uid, "current_reading", e.target.value)} />
+                      </FormControl>
+                      <FormControl>
+                        <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Usage</FormLabel>
+                        <Input size="sm" isDisabled value={bill.current_reading ? Math.max(0, Number(bill.current_reading) - Number(bill.previous_reading)) : ""} bg={inputBg} />
+                      </FormControl>
+                    </>
+                  ) : (
+                    <FormControl gridColumn={{ base: "span 1", lg: "span 3" }} isRequired>
+                      <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Amount ({(localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$"})</FormLabel>
+                      <Input size="sm" type="number" step="0.01" bg={inputBg} borderColor="teal.400" value={bill.amount} onChange={e => handleRowChange(bill.uid, "amount", e.target.value)} />
+                    </FormControl>
+                  )}
+                  
+                  <FormControl>
+                    <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Description (Optional)</FormLabel>
+                    <Input size="sm" bg={inputBg} borderColor={borderColor} value={bill.description} onChange={e => handleRowChange(bill.uid, "description", e.target.value)} placeholder="Notes" />
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel fontSize="xs" visibility="hidden">Actions</FormLabel>
+                    <Flex gap={2}>
+                      {index === 0 && (
+                         <Tooltip label="Add Another Utility Row" hasArrow>
+                           <Button size="sm" colorScheme="blue" onClick={handleAddBlankRow}>
+                             <FiPlus />
+                           </Button>
+                         </Tooltip>
+                      )}
+                      {index > 0 && (
+                        <Tooltip label="Remove this Utility" hasArrow>
+                          <Button size="sm" colorScheme="red" variant="ghost" onClick={() => handleRemovePendingBill(bill.uid)}>
+                            <FiMinus />
+                          </Button>
+                        </Tooltip>
+                      )}
+                    </Flex>
+                  </FormControl>
+                </Grid>
+              </Box>
+            ))}
+          </ModalBody>
+
+          <ModalFooter borderTop="1px solid" borderColor={borderColor}>
+            <Flex w="100%" justify="space-between" align="center">
+              <Text fontSize="lg" fontWeight="black" color={textColor}>
+                Total: {fmt(pendingBills.reduce((acc, curr) => {
+                   let usdAmount = 0;
+                   if (["electricity", "water"].includes(curr.type)) {
+                      const usage = Math.max(0, Number(curr.current_reading || 0) - Number(curr.previous_reading || 0));
+                      const usdRate = Number(localStorage.getItem(`utility_rate_${curr.type}`) || 0);
+                      usdAmount = usage * usdRate;
+                   } else {
+                      usdAmount = Number(toUSD(curr.amount || 0));
+                   }
+                   return acc + usdAmount;
+                }, 0))}
+              </Text>
+              <Flex gap={3}>
+                <Button onClick={onBulkBillClose} variant="ghost" size="sm">Cancel</Button>
+                <Button colorScheme="teal" size="sm" onClick={handleSaveBulkBills} isLoading={isSavingBulk} isDisabled={pendingBills.length === 0} leftIcon={<FiZap />}>
+                  Process Package
+                </Button>
+              </Flex>
+            </Flex>
+          </ModalFooter>
         </ModalContent>
       </Modal>
 

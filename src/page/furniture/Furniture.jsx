@@ -49,6 +49,10 @@ export default function Furniture() {
   const [formData, setFormData] = useState({ uid: null, name: "", condition: "Good" });
   const [isSaving, setIsSaving] = useState(false);
 
+  // View Modal State
+  const { isOpen: isViewOpen, onOpen: onViewOpen, onClose: onViewClose } = useDisclosure();
+  const [viewData, setViewData] = useState(null);
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10); 
@@ -83,7 +87,7 @@ export default function Furniture() {
   const fetchFurniture = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
       const res = await fetch(`http://localhost:8000/api/v1/admin/furniture?limit=100`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -107,7 +111,7 @@ export default function Furniture() {
   }, []);
 
   const handleToggleActive = async (f, newStatus) => {
-    const token = localStorage.getItem("token");
+    const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
     setIsLoading(true);
     try {
       if (newStatus === "disabled") {
@@ -118,8 +122,12 @@ export default function Furniture() {
             Authorization: `Bearer ${token}`
           }
         });
-        if (res.ok) toast.success(t("furniture.disabled_success"));
-        else toast.error(t("furniture.disabled_failed"));
+        const data = await res.json();
+        if (res.ok) {
+          toast.success(t("furniture.disabled_success"));
+        } else {
+          toast.error(data.error || data.message || t("furniture.disabled_failed"));
+        }
       } else {
         const res = await fetch(`http://localhost:8000/api/v1/admin/furniture/${f.uid}/restore`, {
           method: "POST",
@@ -128,8 +136,12 @@ export default function Furniture() {
             Authorization: `Bearer ${token}`
           }
         });
-        if (res.ok) toast.success(t("furniture.enabled_success"));
-        else toast.error(t("furniture.enabled_failed"));
+        const data = await res.json();
+        if (res.ok) {
+          toast.success(t("furniture.enabled_success"));
+        } else {
+          toast.error(data.error || data.message || t("furniture.enabled_failed"));
+        }
       }
     } catch (e) {
       console.error(e);
@@ -162,7 +174,7 @@ export default function Furniture() {
     }
 
     setIsSaving(true);
-    const token = localStorage.getItem("token");
+    const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
     const url = isEdit
       ? `http://localhost:8000/api/v1/admin/furniture/${formData.uid}`
       : `http://localhost:8000/api/v1/admin/furniture`;
@@ -360,7 +372,10 @@ export default function Furniture() {
                             size="sm"
                             colorScheme="green"
                             variant="ghost"
-                            onClick={() => navigate(`/dashboard/furniture/viewfurniture/${f.uid}`)}
+                            onClick={() => {
+                              setViewData(f);
+                              onViewOpen();
+                            }}
                             aria-label={t("furniture.view")}
                           />
                         </Tooltip>
@@ -475,6 +490,117 @@ export default function Furniture() {
               </Button>
             </ModalFooter>
           </form>
+        </ModalContent>
+      </Modal>
+
+      {/* ===== VIEW MODAL ===== */}
+      <Modal isOpen={isViewOpen} onClose={onViewClose} isCentered motionPreset="scale" size="lg">
+        <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(5px)" />
+        <ModalContent bg={cardBg} borderRadius="xl" shadow="2xl">
+          <ModalHeader color={textColor} textAlign="center">
+            {t("furniture.details", "Furniture Details")}
+          </ModalHeader>
+          <ModalCloseButton />
+          
+          <ModalBody pb={6}>
+            {viewData && (
+              <Flex direction="column" gap={6}>
+                {/* NAME */}
+                <Box>
+                  <FormLabel color={mutedText} fontSize="sm" fontWeight="bold" mb={1}>
+                    {t("furniture.name", "Furniture Name")}
+                  </FormLabel>
+                  <Input
+                    value={viewData.name}
+                    isReadOnly
+                    bg={useColorModeValue("gray.100", "whiteAlpha.50")}
+                    color={textColor}
+                    borderColor={borderColor}
+                  />
+                </Box>
+
+                {/* STATUS / CONDITION */}
+                <Box>
+                  <FormLabel color={mutedText} fontSize="sm" fontWeight="bold" mb={1}>
+                    {t("furniture.condition", "Condition")}
+                  </FormLabel>
+                  <Flex
+                    px={4}
+                    py={2.5}
+                    borderRadius="lg"
+                    border="1px solid"
+                    fontWeight="medium"
+                    bg={
+                      viewData.condition === "New" || viewData.condition === "Good"
+                        ? "green.50"
+                        : viewData.condition === "Broken"
+                        ? "red.50"
+                        : "yellow.50"
+                    }
+                    borderColor={
+                      viewData.condition === "New" || viewData.condition === "Good"
+                        ? "green.300"
+                        : viewData.condition === "Broken"
+                        ? "red.300"
+                        : "yellow.300"
+                    }
+                    color={
+                      viewData.condition === "New" || viewData.condition === "Good"
+                        ? "green.700"
+                        : viewData.condition === "Broken"
+                        ? "red.700"
+                        : "yellow.700"
+                    }
+                  >
+                    {conditionMap[viewData.condition] || viewData.condition}
+                  </Flex>
+                </Box>
+
+                {/* ROOMS */}
+                <Box>
+                  <FormLabel color={mutedText} fontSize="sm" fontWeight="bold" mb={1}>
+                    {t("furniture.in_rooms", "Assigned Rooms")}
+                  </FormLabel>
+                  <Box
+                    p={4}
+                    borderRadius="lg"
+                    border="1px solid"
+                    borderColor={borderColor}
+                    bg={useColorModeValue("gray.50", "whiteAlpha.50")}
+                  >
+                    {viewData.rooms && viewData.rooms.length > 0 ? (
+                      <Flex wrap="wrap" gap={2}>
+                        {viewData.rooms.map((r) => (
+                          <Badge key={r.id} colorScheme="blue" px={2} py={1} borderRadius="md">
+                            {r.name}
+                          </Badge>
+                        ))}
+                      </Flex>
+                    ) : (
+                      <Text color={mutedText} fontSize="sm" fontStyle="italic">
+                        {t("furniture.no_rooms", "No rooms assigned")}
+                      </Text>
+                    )}
+                  </Box>
+                </Box>
+              </Flex>
+            )}
+          </ModalBody>
+
+          <ModalFooter bg={useColorModeValue("gray.50", "whiteAlpha.100")} borderBottomRadius="xl">
+            <Button onClick={onViewClose} variant="ghost" mr={3}>
+              {t("common.back", "Back")}
+            </Button>
+            <Button
+              colorScheme="blue"
+              onClick={() => {
+                onViewClose();
+                handleOpenModal(viewData);
+              }}
+            >
+              {t("furniture.edit", "Edit Furniture")}
+            </Button>
+          </ModalFooter>
         </ModalContent>
       </Modal>
 

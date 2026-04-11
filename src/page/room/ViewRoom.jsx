@@ -73,7 +73,7 @@ export default function ViewRoom() {
 
   const fetchRoom = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
       const res = await fetch(`${API}/rooms/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -98,27 +98,27 @@ export default function ViewRoom() {
   const getDefaultRate = (type) => {
     const rawUSD = type === "electricity" ? localStorage.getItem("utility_rate_electricity") : type === "water" ? localStorage.getItem("utility_rate_water") : null;
     if (!rawUSD) return "";
-    const c = localStorage.getItem("currency") || "$";
+    const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
     if (c === "៛" || c === "KHR" || c === "Riel") {
-      const rate = Number(localStorage.getItem("exchangeRate") || 4000);
+      const rate = Number((localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate")) || 4000);
       return (Number(rawUSD) * rate).toFixed(0);
     }
     return rawUSD;
   };
 
   const toUSD = (n) => {
-    const c = localStorage.getItem("currency") || "$";
+    const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
     const num = Number(n || 0);
     if (c === "៛" || c === "KHR" || c === "Riel") {
-      const r = Number(localStorage.getItem("exchangeRate") || 4000);
+      const r = Number((localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate")) || 4000);
       return (num / r).toFixed(2);
     }
     return num;
   };
 
   const formatCurrency = (amount) => {
-    const c = localStorage.getItem("currency") || "$";
-    const r = Number(localStorage.getItem("exchangeRate") || 4000);
+    const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
+    const r = Number((localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate")) || 4000);
     const num = Number(amount || 0);
 
     if (c === "៛" || c === "KHR" || c === "Riel") {
@@ -139,7 +139,7 @@ export default function ViewRoom() {
     // Then, optionally refresh from the dedicated API which now also pulls from the room
     try {
       const res = await fetch(`${API}/utility-bills/last-reading/${roomId}?type=${type}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        headers: { Authorization: `Bearer ${(localStorage.getItem("token") || sessionStorage.getItem("token"))}` }
       });
       if (res.ok) {
         const d = await res.json();
@@ -196,7 +196,7 @@ export default function ViewRoom() {
       const res = await fetch(`${API}/utility-bills`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${(localStorage.getItem("token") || sessionStorage.getItem("token"))}`,
           "Content-Type": "application/json",
           Accept: "application/json"
         },
@@ -326,7 +326,7 @@ export default function ViewRoom() {
             </Flex>
             <Heading size="lg" mb={1} letterSpacing="tight" noOfLines={1}>{activeLease?.tenant?.name || "Vacant"}</Heading>
             {activeLease ? (
-              <Text fontSize="xs" opacity={0.9} noOfLines={1}>{activeLease.tenant?.phone_number || activeLease.tenant?.email || "No contact info"}</Text>
+              <Text fontSize="xs" opacity={0.9} noOfLines={1}>{activeLease.tenant?.phone || activeLease.tenant?.email || "No contact info"}</Text>
             ) : (
               <Text fontSize="xs" opacity={0.9}>No active lease found.</Text>
             )}
@@ -455,7 +455,7 @@ export default function ViewRoom() {
                         <Flex direction="column" gap={4} textAlign="left" px={2}>
                           <Flex align="center" gap={4} py={3} borderBottom="1px solid" borderColor={borderColor}>
                             <Icon as={FiPhone} color={mutedText} boxSize={4} />
-                            <Text fontSize="sm" color={textColor} fontWeight="medium">{activeLease.tenant?.phone_number || "N/A"}</Text>
+                            <Text fontSize="sm" color={textColor} fontWeight="medium">{activeLease.tenant?.phone || "N/A"}</Text>
                           </Flex>
                           <Flex align="center" gap={4} py={3} borderBottom="1px solid" borderColor={borderColor}>
                             <Icon as={FiUser} color={mutedText} boxSize={4} />
@@ -765,7 +765,7 @@ export default function ViewRoom() {
                           <Input size="sm" bg="white" type="number" step="0.01" value={addForm.current_reading} onChange={e => setAddForm({ ...addForm, current_reading: e.target.value })} />
                         </FormControl>
                         <FormControl isRequired>
-                          <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Rate ({localStorage.getItem("currency") || "$"})</FormLabel>
+                          <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Rate ({(localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$"})</FormLabel>
                           <Input size="sm" bg="white" type="number" step="0.01" value={addForm.cost_per_unit} onChange={e => setAddForm({ ...addForm, cost_per_unit: e.target.value })} />
                         </FormControl>
                         <Box display="flex" flexDirection="column" justifyContent="center">

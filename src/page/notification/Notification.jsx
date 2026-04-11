@@ -54,7 +54,7 @@ function resolveRoute(url) {
 function Notification({ onClose }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const token = localStorage.getItem("token");
+  const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -85,7 +85,7 @@ function Notification({ onClose }) {
     fetchNotifications();
 
     // Get current user for real-time channel
-    const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+    const storedUser = JSON.parse((localStorage.getItem("user") || sessionStorage.getItem("user")) || "{}");
     if (storedUser.id) {
       const channel = echo().private(`App.Models.User.${storedUser.id}`)
         .notification((notification) => {

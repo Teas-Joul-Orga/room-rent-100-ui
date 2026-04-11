@@ -59,8 +59,8 @@ export default function AvailableRooms() {
   };
 
   const formatCurrency = (amount) => {
-    const currency = localStorage.getItem("currency") || "$";
-    const exchangeRate = Number(localStorage.getItem("exchangeRate") || 4000);
+    const currency = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
+    const exchangeRate = Number((localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate")) || 4000);
     const num = Number(amount || 0);
 
     if (currency === "៛" || currency === "KHR" || currency === "Riel") {
@@ -106,13 +106,17 @@ export default function AvailableRooms() {
               {/* Image Container */}
               <Box position="relative" overflow="hidden" h="220px">
                 <Image
-                  src={room.images?.[0] ? `http://localhost:8000/storage/${room.images[0].path}` : roomPlaceholder}
+                  src={room.images && room.images.length > 0 ? `http://localhost:8000/storage/${room.images[0].path}` : roomPlaceholder}
                   alt={room.name}
                   w="full"
                   h="full"
                   objectFit="cover"
                   transition="transform 0.5s"
                   _groupHover={{ transform: "scale(1.1)" }}
+                  onError={(e) => {
+                    e.target.onerror = null; // prevent infinite loop
+                    e.target.src = roomPlaceholder;
+                  }}
                 />
                 <Box
                   position="absolute"

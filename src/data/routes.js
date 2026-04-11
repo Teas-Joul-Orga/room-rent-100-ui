@@ -26,6 +26,7 @@ const sidebarMap = {
     Occupied: { path: "/dashboard/rooms/occupied" },
     Maintenance: { path: "/dashboard/rooms/maintenance" },
     "Add New Room": { path: "/dashboard/rooms/add" },
+    "Bulk Create Rooms": { path: "/dashboard/rooms/bulk-create" },
   },
 
   Lease: {

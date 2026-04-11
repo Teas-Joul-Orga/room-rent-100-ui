@@ -31,10 +31,10 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 const API = "http://localhost:8000/api/v1/tenant";
 
 const fmt = (n) => {
-  const c = localStorage.getItem("currency") || "$";
+  const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
   const num = Number(n || 0);
   if (c === "៛" || c === "KHR" || c === "Riel") {
-    const rateItem = localStorage.getItem("exchangeRate");
+    const rateItem = (localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate"));
     const r = rateItem ? Number(rateItem) : 4000;
     return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
   }
@@ -60,7 +60,7 @@ export default function LeaseDetail() {
     try {
       const res = await fetch(`${API}/leases/${id}`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${(localStorage.getItem("token") || sessionStorage.getItem("token"))}`,
           Accept: "application/json",
         },
       });

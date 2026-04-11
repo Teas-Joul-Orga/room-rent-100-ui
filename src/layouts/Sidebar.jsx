@@ -34,6 +34,8 @@ const getSidebarGroups = (role, t) => {
         links: [
           { label: t("sidebar.my_lease") || "My Lease", path: "/dashboard/lease/my-lease", exact: false, pathD: ["M7 3h8l4 4v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z", "M9 13h6M9 17h6M9 9h3"] },
           { label: t("sidebar.lease_history") || "Lease History", path: "/dashboard/lease/history", exact: false, pathD: ["M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"] },
+          { label: "My Bookings", path: "/dashboard/my-bookings", exact: false, pathD: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
+          { label: "My Waitlists", path: "/dashboard/my-waitlists", exact: false, pathD: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
           { label: t("sidebar.my_billing"), path: "/dashboard/utility", exact: false, pathD: ["M7 3h10v18H7z", "M9 7h6M9 11h6M9 15h4"] },
           { label: t("sidebar.maintenance"), path: "/dashboard/maintenance", exact: false, pathD: ["M14.7 6.3a4 4 0 0 0-5.7 5.7l-6.3 6.3 2 2 6.3-6.3a4 4 0 0 0 5.7-5.7Z", "M16 8l4-4"] },
           { label: t("sidebar.announcements"), path: "/dashboard/announcements", exact: false, pathD: ["M4 11v2a1 1 0 0 0 1 1h2l5 5V6L7 11H5a1 1 0 0 0-1 1Z", "M15 9a4 4 0 0 1 0 6", "M17 7a7 7 0 0 1 0 10"] },
@@ -51,11 +53,13 @@ const getSidebarGroups = (role, t) => {
       links: [
         { label: t("sidebar.tenants"), path: "/dashboard/tenants", exact: false, pathD: ["M20 21a8 8 0 1 0-16 0", "M12 13a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z"] },
         { label: t("sidebar.system_users"), path: "/dashboard/users", exact: false, pathD: ["M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"] },
+        { label: "Bookings", path: "/dashboard/bookings", exact: false, pathD: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
+        { label: "Waitlists", path: "/dashboard/waitlists", exact: false, pathD: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
         { label: t("sidebar.rooms"), path: "/dashboard/rooms", exact: false, pathD: "M3 11 12 3l9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z" },
         { label: t("sidebar.furniture"), path: "/dashboard/furniture", exact: false, pathD: ["M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"] },
         { label: t("sidebar.leases"), path: "/dashboard/lease", exact: false, pathD: ["M7 3h8l4 4v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z", "M9 13h6M9 17h6M9 9h3"] },
         { label: t("sidebar.utilities"), path: "/dashboard/utility", exact: false, pathD: ["M12 2v4", "M7 8h10", "M8 22h8", "M9 12h6v6H9z"] },
-        { label: t("sidebar.bills") || "Bills", path: "/dashboard/bills", exact: false, pathD: ["M9 14l2 2 4-4", "M21 12a9 9 0 11-18 0 9 9 0 0118 0z"] },
+        { label: t("sidebar.bills"), path: "/dashboard/bills", exact: false, pathD: ["M9 14l2 2 4-4", "M21 12a9 9 0 11-18 0 9 9 0 0118 0z"] },
         { label: t("sidebar.payments"), path: "/dashboard/payments", exact: false, pathD: ["M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7z", "M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0", "M6 12h.01", "M18 12h.01"] },
         { label: t("sidebar.maintenance"), path: "/dashboard/maintenance", exact: false, pathD: ["M14.7 6.3a4 4 0 0 0-5.7 5.7l-6.3 6.3 2 2 6.3-6.3a4 4 0 0 0 5.7-5.7Z", "M16 8l4-4"] },
         { label: t("sidebar.expenses"), path: "/dashboard/expenses", exact: false, pathD: ["M20 12V8H4v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2z", "M4 12V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4", "M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"] },
@@ -89,7 +93,7 @@ const getSidebarGroups = (role, t) => {
   ];
 };
 
-const SidebarLinkItem = ({ link, location, linkColor, hoverBg, onClose, pendingMaintenanceCount, userRole, useColorModeValue }) => {
+const SidebarLinkItem = ({ link, location, linkColor, hoverBg, onClose, pendingMaintenanceCount, userRole, useColorModeValue, isDesktopCollapsed }) => {
   const isDropdown = !!link.subLinks;
   
   const isAnySubActive = isDropdown && link.subLinks.some(s => {
@@ -126,7 +130,7 @@ const SidebarLinkItem = ({ link, location, linkColor, hoverBg, onClose, pendingM
         justify="space-between"
         px={3}
         py={2}
-        borderRadius="xl"
+        borderRadius="full"
         fontSize="sm"
         fontWeight="semibold"
         transition="all 0.2s"
@@ -141,16 +145,20 @@ const SidebarLinkItem = ({ link, location, linkColor, hoverBg, onClose, pendingM
         onClick={handleClick}
         cursor="pointer"
       >
-        <Flex align="center" gap={3}>
-          <SvgIcon 
-            pathD={link.pathD} 
-            boxSize={5} 
-            flexShrink={0}
-            color={isActive && !isDropdown ? "white" : (isDropdown && isActive ? "blue.500" : linkColor)}
-          />
-          <Text isTruncated color={isDropdown && isActive ? "blue.500" : (isActive && !isDropdown ? "white" : "inherit")}>{link.label}</Text>
-        </Flex>
-        {link.label === "Maintenance" && pendingMaintenanceCount > 0 && userRole === 'admin' && (
+        <Tooltip label={link.label} placement="right" isDisabled={!isDesktopCollapsed || isDropdown}>
+          <Flex align="center" gap={3} w={isDesktopCollapsed ? "full" : "auto"} justify={isDesktopCollapsed ? "center" : "flex-start"}>
+            <SvgIcon 
+              pathD={link.pathD} 
+              boxSize={5} 
+              flexShrink={0}
+              color={isActive && !isDropdown ? "white" : (isDropdown && isActive ? "blue.500" : linkColor)}
+            />
+            {!isDesktopCollapsed && (
+              <Text isTruncated color={isDropdown && isActive ? "blue.500" : (isActive && !isDropdown ? "white" : "inherit")}>{link.label}</Text>
+            )}
+          </Flex>
+        </Tooltip>
+        {link.label === "Maintenance" && pendingMaintenanceCount > 0 && userRole === 'admin' && !isDesktopCollapsed && (
           <Box
             bg="red.500"
             color="white"
@@ -164,13 +172,13 @@ const SidebarLinkItem = ({ link, location, linkColor, hoverBg, onClose, pendingM
             {pendingMaintenanceCount}
           </Box>
         )}
-        {isDropdown && (
+        {isDropdown && !isDesktopCollapsed && (
           <Icon viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" boxSize={4} transform={isOpen ? "rotate(180deg)" : ""} transition="transform 0.2s" color={isActive ? "blue.500" : "inherit"}>
             <polyline points="6 9 12 15 18 9"></polyline>
           </Icon>
         )}
       </Flex>
-      {isDropdown && (
+      {isDropdown && !isDesktopCollapsed && (
         <Collapse in={isOpen} animateOpacity>
           <VStack align="stretch" spacing={1} mt={1} pl={10} pr={2}>
             {link.subLinks.map(sub => {
@@ -182,7 +190,7 @@ const SidebarLinkItem = ({ link, location, linkColor, hoverBg, onClose, pendingM
                   key={sub.path}
                   py={2}
                   px={3}
-                  borderRadius="md"
+                  borderRadius="full"
                   fontSize="xs"
                   fontWeight="bold"
                   align="center"
@@ -213,7 +221,7 @@ const SidebarLinkItem = ({ link, location, linkColor, hoverBg, onClose, pendingM
   );
 };
 
-const Sidebar = ({ isOpen, onClose }) => {
+const Sidebar = ({ isOpen, onClose, isDesktopCollapsed }) => {
   const bg = useColorModeValue("white", "#0d1117");
   const borderColor = useColorModeValue("gray.200", "#30363d");
   const groupTitleColor = useColorModeValue("gray.400", "gray.500");
@@ -231,7 +239,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const [pendingMaintenanceCount, setPendingMaintenanceCount] = React.useState(0);
   const [appName, setAppName] = React.useState(localStorage.getItem("app_name") || "RoomRent 100");
-  const userRole = localStorage.getItem('role')?.toLowerCase();
+  const userRole = (localStorage.getItem('role') || sessionStorage.getItem('role'))?.toLowerCase();
 
   React.useEffect(() => {
     const fetchSettings = async () => {
@@ -257,7 +265,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
     const fetchCount = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         if (!token) return;
         const res = await fetch(`${API}/admin/maintenance/pending-count`, {
           headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
@@ -296,17 +304,21 @@ const Sidebar = ({ isOpen, onClose }) => {
     <VStack spacing={6} align="stretch" p={3} pb={20}>
       {getSidebarGroups(userRole, t).map((group, index) => (
         <Box key={index}>
-          <Text
-            px={3}
-            fontSize="10px"
-            fontWeight="black"
-            textTransform="uppercase"
-            letterSpacing="0.25em"
-            color={groupTitleColor}
-            mb={2}
-          >
-            {group.title}
-          </Text>
+          {!isDesktopCollapsed ? (
+            <Text
+              px={3}
+              fontSize="10px"
+              fontWeight="bold"
+              textTransform="uppercase"
+              letterSpacing="0.25em"
+              color={groupTitleColor}
+              mb={2}
+            >
+              {group.title}
+            </Text>
+          ) : (
+            <Box h="20px" />
+          )}
           
           <VStack spacing={1} align="stretch">
             {group.links.map((link) => (
@@ -320,6 +332,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 pendingMaintenanceCount={pendingMaintenanceCount} 
                 userRole={userRole} 
                 useColorModeValue={useColorModeValue}
+                isDesktopCollapsed={isDesktopCollapsed}
               />
             ))}
           </VStack>
@@ -329,7 +342,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   );
 
   const Brand = (
-    <Box px={6} py={8}>
+    <Box px={isDesktopCollapsed ? 0 : 6} py={8} display="flex" justifyContent={isDesktopCollapsed ? "center" : "flex-start"}>
       <HStack spacing={3}>
         <Image
           src={logoImg}
@@ -338,14 +351,16 @@ const Sidebar = ({ isOpen, onClose }) => {
           borderRadius="lg"
           fallbackSrc="https://via.placeholder.com/40"
         />
-        <VStack align="flex-start" spacing={0}>
-          <Heading size="sm" color="blue.600" letterSpacing="tight">
-            {appName}
-          </Heading>
-          <Text fontSize="xs" color="gray.500" fontWeight="bold">
-            Room Rental System
-          </Text>
-        </VStack>
+        {!isDesktopCollapsed && (
+          <VStack align="flex-start" spacing={0}>
+            <Heading size="sm" color="blue.600" letterSpacing="tight" isTruncated maxW="150px">
+              {appName}
+            </Heading>
+            <Text fontSize="xs" color="gray.500" fontWeight="bold">
+              Room Rental
+            </Text>
+          </VStack>
+        )}
       </HStack>
     </Box>
   );
@@ -362,6 +377,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         onClose={onClose} 
         userRole={userRole} 
         useColorModeValue={useColorModeValue}
+        isDesktopCollapsed={isDesktopCollapsed}
       />
     </Box>
   );
@@ -370,7 +386,8 @@ const Sidebar = ({ isOpen, onClose }) => {
     <>
       <Box
         bg={bg}
-        w="280px"
+        w={{ lg: isDesktopCollapsed ? "80px" : "280px" }}
+        transition="width 0.2s"
         borderRight="1px"
         borderColor={borderColor}
         h="100vh"

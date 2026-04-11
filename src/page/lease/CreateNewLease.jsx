@@ -45,10 +45,10 @@ import { useTranslation } from "react-i18next";
 
 
 const fmt = (n) => {
-  const c = localStorage.getItem("currency") || "$";
+  const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
   const num = Number(n || 0);
   if (c === "៛" || c === "KHR" || c === "Riel") {
-    const rateItem = localStorage.getItem("exchangeRate");
+    const rateItem = (localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate"));
     const r = rateItem ? Number(rateItem) : 4000;
     return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
   }
@@ -62,7 +62,7 @@ export default function CreateNewLease() {
   const isEdit = Boolean(id);
   const isRenew = window.location.pathname.includes('/renew');
   const today = new Date().toISOString().split("T")[0];
-  const isRiel = localStorage.getItem("currency") === "៛" || localStorage.getItem("currency") === "KHR" || localStorage.getItem("currency") === "Riel";
+  const isRiel = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) === "៛" || (localStorage.getItem("currency") || sessionStorage.getItem("currency")) === "KHR" || (localStorage.getItem("currency") || sessionStorage.getItem("currency")) === "Riel";
 
   const steps = [
     { title: t("lease_create.step_tenant_room") || "Tenant & Room", description: t("lease_create.desc_tenant_room") || "Select Tenant & Room", icon: FiUser },
@@ -109,7 +109,7 @@ export default function CreateNewLease() {
   useEffect(() => {
     const fetchAllData = async () => {
       setIsLoading(true);
-      const token = localStorage.getItem("token");
+      const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
       const headers = { Authorization: `Bearer ${token}`, Accept: "application/json" };
 
       try {
@@ -248,7 +248,7 @@ export default function CreateNewLease() {
 
     setErrors({});
     setIsSaving(true);
-    const token = localStorage.getItem("token");
+    const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
     const url = isEdit
       ? `http://localhost:8000/api/v1/admin/leases/${id}`
       : `http://localhost:8000/api/v1/admin/leases`;
@@ -356,7 +356,7 @@ export default function CreateNewLease() {
         {/* Main Card */}
         <Box bg={cardBg} borderRadius="2xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden" display="flex" flexDirection="column" flex={1} minH={0}>
           <Box as="form" onSubmit={handleSubmit} display="flex" flexDirection="column" h="100%">
-            <Box p={{ base: 6, md: 10 }} flex={1} overflowY="auto" minH={0}
+            <Box p={{ base: 6, md: 10 }} flex={1} overflowY={activeStep === 0 ? { base: "auto", xl: "hidden" } : "auto"} minH={0} display="flex" flexDirection="column"
               sx={{
                 '&::-webkit-scrollbar': { width: '0px' },
               }}
@@ -364,158 +364,166 @@ export default function CreateNewLease() {
 
               {/* ===== STEP 1: TENANT & ROOM ===== */}
               {activeStep === 0 && (
-                <SimpleGrid columns={{ base: 1, xl: 2 }} spacing={10} w="full" alignItems="start">
-                  <Box>
-                  <Text fontSize="lg" fontWeight="black" color={textColor} mb={1}>{t("lease_create.select_tenant_title")}</Text>
-                  <Text fontSize="sm" color={mutedText} mb={6}>{t("lease_create.select_tenant_desc")}</Text>
+                <SimpleGrid columns={{ base: 1, xl: 2 }} spacing={10} w="full" h={{ base: "auto", xl: "full" }} alignItems="start">
+                  {/* LEFT: Tenant Section */}
+                  <Flex direction="column" h="full">
+                    <Text fontSize="lg" fontWeight="black" color={textColor} mb={1}>{t("lease_create.select_tenant_title")}</Text>
+                    <Text fontSize="sm" color={mutedText} mb={6}>{t("lease_create.select_tenant_desc")}</Text>
 
-                  <Box maxW="xl" position="relative" ref={tenantDropdownRef}>
-                    <FormControl isInvalid={errors.tenant_id}>
-                      <InputGroup size="lg">
-                        <InputLeftElement pointerEvents="none">
-                          <Icon as={FiSearch} color={mutedText} />
-                        </InputLeftElement>
-                        <Input
-                          pl="44px"
-                          placeholder={t("lease_create.search_tenant_ph")}
-                          value={tenantSearch}
-                          bg={inputBg}
-                          isDisabled={isRenew}
-                          onFocus={() => !isRenew && setShowTenantDropdown(true)}
-                          onChange={(e) => {
-                            setTenantSearch(e.target.value);
-                            setShowTenantDropdown(true);
-                            if (formData.tenant_id) setFormData((prev) => ({ ...prev, tenant_id: "" }));
-                          }}
-                          borderColor={formData.tenant_id ? "green.400" : borderColor}
-                          _focus={{ borderColor: "blue.400", boxShadow: "0 0 0 1px #4299e1" }}
-                        />
-                      </InputGroup>
-                      <FormErrorMessage>{errors.tenant_id}</FormErrorMessage>
-                    </FormControl>
-
-                    {/* Dropdown */}
-                    {showTenantDropdown && (
-                      <Box
-                        position="absolute" top="100%" left={0} right={0} zIndex={20} mt={2}
-                        bg={cardBg} shadow="2xl" borderRadius="xl" border="1px solid" borderColor={borderColor}
-                        maxH="300px" overflowY="auto"
-                      >
-                        {filteredTenants.length > 0 ? filteredTenants.map((t) => (
-                          <Flex
-                            key={t.id} px={4} py={3} cursor="pointer" align="center" gap={3}
-                            borderBottom="1px solid" borderColor={borderColor}
-                            _hover={{ bg: useColorModeValue("blue.50", "blue.900") }}
-                            bg={String(formData.tenant_id) === String(t.id) ? useColorModeValue("blue.50", "blue.900") : "transparent"}
-                            onClick={() => {
-                              setFormData((prev) => ({ ...prev, tenant_id: t.id }));
-                              setTenantSearch(t.name);
-                              setShowTenantDropdown(false);
+                    <Box maxW="xl" position="relative" ref={tenantDropdownRef}>
+                      <FormControl isInvalid={errors.tenant_id}>
+                        <InputGroup size="lg">
+                          <InputLeftElement pointerEvents="none">
+                            <Icon as={FiSearch} color={mutedText} />
+                          </InputLeftElement>
+                          <Input
+                            pl="44px"
+                            placeholder={t("lease_create.search_tenant_ph")}
+                            value={tenantSearch}
+                            bg={inputBg}
+                            isDisabled={isRenew}
+                            onFocus={() => !isRenew && setShowTenantDropdown(true)}
+                            onChange={(e) => {
+                              setTenantSearch(e.target.value);
+                              setShowTenantDropdown(true);
+                              if (formData.tenant_id) setFormData((prev) => ({ ...prev, tenant_id: "" }));
                             }}
-                          >
-                            <Avatar size="sm" name={t.name} />
-                            <Box flex={1}>
-                              <Flex align="center" gap={2}>
-                                <Text fontWeight="bold" fontSize="sm" color={textColor}>{t.name}</Text>
-                                {String(formData.tenant_id) === String(t.id) && (
-                                  <Icon as={FiCheck} color="green.500" boxSize={3} />
-                                )}
-                              </Flex>
-                              <Text fontSize="xs" color={mutedText}>{t.email || t("lease_create.no_email")}</Text>
+                            borderColor={formData.tenant_id ? "green.400" : borderColor}
+                            _focus={{ borderColor: "blue.400", boxShadow: "0 0 0 1px #4299e1" }}
+                          />
+                        </InputGroup>
+                        <FormErrorMessage>{errors.tenant_id}</FormErrorMessage>
+                      </FormControl>
+
+                      {/* Dropdown */}
+                      {showTenantDropdown && (
+                        <Box
+                          position="absolute" top="100%" left={0} right={0} zIndex={20} mt={2}
+                          bg={cardBg} shadow="2xl" borderRadius="xl" border="1px solid" borderColor={borderColor}
+                          maxH="300px" overflowY="auto"
+                        >
+                          {filteredTenants.length > 0 ? filteredTenants.map((t) => (
+                            <Flex
+                              key={t.id} px={4} py={3} cursor="pointer" align="center" gap={3}
+                              borderBottom="1px solid" borderColor={borderColor}
+                              _hover={{ bg: useColorModeValue("blue.50", "blue.900") }}
+                              bg={String(formData.tenant_id) === String(t.id) ? useColorModeValue("blue.50", "blue.900") : "transparent"}
+                              onClick={() => {
+                                setFormData((prev) => ({ ...prev, tenant_id: t.id }));
+                                setTenantSearch(t.name);
+                                setShowTenantDropdown(false);
+                              }}
+                            >
+                              <Avatar size="sm" name={t.name} />
+                              <Box flex={1}>
+                                <Flex align="center" gap={2}>
+                                  <Text fontWeight="bold" fontSize="sm" color={textColor}>{t.name}</Text>
+                                  {String(formData.tenant_id) === String(t.id) && (
+                                    <Icon as={FiCheck} color="green.500" boxSize={3} />
+                                  )}
+                                </Flex>
+                                <Text fontSize="xs" color={mutedText}>{t.email || t("lease_create.no_email")}</Text>
+                              </Box>
+                            </Flex>
+                          )) : (
+                            <Box px={5} py={6} textAlign="center">
+                              <Icon as={FiUser} color={mutedText} boxSize={6} mb={2} />
+                              <Text fontSize="sm" color={mutedText}>{t("lease_create.no_tenants")}</Text>
                             </Box>
-                          </Flex>
-                        )) : (
-                          <Box px={5} py={6} textAlign="center">
-                            <Icon as={FiUser} color={mutedText} boxSize={6} mb={2} />
-                            <Text fontSize="sm" color={mutedText}>{t("lease_create.no_tenants")}</Text>
+                          )}
+                        </Box>
+                      )}
+                    </Box>
+
+                    {/* Selected Tenant Card */}
+                    {selectedTenant && !showTenantDropdown && (
+                      <Box mt={6} maxW="xl" p={5} bg={useColorModeValue("green.50", "green.900")} border="1px solid" borderColor={useColorModeValue("green.200", "green.700")} borderRadius="xl">
+                        <Flex align="center" gap={4}>
+                          <Avatar name={selectedTenant.name} size="md" />
+                          <Box flex={1}>
+                            <Flex align="center" gap={2} mb={1}>
+                              <Text fontWeight="black" fontSize="md" color={textColor}>{selectedTenant.name}</Text>
+                              <Badge colorScheme="green" fontSize="9px" fontWeight="black">{t("lease_create.badge_selected")}</Badge>
+                            </Flex>
+                            <Text fontSize="sm" color={mutedText}>{selectedTenant.email || t("lease_create.no_email")}</Text>
+                            {selectedTenant.phone && <Text fontSize="sm" color={mutedText}>{selectedTenant.phone}</Text>}
                           </Box>
-                        )}
+                          <Icon as={FiCheck} color="green.500" boxSize={6} />
+                        </Flex>
                       </Box>
                     )}
-                  </Box>
+                  </Flex>
 
-                  {/* Selected Tenant Card */}
-                  {selectedTenant && !showTenantDropdown && (
-                    <Box mt={6} maxW="xl" p={5} bg={useColorModeValue("green.50", "green.900")} border="1px solid" borderColor={useColorModeValue("green.200", "green.700")} borderRadius="xl">
-                      <Flex align="center" gap={4}>
-                        <Avatar name={selectedTenant.name} size="md" />
-                        <Box flex={1}>
-                          <Flex align="center" gap={2} mb={1}>
-                            <Text fontWeight="black" fontSize="md" color={textColor}>{selectedTenant.name}</Text>
-                            <Badge colorScheme="green" fontSize="9px" fontWeight="black">{t("lease_create.badge_selected")}</Badge>
-                          </Flex>
-                          <Text fontSize="sm" color={mutedText}>{selectedTenant.email || t("lease_create.no_email")}</Text>
-                          {selectedTenant.phone && <Text fontSize="sm" color={mutedText}>{selectedTenant.phone}</Text>}
-                        </Box>
-                        <Icon as={FiCheck} color="green.500" boxSize={6} />
-                      </Flex>
-                    </Box>
-                  )}
-                  </Box>
-
-                  <Box>
+                  {/* RIGHT: Room Section */}
+                  <Flex direction="column" h="full" minH={0}>
                     <Text fontSize="lg" fontWeight="black" color={textColor} mb={1}>{t("lease_create.select_room_title")}</Text>
                     <Text fontSize="sm" color={mutedText} mb={6}>{t("lease_create.select_room_desc")}</Text>
 
-                    <FormControl isInvalid={errors.room_id}>
-                    <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
-                      {rooms.map((r) => {
-                      const isSelected = String(formData.room_id) === String(r.id);
-                      const isAvailable = r.status?.toLowerCase() === "available" || isSelected;
-                      return (
-                        <Box
-                          key={r.id}
-                          as="button"
-                          type="button"
-                          textAlign="left"
-                          p={5}
-                          borderRadius="xl"
-                          border="2px solid"
-                          borderColor={isSelected ? "blue.500" : isAvailable ? borderColor : "red.200"}
-                           bg={isSelected ? useColorModeValue("blue.50", "blue.900") : cardBg}
-                          opacity={(!isAvailable && !isSelected) || (isRenew && !isSelected) ? 0.55 : 1}
-                          cursor={(!isAvailable && !isSelected) || (isRenew && !isSelected) ? "not-allowed" : "pointer"}
-                          _hover={(isAvailable || isSelected) && !isRenew ? {
-                            borderColor: isSelected ? "blue.600" : "blue.300",
-                            transform: "translateY(-2px)",
-                            shadow: "md",
-                          } : {}}
-                          transition="all 0.2s"
-                          onClick={() => { 
-                            if (isRenew) return;
-                            if (!isAvailable && !isSelected) return; 
-                            setFormData({ ...formData, room_id: r.id }); 
-                          }}
-                          position="relative"
-                        >
-                          {isSelected && (
-                            <Box position="absolute" top={3} right={3}>
-                              <Flex w="22px" h="22px" bg="blue.500" borderRadius="full" align="center" justify="center">
-                                <Icon as={FiCheck} color="white" boxSize={3} />
-                              </Flex>
-                            </Box>
-                          )}
-                          <Icon as={FiHome} color={isSelected ? "blue.500" : mutedText} boxSize={5} mb={3} />
-                          <Text fontWeight="black" fontSize="md" color={textColor} mb={1}>{r.name}</Text>
-                          <Text fontSize="xs" color={mutedText} mb={3}>{r.size || t("lease_create.standard_unit")}</Text>
-                          <Text fontSize="xl" fontWeight="black" color={isSelected ? "blue.600" : textColor}>
-                            {fmt(r.base_rent_price || 0)}
-                            <Text as="span" fontSize="xs" color={mutedText} fontWeight="normal"> {t("lease_create.per_month")}</Text>
-                          </Text>
-                          <Badge
-                            mt={2} fontSize="9px" fontWeight="black" textTransform="uppercase"
-                            colorScheme={r.status?.toLowerCase() === "available" ? "green" : isSelected ? "blue" : "red"}
-                            borderRadius="full" px={2} py={1}
-                          >
-                            {isSelected ? t("lease_create.badge_selected") : (r.status?.toLowerCase() === "available" ? t("lease_create.status_available") : r.status)}
-                          </Badge>
-                        </Box>
-                      );
-                    })}
-                  </SimpleGrid>
-                  <FormErrorMessage>{errors.room_id}</FormErrorMessage>
-                </FormControl>
-                  </Box>
+                    <FormControl isInvalid={errors.room_id} flex={1} display="flex" flexDirection="column" minH={0}>
+                      <Box flex={1} overflowY={{ base: "visible", xl: "auto" }} pr={2} sx={{ 
+                        '&::-webkit-scrollbar': { width: '5px' },
+                        '&::-webkit-scrollbar-track': { bg: 'transparent' },
+                        '&::-webkit-scrollbar-thumb': { bg: useColorModeValue('gray.200', 'gray.700'), borderRadius: 'full' }
+                      }}>
+                        <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4} pb={4}>
+                          {rooms.map((r) => {
+                            const isSelected = String(formData.room_id) === String(r.id);
+                            const isAvailable = r.status?.toLowerCase() === "available" || isSelected;
+                            return (
+                              <Box
+                                key={r.id}
+                                as="button"
+                                type="button"
+                                textAlign="left"
+                                p={5}
+                                borderRadius="xl"
+                                border="2px solid"
+                                borderColor={isSelected ? "blue.500" : isAvailable ? borderColor : "red.200"}
+                                bg={isSelected ? useColorModeValue("blue.50", "blue.900") : cardBg}
+                                opacity={(!isAvailable && !isSelected) || (isRenew && !isSelected) ? 0.55 : 1}
+                                cursor={(!isAvailable && !isSelected) || (isRenew && !isSelected) ? "not-allowed" : "pointer"}
+                                _hover={(isAvailable || isSelected) && !isRenew ? {
+                                  borderColor: isSelected ? "blue.600" : "blue.300",
+                                  transform: "translateY(-2px)",
+                                  shadow: "md",
+                                } : {}}
+                                transition="all 0.2s"
+                                onClick={() => { 
+                                  if (isRenew) return;
+                                  if (!isAvailable && !isSelected) return; 
+                                  setFormData({ ...formData, room_id: r.id }); 
+                                }}
+                                position="relative"
+                              >
+                                {isSelected && (
+                                  <Box position="absolute" top={3} right={3}>
+                                    <Flex w="22px" h="22px" bg="blue.500" borderRadius="full" align="center" justify="center">
+                                      <Icon as={FiCheck} color="white" boxSize={3} />
+                                    </Flex>
+                                  </Box>
+                                )}
+                                <Icon as={FiHome} color={isSelected ? "blue.500" : mutedText} boxSize={5} mb={3} />
+                                <Text fontWeight="black" fontSize="md" color={textColor} mb={1}>{r.name}</Text>
+                                <Text fontSize="xs" color={mutedText} mb={3}>{r.size || t("lease_create.standard_unit")}</Text>
+                                <Text fontSize="xl" fontWeight="black" color={isSelected ? "blue.600" : textColor}>
+                                  {fmt(r.base_rent_price || 0)}
+                                  <Text as="span" fontSize="xs" color={mutedText} fontWeight="normal"> {t("lease_create.per_month")}</Text>
+                                </Text>
+                                <Badge
+                                  mt={2} fontSize="9px" fontWeight="black" textTransform="uppercase"
+                                  colorScheme={r.status?.toLowerCase() === "available" ? "green" : isSelected ? "blue" : "red"}
+                                  borderRadius="full" px={2} py={1}
+                                >
+                                  {isSelected ? t("lease_create.badge_selected") : (r.status?.toLowerCase() === "available" ? t("lease_create.status_available") : r.status)}
+                                </Badge>
+                              </Box>
+                            );
+                          })}
+                        </SimpleGrid>
+                      </Box>
+                      <FormErrorMessage>{errors.room_id}</FormErrorMessage>
+                    </FormControl>
+                  </Flex>
                 </SimpleGrid>
               )}
 
@@ -566,10 +574,10 @@ export default function CreateNewLease() {
                               {isRiel ? "៛" : "$"}
                             </InputLeftAddon>
                             <Input type="number" step={isRiel ? "100" : "0.01"} bg={inputBg} 
-                              value={isRiel ? Math.round(Number(formData.rent_amount || 0) * (Number(localStorage.getItem("exchangeRate") || 4000))) : formData.rent_amount}
+                              value={isRiel ? Math.round(Number(formData.rent_amount || 0) * (Number((localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate")) || 4000))) : formData.rent_amount}
                               onChange={(e) => {
                                 const val = e.target.value;
-                                const rate = Number(localStorage.getItem("exchangeRate") || 4000);
+                                const rate = Number((localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate")) || 4000);
                                 setFormData({ ...formData, rent_amount: isRiel ? (Number(val) / rate).toFixed(2) : val });
                               }} 
                             />
@@ -588,10 +596,10 @@ export default function CreateNewLease() {
                               {isRiel ? "៛" : "$"}
                             </InputLeftAddon>
                             <Input type="number" step={isRiel ? "100" : "0.01"} bg={inputBg} 
-                              value={isRiel ? Math.round(Number(formData.security_deposit || 0) * (Number(localStorage.getItem("exchangeRate") || 4000))) : formData.security_deposit}
+                              value={isRiel ? Math.round(Number(formData.security_deposit || 0) * (Number((localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate")) || 4000))) : formData.security_deposit}
                               onChange={(e) => {
                                 const val = e.target.value;
-                                const rate = Number(localStorage.getItem("exchangeRate") || 4000);
+                                const rate = Number((localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate")) || 4000);
                                 setFormData({ ...formData, security_deposit: isRiel ? (Number(val) / rate).toFixed(2) : val });
                               }} 
                             />

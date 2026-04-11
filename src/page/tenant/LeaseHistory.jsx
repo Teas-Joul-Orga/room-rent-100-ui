@@ -43,7 +43,7 @@ export default function LeaseHistory() {
     try {
       const res = await fetch(`${API}/leases`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${(localStorage.getItem("token") || sessionStorage.getItem("token"))}`,
           Accept: "application/json",
         },
       });

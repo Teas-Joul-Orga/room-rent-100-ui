@@ -44,7 +44,7 @@ export default function AddAnnouncementModal({ isOpen, onClose, onSuccess }) {
 
       if (photo) formData.append('photo', photo);
 
-      const token = localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       const res = await fetch(`${API}/admin/announcements`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },

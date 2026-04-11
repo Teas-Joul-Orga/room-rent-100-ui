@@ -9,10 +9,11 @@ import useGlobalNotifications from "../hooks/useGlobalNotifications.jsx";
 
 const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
   
   // Fetch global settings and save the currency globally
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
     if (token) {
       fetch("http://localhost:8000/api/v1/me", {
         headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }
@@ -31,7 +32,7 @@ const DashboardLayout = () => {
   // Get current user for notifications
   let userDetails = { id: null };
   try {
-    const storedUser = localStorage.getItem("user");
+    const storedUser = (localStorage.getItem("user") || sessionStorage.getItem("user"));
     if (storedUser) {
       userDetails = JSON.parse(storedUser);
     }
@@ -51,12 +52,26 @@ const DashboardLayout = () => {
         Static Sidebar on Desktop, Hidden on Mobile 
         Matches: <aside class="hidden lg:flex lg:w-[280px] lg:flex-col lg:sticky lg:top-0 lg:h-screen..."
       */}
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        onClose={() => setSidebarOpen(false)} 
+        isDesktopCollapsed={isDesktopCollapsed}
+      />
 
       {/* Main Content Area */}
-      <Flex flex="1" direction="column" minW={0} overflow="hidden" ml={{ lg: "280px" }}>
+      <Flex 
+        flex="1" 
+        direction="column" 
+        minW={0} 
+        overflow="hidden" 
+        ml={{ lg: isDesktopCollapsed ? "80px" : "280px" }}
+        transition="margin-left 0.2s"
+      >
         {/* Sticky Top Bar over the main content area */}
-        <Topbar onOpenSidebar={() => setSidebarOpen(!sidebarOpen)} />
+        <Topbar 
+          onOpenSidebar={() => setSidebarOpen(!sidebarOpen)} 
+          onToggleDesktop={() => setIsDesktopCollapsed(!isDesktopCollapsed)}
+        />
 
         {/* Page Content */}
         <Box as="main" flex="1" p={{ base: 4, md: 6, lg: 8 }} pb={{ base: "80px", md: 8 }} overflowY="auto">

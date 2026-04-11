@@ -23,7 +23,7 @@ import { FiX, FiPlus, FiImage } from "react-icons/fi";
 export default function EditRoom() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
+  const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
 
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingInitial, setIsFetchingInitial] = useState(true);
@@ -33,6 +33,9 @@ export default function EditRoom() {
   
   // new photos the user wants to upload this session
   const [newPhotos, setNewPhotos] = useState([]); // [{ file, preview }]
+  
+  // photos the user marked for deletion
+  const [deletedPhotoIds, setDeletedPhotoIds] = useState([]);
   
   const [form, setForm] = useState({
     name: "",
@@ -157,6 +160,10 @@ export default function EditRoom() {
       formData.append(`photos[${index}]`, p.file);
     });
 
+    deletedPhotoIds.forEach((id, index) => {
+      formData.append(`deleted_photos[${index}]`, id);
+    });
+
     try {
       const res = await fetch(`http://localhost:8000/api/v1/admin/rooms/${id}`, {
         method: "POST", // sending as POST because of multipart/form-data with _method=PUT
@@ -234,13 +241,25 @@ export default function EditRoom() {
               
               <SimpleGrid columns={3} spacing={4}>
                 
-                {/* EXISTING SERVER PHOTOS (read-only in this simple update context unless backend supports targeted delete) */}
+                {/* EXISTING SERVER PHOTOS */}
                 {existingPhotos.map((img) => (
-                  <Box key={img.id} position="relative" borderRadius="xl" overflow="hidden" border="1px solid" borderColor={borderColor} h="100px">
+                  <Box key={img.id} position="relative" borderRadius="xl" overflow="hidden" border="1px solid" borderColor={borderColor} h="100px" role="group">
                     <Image src={`http://localhost:8000/storage/${img.path}`} alt="existing" w="full" h="full" objectFit="cover" />
                     <Flex position="absolute" top={1} right={1}>
-                       {/* Note: In a full production app you would hook this to a DELETE /images endpoint */}
-                       <Text fontSize="10px" fontWeight="black" bg="blackAlpha.700" color="white" px={2} py={0.5} borderRadius="md">EXISTING</Text>
+                       <Text fontSize="10px" fontWeight="black" bg="blackAlpha.700" color="white" px={2} py={0.5} borderRadius="md" _groupHover={{ display: "none" }}>EXISTING</Text>
+                    </Flex>
+                    <Flex position="absolute" inset={0} bg="blackAlpha.600" opacity={0} _groupHover={{ opacity: 1 }} transition="all 0.2s" align="center" justify="center">
+                      <IconButton 
+                        icon={<FiX />} 
+                        size="sm" 
+                        colorScheme="red" 
+                        isRound 
+                        onClick={() => {
+                          setDeletedPhotoIds((prev) => [...prev, img.id]);
+                          setExistingPhotos((prev) => prev.filter((p) => p.id !== img.id));
+                        }} 
+                        aria-label="Remove existing photo" 
+                      />
                     </Flex>
                   </Box>
                 ))}

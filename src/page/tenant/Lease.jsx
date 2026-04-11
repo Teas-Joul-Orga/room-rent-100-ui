@@ -43,18 +43,18 @@ import dayjs from "dayjs";
 import toast, { Toaster } from "react-hot-toast";
 import { Link } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
+import echo from "../../lib/echo";
 
 const API = "http://localhost:8000/api/v1/tenant";
-const KHQR_LOGO = "https://api-bakong.nbc.gov.kh/images/khqr.png";
-const BAKONG_LOGO_RED = "https://api-bakong.nbc.gov.kh/images/logo.png";
+const BAKONG_LOGO_RED = "https://bakong.nbc.gov.kh/images/logo.png";
 const CACHE_KEY = "tenant_lease_cache";
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 const fmt = (n) => {
-  const c = localStorage.getItem("currency") || "$";
+  const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
   const num = Number(n || 0);
   if (c === "៛" || c === "KHR" || c === "Riel") {
-    const rateItem = localStorage.getItem("exchangeRate");
+    const rateItem = (localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate"));
     const r = rateItem ? Number(rateItem) : 4000;
     return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
   }
@@ -64,7 +64,7 @@ const fmt = (n) => {
 const fmtDate = (d) => d ? dayjs(d).format("MMM D, YYYY") : "—";
 
 const authHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem("token")}`,
+  Authorization: `Bearer ${(localStorage.getItem("token") || sessionStorage.getItem("token"))}`,
   Accept: "application/json",
   "Content-Type": "application/json",
 });
@@ -222,6 +222,25 @@ export default function TenantLease() {
     }, 5000);
   }, [fetchLease]);
 
+  // Real-time WebSocket Listeners for Payment
+  useEffect(() => {
+    if (!qrMd5) return;
+
+    // Listen to the public channel for this specific transaction MD5
+    const channel = echo().channel(`bakong.payment.${qrMd5}`)
+      .listen('.App\\Events\\BakongPaymentConfirmed', (e) => {
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          setPaymentConfirmed(true);
+          toast.success("🎉 Webhook: Payment Verified instantly!", { duration: 6000 });
+          sessionStorage.removeItem(CACHE_KEY);
+          setTimeout(() => { fetchLease(); handleClosePayment(); }, 3000);
+      });
+
+    return () => {
+      echo().leaveChannel(`bakong.payment.${qrMd5}`);
+    };
+  }, [qrMd5, fetchLease]);
+
   const handleOpenPayment = useCallback(() => {
     setSelectedItems({ rent: true, utilities: unpaidBills.map(b => b.id) });
     setQrString(null);
@@ -256,7 +275,7 @@ export default function TenantLease() {
   }
 
   return (
-    <Box p={{ base: 3, md: 5 }} maxW="1200px" mx="auto">
+    <Box p={{ base: 3, md: 1 }} maxW="1600px" mx="auto">
       <Toaster position="top-right" />
 
       {!lease ? (
@@ -275,23 +294,23 @@ export default function TenantLease() {
             <Box position="absolute" top={0} left={0} right={0} bottom={0} opacity={0.1} backgroundImage="radial-gradient(circle at 2px 2px, white 1px, transparent 0)" backgroundSize="32px 32px" />
             <Flex direction={{ base: "column", md: "row" }} justify="space-between" align={{ md: "flex-end" }} p={{ base: 5, md: 7 }} position="relative" zIndex={1}>
               <Box>
-                <Badge bg="whiteAlpha.200" color="white" px={2} py={0.5} borderRadius="full" mb={2} textTransform="uppercase" fontWeight="black" fontSize="10px" letterSpacing="wider" backdropFilter="blur(10px)">
+                <Badge bg="whiteAlpha.200" color="white" px={3} py={1} borderRadius="full" mb={2} textTransform="uppercase" fontWeight="black" fontSize="xs" letterSpacing="wider" backdropFilter="blur(10px)">
                   {lease.status} Lease
                 </Badge>
-                <Heading size="xl" fontWeight="black" letterSpacing="tight" mb={1}>
+                <Heading size="2xl" fontWeight="black" letterSpacing="tight" mb={1}>
                   {lease.room?.name || "Room Details"}
                 </Heading>
-                <Text fontSize="sm" color="whiteAlpha.800" fontWeight="medium">
+                <Text fontSize="md" color="whiteAlpha.800" fontWeight="medium">
                   {fmtDate(lease.start_date)} — {fmtDate(lease.end_date)} ({totalContractMonths} Months)
                 </Text>
               </Box>
               <Box mt={{ base: 6, md: 0 }} textAlign={{ md: "right" }}>
-                <Text fontSize="sm" color="whiteAlpha.800" textTransform="uppercase" letterSpacing="wider" fontWeight="bold" mb={1}>Monthly Rent</Text>
-                <Heading size="xl" fontWeight="black">{fmt(lease.rent_amount)}</Heading>
+                <Text fontSize="md" color="whiteAlpha.800" textTransform="uppercase" letterSpacing="wider" fontWeight="bold" mb={1}>Monthly Rent</Text>
+                <Heading size="2xl" fontWeight="bold">{fmt(lease.rent_amount)}</Heading>
                 {(totalRentPaid < totalContractValue || unpaidBills.length > 0) && (
-                  <Button mt={3} size="sm" bg="whiteAlpha.200" color="white" _hover={{ bg: "whiteAlpha.300" }} borderRadius="lg" fontWeight="black" onClick={handleOpenPayment}>
-                    Pay with Bakong
-                  </Button>
+                <Button mt={4} size="md" colorScheme="blue" rounded="full" fontWeight="bold" textTransform="uppercase" px={8} onClick={handleOpenPayment} shadow="lg" _hover={{ transform: 'translateY(-2px)', shadow: 'xl' }} transition="all 0.2s">
+                  Pay with Bakong
+                </Button>
                 )}
               </Box>
             </Flex>
@@ -302,12 +321,12 @@ export default function TenantLease() {
             {/* Progress */}
             <Box bg={bg} p={4} borderRadius="xl" border="1px solid" borderColor={borderColor} shadow="sm" transition="all 0.2s" _hover={{ transform: "translateY(-2px)", shadow: "md" }}>
               <Flex justify="space-between" align="center" mb={2}>
-                <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" letterSpacing="wider">Lease Value Progress</Text>
+                <Text fontSize="sm" fontWeight="bold" color={mutedText} textTransform="uppercase" letterSpacing="wider">Lease Value Progress</Text>
                 <Icon as={FiCheckCircle} color={rentProgress >= 100 ? "green.400" : "blue.400"} />
               </Flex>
-              <Heading size="md" color={textColor} fontWeight="black" mb={1}>{rentProgress.toFixed(0)}% Paid</Heading>
+              <Heading size="lg" color={textColor} fontWeight="black" mb={1}>{rentProgress.toFixed(0)}% Paid</Heading>
               <Progress value={rentProgress} size="xs" colorScheme={rentProgress >= 100 ? "green" : "blue"} borderRadius="full" mb={2} bg={progressTrackBg} />
-              <Flex justify="space-between" fontSize="xs" fontWeight="bold">
+              <Flex justify="space-between" fontSize="sm" fontWeight="bold">
                 <Text color={mutedText}>{fmt(totalRentPaid)} Paid</Text>
                 <Text color={textColor}>{fmt(totalContractValue)} Total</Text>
               </Flex>
@@ -316,13 +335,13 @@ export default function TenantLease() {
             {/* Unpaid Bills */}
             <Box bg={unpaidBills.length > 0 ? dangerBg : bg} p={4} borderRadius="xl" border="1px solid" borderColor={unpaidBills.length > 0 ? "red.200" : borderColor} shadow="sm" transition="all 0.2s" _hover={{ transform: "translateY(-2px)", shadow: "md" }}>
               <Flex justify="space-between" align="center" mb={2}>
-                <Text fontSize="xs" fontWeight="black" color={unpaidBills.length > 0 ? "red.500" : mutedText} textTransform="uppercase" letterSpacing="wider">
+                <Text fontSize="sm" fontWeight="black" color={unpaidBills.length > 0 ? "red.500" : mutedText} textTransform="uppercase" letterSpacing="wider">
                   {unpaidBills.length > 0 ? "Action Required" : "Utility Bills"}
                 </Text>
                 <Icon as={unpaidBills.length > 0 ? FiAlertCircle : FiZap} color={unpaidBills.length > 0 ? "red.500" : "yellow.400"} />
               </Flex>
-              <Heading size="md" color={unpaidBills.length > 0 ? "red.600" : textColor} fontWeight="black" mb={1}>{fmt(totalUnpaidBills)}</Heading>
-              <Text fontSize="xs" color={unpaidBills.length > 0 ? "red.500" : mutedText} fontWeight="bold" mb={2}>
+              <Heading size="lg" color={unpaidBills.length > 0 ? "red.600" : textColor} fontWeight="black" mb={1}>{fmt(totalUnpaidBills)}</Heading>
+              <Text fontSize="sm" color={unpaidBills.length > 0 ? "red.500" : mutedText} fontWeight="bold" mb={2}>
                 {unpaidBills.length > 0 ? `${unpaidBills.length} unpaid bill(s) pending` : "All utility bills paid up to date."}
               </Text>
               {unpaidBills.length > 0 && (
@@ -333,11 +352,11 @@ export default function TenantLease() {
             {/* Security Deposit */}
             <Box bg={bg} p={4} borderRadius="xl" border="1px solid" borderColor={borderColor} shadow="sm" transition="all 0.2s" _hover={{ transform: "translateY(-2px)", shadow: "md" }}>
               <Flex justify="space-between" align="center" mb={2}>
-                <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" letterSpacing="wider">Security Deposit</Text>
+                <Text fontSize="sm" fontWeight="bold" color={mutedText} textTransform="uppercase" letterSpacing="wider">Security Deposit</Text>
                 <Icon as={FiDollarSign} color="green.400" />
               </Flex>
-              <Heading size="md" color={textColor} fontWeight="black" mb={1}>{fmt(lease.security_deposit)}</Heading>
-              <Badge colorScheme={lease.deposit_status === 'held' ? "green" : "orange"} variant="subtle" px={3} py={1} borderRadius="full" fontSize="xs" fontWeight="black" textTransform="uppercase" mt={1}>
+              <Heading size="lg" color={textColor} fontWeight="bold" mb={1}>{fmt(lease.security_deposit)}</Heading>
+              <Badge colorScheme={lease.deposit_status === 'held' ? "green" : "orange"} variant="subtle" px={3} py={1} borderRadius="full" fontSize="sm" fontWeight="bold" textTransform="uppercase" mt={1}>
                 {lease.deposit_status || 'unpaid'}
               </Badge>
             </Box>
@@ -347,7 +366,7 @@ export default function TenantLease() {
           <Box bg={bg} borderRadius="xl" border="1px solid" borderColor={borderColor} overflow="hidden" shadow="sm">
             <Flex justify="space-between" align="center" px={4} py={3} borderBottom="1px solid" borderColor={borderColor} bg={tableHBg}>
               <Flex align="center" gap={3} flexWrap="wrap">
-                <Heading size="sm" textTransform="uppercase" letterSpacing="wider" color={textColor}>Utility Bills</Heading>
+                <Heading size="md" textTransform="uppercase" letterSpacing="wider" color={textColor}>Utility Bills</Heading>
                 {overdueBills.length > 0 && (
                   <Badge colorScheme="red" fontSize="xs" borderRadius="full" px={2} py={0.5}>🔴 {overdueBills.length} Overdue</Badge>
                 )}
@@ -363,7 +382,7 @@ export default function TenantLease() {
               </Flex>
               <Flex align="center" gap={3}>
                 {selectedItems.utilities.length > 0 && (
-                  <Button size="xs" colorScheme="blue" borderRadius="lg" fontWeight="black" onClick={() => {
+                  <Button size="xs" colorScheme="blue" rounded="full" fontWeight="bold" textTransform="uppercase" px={4} onClick={() => {
                     setSelectedItems(prev => ({ ...prev, rent: false }));
                     setQrString(null); setQrMd5(null); setPaymentConfirmed(false);
                     onPayOpen();
@@ -372,7 +391,7 @@ export default function TenantLease() {
                   </Button>
                 )}
                 {unpaidBills.length > 0 && selectedItems.utilities.length === 0 && (
-                  <Button size="xs" colorScheme="blue" variant="outline" borderRadius="lg" onClick={handleOpenPayment}>
+                  <Button size="xs" colorScheme="blue" variant="outline" rounded="full" fontWeight="bold" textTransform="uppercase" px={4} onClick={handleOpenPayment}>
                     Pay All ({unpaidBills.length})
                   </Button>
                 )}
@@ -395,12 +414,12 @@ export default function TenantLease() {
                         />
                       </Th>
                     )}
-                    <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>Type</Th>
-                    <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>Amount</Th>
-                    <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>Due Date</Th>
-                    <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>Status</Th>
-                    <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>Description</Th>
-                    <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>Action</Th>
+                    <Th fontSize="sm" fontWeight="bold" textTransform="uppercase" letterSpacing="wider" py={4}>Type</Th>
+                    <Th fontSize="sm" fontWeight="bold" textTransform="uppercase" letterSpacing="wider" py={4}>Amount</Th>
+                    <Th fontSize="sm" fontWeight="bold" textTransform="uppercase" letterSpacing="wider" py={4}>Due Date</Th>
+                    <Th fontSize="sm" fontWeight="bold" textTransform="uppercase" letterSpacing="wider" py={4}>Status</Th>
+                    <Th fontSize="sm" fontWeight="bold" textTransform="uppercase" letterSpacing="wider" py={4}>Description</Th>
+                    <Th fontSize="sm" fontWeight="bold" textTransform="uppercase" letterSpacing="wider" py={4}>Action</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
@@ -424,34 +443,34 @@ export default function TenantLease() {
                             </Td>
                           )}
                           <Td py={3}>
-                            <Badge colorScheme={billColor(bill.type)} fontSize="10px" px={2} py={0.5} borderRadius="md" textTransform="capitalize">
+                            <Badge colorScheme={billColor(bill.type)} fontSize="xs" px={2} py={0.5} borderRadius="md" textTransform="capitalize">
                               <Flex align="center" gap={1}><Icon as={billIcon(bill.type)} boxSize={3} /> {bill.type}</Flex>
                             </Badge>
                           </Td>
-                          <Td fontWeight="black" fontSize="sm" color={isOverdue ? "red.600" : textColor}>{fmt(bill.amount)}</Td>
-                          <Td fontSize="xs" fontWeight="bold" color={isOverdue ? "red.500" : mutedText}>
+                          <Td fontWeight="bold" fontSize="md" color={isOverdue ? "red.600" : textColor}>{fmt(bill.amount)}</Td>
+                          <Td fontSize="sm" fontWeight="bold" color={isOverdue ? "red.500" : mutedText}>
                             {fmtDate(bill.due_date)}
                             {isOverdue && <Badge ml={2} colorScheme="red" fontSize="9px">OVERDUE</Badge>}
                           </Td>
                           <Td>
-                            <Badge colorScheme={bill.status === "paid" ? "green" : "orange"} fontSize="10px" textTransform="uppercase">{bill.status}</Badge>
+                            <Badge colorScheme={bill.status === "paid" ? "green" : "orange"} fontSize="xs" textTransform="uppercase">{bill.status}</Badge>
                           </Td>
-                          <Td fontSize="xs" color={mutedText} maxW="200px" noOfLines={1}>{bill.description || "—"}</Td>
+                          <Td fontSize="sm" color={mutedText} maxW="200px" noOfLines={1}>{bill.description || "—"}</Td>
                           <Td py={3}>
                             {bill.status === "unpaid" ? (
-                              <Button
-                                size="xs"
-                                colorScheme={isOverdue ? "red" : "blue"}
-                                borderRadius="lg"
-                                fontWeight="black"
-                                onClick={() => {
-                                  setSelectedItems({ rent: false, utilities: [bill.id] });
-                                  setQrString(null); setQrMd5(null); setPaymentConfirmed(false);
-                                  onPayOpen();
-                                }}
-                              >
-                                Pay
-                              </Button>
+                                <Button
+                                  size="sm"
+                                  colorScheme="blue"
+                                  rounded="full"
+                                  fontWeight="bold"
+                                  textTransform="uppercase"
+                                  variant="solid"
+                                  onClick={() => handleOpenPayment(bill)}
+                                  fontSize="xs"
+                                  px={4}
+                                >
+                                  Pay
+                                </Button>
                             ) : (
                               <Text fontSize="xs" color="green.500" fontWeight="bold">✓ Done</Text>
                             )}
@@ -466,10 +485,10 @@ export default function TenantLease() {
             {/* Selected Total Bar */}
             {selectedItems.utilities.length > 0 && (
               <Flex justify="space-between" align="center" px={4} py={3} borderTop="1px solid" borderColor={borderColor} bg={itemBg}>
-                <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase">
+                <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase">
                   Selected Total: <Text as="span" color="blue.500" fontSize="md">{fmt(unpaidBills.filter(b => selectedItems.utilities.includes(b.id)).reduce((s, b) => s + Number(b.amount), 0))}</Text>
                 </Text>
-                <Button size="sm" colorScheme="blue" borderRadius="xl" fontWeight="black" onClick={() => {
+                <Button size="sm" colorScheme="blue" borderRadius="full" fontWeight="bold" textTransform="uppercase" onClick={() => {
                   setSelectedItems(prev => ({ ...prev, rent: false }));
                   setQrString(null); setQrMd5(null); setPaymentConfirmed(false);
                   onPayOpen();
@@ -484,11 +503,11 @@ export default function TenantLease() {
           <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
             <Box bg={bg} borderRadius="xl" border="1px solid" borderColor={borderColor} overflow="hidden" shadow="sm">
               <Flex justify="space-between" align="center" px={4} py={3} borderBottom="1px solid" borderColor={borderColor} bg={tableHBg}>
-                <Heading size="sm" textTransform="uppercase" letterSpacing="wider" color={textColor}>Recent Transactions</Heading>
+                <Heading size="md" textTransform="uppercase" letterSpacing="wider" color={textColor}>Recent Transactions</Heading>
                 <Button size="xs" variant="link" colorScheme="blue" rightIcon={<FiArrowRight />} onClick={onTxOpen}>View All</Button>
               </Flex>
               <TableContainer>
-                <Table variant="simple" size="sm">
+                <Table variant="simple" size="md">
                   <Tbody>
                     {recentPayments.length === 0 ? (
                       <Tr><Td colSpan={3} textAlign="center" py={8} color={mutedText} borderBottom="none">No recent payments found.</Td></Tr>
@@ -496,11 +515,11 @@ export default function TenantLease() {
                       recentPayments.map(payment => (
                         <Tr key={payment.id} _hover={{ bg: tableHBg }}>
                           <Td py={2.5}>
-                            <Badge colorScheme="purple" fontSize="10px" px={2} py={0.5} borderRadius="md" mb={1}>{payment.type || "rent"}</Badge>
-                            <Text fontSize="xs" color={mutedText}>{fmtDate(payment.payment_date)}</Text>
+                            <Badge colorScheme="purple" fontSize="xs" px={2} py={0.5} borderRadius="md" mb={1}>{payment.type || "rent"}</Badge>
+                            <Text fontSize="sm" color={mutedText}>{fmtDate(payment.payment_date)}</Text>
                           </Td>
-                          <Td py={2.5}><Text fontSize="xs" color={textColor} noOfLines={1} maxW="150px">{payment.payment_method}</Text></Td>
-                          <Td isNumeric py={2.5} fontWeight="black" color={textColor}>{fmt(payment.amount_paid)}</Td>
+                          <Td py={2.5}><Text fontSize="sm" color={textColor} noOfLines={1} maxW="150px">{payment.payment_method}</Text></Td>
+                          <Td isNumeric py={2.5} fontWeight="bold" color={textColor}>{fmt(payment.amount_paid)}</Td>
                         </Tr>
                       ))
                     )}
@@ -551,7 +570,7 @@ export default function TenantLease() {
         <ModalOverlay backdropFilter="blur(5px)" bg="blackAlpha.600" />
         <ModalContent borderRadius="2xl" bg={bg} overflow="hidden">
           <ModalHeader py={5} borderBottom="1px solid" borderColor={borderColor}>
-            <Heading size="md" fontWeight="black" color={textColor}>Transaction History</Heading>
+            <Heading size="md" fontWeight="bold" color={textColor}>Transaction History</Heading>
             <Text fontSize="xs" color={mutedText} fontWeight="bold" mt={1}>
               All payments recorded for this lease • {(lease?.payments || []).length} transaction(s)
             </Text>
@@ -766,7 +785,7 @@ export default function TenantLease() {
                       <VStack spacing={6}>
                         <Box w="280px" bg="white" p={4} borderRadius="2xl" shadow="xl" border="1px solid" borderColor="gray.100" mx="auto">
                           <Box bg="#005EAA" p={3} mb={3} borderTopRadius="xl">
-                            <Image src={KHQR_LOGO} h="20px" mx="auto" />
+                            <Text color="white" fontSize="xl" fontWeight="black" fontStyle="italic" letterSpacing="widest" textAlign="center">KHQR</Text>
                           </Box>
                           <Center>
                             <QRCodeCanvas

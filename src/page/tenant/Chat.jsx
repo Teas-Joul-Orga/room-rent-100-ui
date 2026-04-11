@@ -17,6 +17,7 @@ export default function TenantChat() {
   const [contacts, setContacts] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [lastMessages, setLastMessages] = useState({}); // New state for sorting
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [loadingContacts, setLoadingContacts] = useState(true);
@@ -48,7 +49,7 @@ export default function TenantChat() {
   const noMessagesColor = useColorModeValue("gray.400", "gray.500");
   const inputBg = useColorModeValue("gray.100", "#30363d");
 
-  const token = localStorage.getItem('token');
+  const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -84,17 +85,6 @@ export default function TenantChat() {
   useEffect(() => {
     if (!currentUser?.id || !token) return;
 
-    const fetchUnreadCounts = async () => {
-      try {
-        const res = await fetch(`${API}/messages/unread-per-contact`, { headers: { Authorization: `Bearer ${token}` } });
-        if (res.ok) {
-          const data = await res.json();
-          setUnreadCounts(data.counts || {});
-        }
-      } catch (e) {}
-    };
-    fetchUnreadCounts();
-
     const channel = echo().private(`chat.user.${currentUser.id}`)
       .listen('.App\\Events\\ChatCountsUpdated', (e) => {
          setUnreadCounts(e.unreadPerContact || {});
@@ -109,25 +99,53 @@ export default function TenantChat() {
   }, [currentUser?.id, token]);
 
   useEffect(() => {
-    if (!selectedContact) return;
+    if (!currentUser?.id) return;
 
     const fetchMessages = async () => {
       try {
         const res = await fetch(`${API}/messages`, { headers: { Authorization: `Bearer ${token}` } });
         if (res.ok) {
           const data = await res.json();
-          const thread = data.messages.filter(m => 
-            (m.sender_id === currentUser?.id && m.receiver_id === selectedContact.id) ||
-            (m.sender_id === selectedContact.id && m.receiver_id === currentUser?.id)
-          ).reverse(); 
-          setMessages(thread);
+          
+          const lastMsgs = {};
+          data.messages.forEach(m => {
+             const otherId = m.sender_id === currentUser.id ? m.receiver_id : m.sender_id;
+             if (!lastMsgs[otherId] || new Date(m.created_at) > new Date(lastMsgs[otherId].created_at)) {
+                lastMsgs[otherId] = m;
+             }
+          });
+          setLastMessages(lastMsgs);
+
+          if (selectedContact) {
+            const thread = data.messages.filter(m => 
+              (m.sender_id === currentUser.id && m.receiver_id === selectedContact.id) ||
+              (m.sender_id === selectedContact.id && m.receiver_id === currentUser.id)
+            ).reverse();  
+            setMessages(thread);
+          }
         }
       } catch(e) {}
     };
 
-    fetchMessages();
+    const fetchUnreadCounts = async () => {
+      try {
+        const res = await fetch(`${API}/messages/unread-per-contact`, { headers: { Authorization: `Bearer ${token}` } });
+        if (res.ok) {
+          const data = await res.json();
+          setUnreadCounts(data.counts || {});
+        }
+      } catch (e) {}
+    };
+
+    const pollData = () => {
+      fetchMessages();
+      fetchUnreadCounts();
+    };
+
+    pollData();
     
     const markRead = async () => {
+      if (!selectedContact) return;
       try {
         await fetch(`${API}/messages/mark-read`, {
           method: 'POST',
@@ -141,9 +159,11 @@ export default function TenantChat() {
       } catch (e) {}
     };
     
-    markRead();
+    if (selectedContact) {
+      markRead();
+    }
     window.addEventListener('wsMessageRead', markRead);
-    const interval = setInterval(fetchMessages, 10000);
+    const interval = setInterval(pollData, 10000);
     return () => {
       clearInterval(interval);
       window.removeEventListener('wsMessageRead', markRead);
@@ -201,6 +221,11 @@ export default function TenantChat() {
       if (!res.ok) throw new Error("Failed to send");
       const data = await res.json();
       setMessages(prev => [...prev, data.data]);
+      
+      setLastMessages(prev => ({
+        ...prev,
+        [selectedContact.id]: data.data
+      }));
     } catch (e) {
       toast({ title: "Message failed to send", status: "error" });
       setNewMessage(tempText);
@@ -267,7 +292,15 @@ export default function TenantChat() {
              <Text textAlign="center" color="gray.500" p={6}>No contacts found.</Text>
           ) : (
             <VStack spacing={1} align="stretch">
-              {contacts.map(contact => {
+              {[...contacts].sort((a, b) => {
+                const unreadA = unreadCounts[a.id] || 0;
+                const unreadB = unreadCounts[b.id] || 0;
+                if (unreadA > 0 && unreadB === 0) return -1;
+                if (unreadB > 0 && unreadA === 0) return 1;
+                const timeA = lastMessages[a.id] ? new Date(lastMessages[a.id].created_at).getTime() : 0;
+                const timeB = lastMessages[b.id] ? new Date(lastMessages[b.id].created_at).getTime() : 0;
+                return timeB - timeA;
+              }).map(contact => {
                 const unread = unreadCounts[contact.id] || 0;
                 return (
                 <Flex 

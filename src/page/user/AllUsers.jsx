@@ -96,7 +96,7 @@ export default function AllUsers() {
   const [selectedUser, setSelectedUser] = useState(null);
 
   // Retrieve token
-  const token = localStorage.getItem("token");
+  const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
 
   useEffect(() => {
     fetchUsers();

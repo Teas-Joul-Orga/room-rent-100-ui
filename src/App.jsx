@@ -6,23 +6,25 @@ import DashboardLayout from './layouts/DashboardLayout';
 import ReloadPrompt from './components/ReloadPrompt';
 
 // Admin Pages
-import AdminDashboard from "./page/admin/Dashboard";
-import AdminOverview from "./page/admin/Overview";
-import AdminListPending from "./page/admin/ListPending";
-import AdminMonthlyIncomeChart from "./page/admin/MonthlyIncomeChart";
+import AdminDashboard from "./page/Admin/Dashboard";
+import AdminOverview from "./page/Admin/Overview";
+import AdminListPending from "./page/Admin/ListPending";
+import AdminMonthlyIncomeChart from "./page/Admin/MonthlyIncomeChart";
 import AdminAnnouncements from "./page/announcements/AdminAnnouncements";
-import AdminChat from "./page/admin/AdminChat";
+import AdminChat from "./page/Admin/AdminChat";
 import AdminUtility from "./page/utility/Utility";
 import AdminAddBill from "./page/utility/AddBill";
 import AdminRecordPayment from "./page/utility/RecordPayment";
 import AdminPaymentHistory from "./page/utility/PaymentHistory";
-import AdminAllTenants from "./page/admin/AllTenants";
-import AdminActiveTenant from "./page/admin/ActiveTenant";
-import AdminPendingTenant from "./page/admin/PendingTenant";
-import AdminAddNewTenant from "./page/admin/AddNewTenant";
-import AdminViewTenant from "./page/admin/ViewTenant";
-import AdminCreateAccount from "./page/admin/CreateAccount";
-import AdminExpense from "./page/admin/Expense";
+import AdminAllTenants from "./page/Admin/AllTenants";
+import AdminActiveTenant from "./page/Admin/ActiveTenant";
+import AdminPendingTenant from "./page/Admin/PendingTenant";
+import AdminAddNewTenant from "./page/Admin/AddNewTenant";
+import AdminViewTenant from "./page/Admin/ViewTenant";
+import AdminCreateAccount from "./page/Admin/CreateAccount";
+import AdminExpense from "./page/Admin/Expense";
+import AdminBookingManagement from "./page/Admin/BookingManagement";
+import AdminWaitlistManagement from "./page/Admin/WaitlistManagement";
 
 // Tenant Pages
 import TenantDashboard from "./page/tenant/Dashboard";
@@ -34,6 +36,8 @@ import TenantAnnouncements from "./page/tenant/Announcements";
 import TenantChat from "./page/tenant/Chat";
 import AvailableRooms from "./page/tenant/AvailableRooms";
 import AvailableRoomDetail from "./page/tenant/AvailableRoomDetail";
+import MyBookings from "./page/tenant/MyBookings";
+import MyWaitlists from "./page/tenant/MyWaitlists";
 
 // Shared/Common
 import AllRoom from "./page/room/AllRoom";
@@ -41,6 +45,7 @@ import AvailableRoom from "./page/room/AvailableRoom";
 import OccupiedRoom from "./page/room/OccupiedRoom";
 import MaintenanceRoom from "./page/room/MaintenanceRoom";
 import AddNewRoom from "./page/room/AddNewRoom";
+import BulkCreateRooms from "./page/room/BulkCreateRooms";
 import EditRoom from "./page/room/EditRoom";
 import ViewRoom from "./page/room/ViewRoom";
 
@@ -61,31 +66,32 @@ import Payment from "./page/payment/Payment";
 import Furniture from "./page/furniture/Furniture";
 import AddNewFurniture from "./page/furniture/AddNewFurniture";
 import RoomFurniture from "./page/furniture/RoomFurniture";
-import ViewFurniture from "./page/furniture/ViewFurniture";
 import Bills from "./page/utility/Bills";
 
 import Landing from "./page/Landing";
 import Login from "./Login";
-import ProtectedRoute from "./protectedroute";
+import Signup from "./Signup";
+import ProtectedRoute from "./ProtectedRoute";
+import NotFound from "./page/NotFound";
 
 // Wrapper to dynamically pick the right dashboard/page based on role
 function DashboardIndex() {
-  const role = localStorage.getItem('role')?.toLowerCase();
+  const role = (localStorage.getItem('role') || sessionStorage.getItem('role'))?.toLowerCase();
   return role === 'tenant' ? <TenantDashboard /> : <AdminDashboard />;
 }
 
 function ChatPage() {
-  const role = localStorage.getItem('role')?.toLowerCase();
+  const role = (localStorage.getItem('role') || sessionStorage.getItem('role'))?.toLowerCase();
   return role === 'tenant' ? <TenantChat /> : <AdminChat />;
 }
 
 function AnnouncementPage() {
-  const role = localStorage.getItem('role')?.toLowerCase();
+  const role = (localStorage.getItem('role') || sessionStorage.getItem('role'))?.toLowerCase();
   return role === 'tenant' ? <TenantAnnouncements /> : <AdminAnnouncements />;
 }
 
 function UtilityPage() {
-  const role = localStorage.getItem('role')?.toLowerCase();
+  const role = (localStorage.getItem('role') || sessionStorage.getItem('role'))?.toLowerCase();
   return role === 'tenant' ? <TenantUtility /> : <AdminUtility />;
 }
 
@@ -98,6 +104,7 @@ function App() {
         <Routes>
           {/* login page public */}
           <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
           {/* Public Landing Page */}
           <Route path="/" element={<Landing />} />
 
@@ -125,6 +132,9 @@ function App() {
               <Route path="createaccount/:id" element={<AdminCreateAccount />} />
             </Route>
 
+            <Route path="bookings" element={<AdminBookingManagement />} />
+            <Route path="waitlists" element={<AdminWaitlistManagement />} />
+
             {/* Users */}
             <Route path="users">
               <Route index element={<AllUsers />} />
@@ -136,7 +146,6 @@ function App() {
               <Route index element={<Furniture />} />
               <Route path="addnewfurniture" element={<AddNewFurniture key="add" />} />
               <Route path="edit/:id" element={<AddNewFurniture key="edit" />} />
-              <Route path="viewfurniture/:id" element={<ViewFurniture />} />
               <Route path="room/:room" element={<RoomFurniture />} />
             </Route>
 
@@ -146,6 +155,7 @@ function App() {
               <Route path="available" element={<AvailableRoom />} />
               <Route path="occupied" element={<OccupiedRoom />} />
               <Route path="add" element={<AddNewRoom />} />
+              <Route path="bulk-create" element={<BulkCreateRooms />} />
               <Route path="viewroom/:id" element={<ViewRoom />} />
               <Route path="edit/:id" element={<EditRoom />} />
             </Route>
@@ -196,7 +206,12 @@ function App() {
               <Route index element={<AvailableRooms />} />
               <Route path=":id" element={<AvailableRoomDetail />} />
             </Route>
+
+            <Route path="my-bookings" element={<MyBookings />} />
+            <Route path="my-waitlists" element={<MyWaitlists />} />
           </Route>
+          {/* Catch-all 404 Page */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </>

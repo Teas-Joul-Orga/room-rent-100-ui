@@ -37,7 +37,7 @@ export default function AdminAnnouncements() {
   const fetchAnnouncements = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       const res = await fetch(`${API}/admin/announcements`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -64,7 +64,7 @@ export default function AdminAnnouncements() {
   const executeDelete = async () => {
     if (!deleteTarget) return;
     try {
-      const token = localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       const res = await fetch(`${API}/admin/announcements/${deleteTarget}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }

@@ -7,7 +7,7 @@ const api = axios.create({
 // Request interceptor to add the auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -23,11 +23,11 @@ api.interceptors.response.use(
   (error) => {
     if (error.response) {
       if (error.response.status === 401) {
-        // Automatically logout on unauthorized, but don't redirect if we're already on /login
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('role');
-        localStorage.setItem('isLoggedIn', 'false');
+        // Automatically logout on unauthorized — clear both storages
+        ['token', 'user', 'role', 'isLoggedIn', 'token_expires_at'].forEach(key => {
+          localStorage.removeItem(key);
+          sessionStorage.removeItem(key);
+        });
         
         if (window.location.pathname !== '/login') {
           window.location.href = '/login';

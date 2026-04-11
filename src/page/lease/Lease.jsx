@@ -43,10 +43,10 @@ import { FiArrowUp, FiArrowDown, FiPlus, FiEye, FiEdit2, FiTrash2, FiCalendar, F
 import { exportToExcel } from "../../utils/exportExcel";
 
 const fmt = (n) => {
-  const c = localStorage.getItem("currency") || "$";
+  const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
   const num = Number(n || 0);
   if (c === "៛" || c === "KHR" || c === "Riel") {
-    const rateItem = localStorage.getItem("exchangeRate");
+    const rateItem = (localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate"));
     const r = rateItem ? Number(rateItem) : 4000;
     return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
   }
@@ -130,7 +130,7 @@ export default function Leases() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
       const headers = {
         Authorization: `Bearer ${token}`,
         Accept: "application/json",
@@ -174,7 +174,7 @@ export default function Leases() {
   const confirmDelete = async () => {
     if (!leaseToDelete) return;
 
-    const token = localStorage.getItem("token");
+    const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
     setIsDeleting(true);
     try {
       const res = await fetch(`http://localhost:8000/api/v1/admin/leases/${leaseToDelete.uid}`, {
@@ -204,7 +204,7 @@ export default function Leases() {
   const handleBulkDelete = async () => {
     if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} leases?`)) return;
 
-    const token = localStorage.getItem("token");
+    const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
     setIsLoading(true);
     try {
       // Typically there should be a bulk discard endpoint in API, or we execute individual queries
@@ -279,7 +279,7 @@ export default function Leases() {
     }
 
     setIsBulkRenewing(true);
-    const token = localStorage.getItem("token");
+    const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
 
     try {
       // Map requests

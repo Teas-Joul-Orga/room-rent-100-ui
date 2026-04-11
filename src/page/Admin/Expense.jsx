@@ -13,20 +13,20 @@ import dayjs from "dayjs";
 
 const API = "http://localhost:8000/api/v1";
 const fmt = (n) => {
-  const c = localStorage.getItem("currency") || "$";
+  const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
   const num = Number(n || 0);
   if (c === "៛" || c === "KHR" || c === "Riel") {
-    const rateItem = localStorage.getItem("exchangeRate");
+    const rateItem = (localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate"));
     const r = rateItem ? Number(rateItem) : 4000;
     return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
   }
   return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 const toUSD = (n, explicitCurrency) => {
-  const c = explicitCurrency || localStorage.getItem("currency") || "$";
+  const c = explicitCurrency || (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
   const num = Number(n || 0);
   if (c === "៛" || c === "KHR" || c === "Riel") {
-    const r = Number(localStorage.getItem("exchangeRate") || 4000);
+    const r = Number((localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate")) || 4000);
     return (num / r).toFixed(2);
   }
   return num;
@@ -47,7 +47,7 @@ function Expense() {
 
   // Modal State
   const [isOpen, setIsOpen] = useState(false);
-  const [form, setForm] = useState({ title: "", category: "", amount: "", expense_date: dayjs().format('YYYY-MM-DD'), room_id: "", description: "", reference_number: "", currency: localStorage.getItem("currency") || "$" });
+  const [form, setForm] = useState({ title: "", category: "", amount: "", expense_date: dayjs().format('YYYY-MM-DD'), room_id: "", description: "", reference_number: "", currency: (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$" });
 
   // Delete Alert State
   const [deleteId, setDeleteId] = useState(null);
@@ -61,7 +61,7 @@ function Expense() {
   const trHoverBg = useColorModeValue("gray.50", "#1c2333");
 
   const headers = () => {
-    const token = localStorage.getItem("token");
+    const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
@@ -124,7 +124,7 @@ function Expense() {
       if (res.ok) {
         toast.success("Expense recorded successfully");
         setIsOpen(false);
-        setForm({ title: "", category: categories[0] || "", amount: "", expense_date: dayjs().format('YYYY-MM-DD'), room_id: "", description: "", reference_number: "", currency: localStorage.getItem("currency") || "$" });
+        setForm({ title: "", category: categories[0] || "", amount: "", expense_date: dayjs().format('YYYY-MM-DD'), room_id: "", description: "", reference_number: "", currency: (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$" });
         fetchExpenses();
       } else {
         const d = await res.json();

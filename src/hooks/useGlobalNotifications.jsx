@@ -9,7 +9,7 @@ export default function useGlobalNotifications(currentUser) {
 
   useEffect(() => {
     if (!currentUser?.id) return;
-    const token = localStorage.getItem('token');
+    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
     if (!token) return;
 
     // 2. Use the centralized echo singleton

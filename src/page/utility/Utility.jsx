@@ -7,10 +7,11 @@ import {
   SimpleGrid, Checkbox, IconButton, Tooltip, Heading, Icon,
   Tabs, TabList, TabPanels, Tab, TabPanel, Divider,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton,
-  ModalBody, ModalFooter, useDisclosure, FormControl, FormLabel, Textarea
+  ModalBody, ModalFooter, useDisclosure, FormControl, FormLabel, Textarea,
+  Menu, MenuButton, MenuList, MenuItem
 } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next";
-import { FiArrowUp, FiArrowDown, FiTrash2, FiPrinter, FiBell, FiChevronLeft, FiChevronRight, FiPlus, FiCreditCard, FiDownload } from "react-icons/fi";
+import { FiArrowUp, FiArrowDown, FiTrash2, FiPrinter, FiBell, FiChevronLeft, FiChevronRight, FiPlus, FiCreditCard, FiDownload, FiChevronDown } from "react-icons/fi";
 import { exportToExcel } from "../../utils/exportExcel";
 import RecordPaymentModal from "../../components/RecordPaymentModal";
 
@@ -20,19 +21,19 @@ const getDefaultRate = (type) => {
                 : type === "water"       ? localStorage.getItem("utility_rate_water")
                 : null;
   if (!rawUSD) return "";
-  const c = localStorage.getItem("currency") || "$";
+  const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
   if (c === "៛" || c === "KHR" || c === "Riel") {
-    const rate = Number(localStorage.getItem("exchangeRate") || 4000);
+    const rate = Number((localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate")) || 4000);
     return (Number(rawUSD) * rate).toFixed(0);
   }
   return rawUSD;
 };
 
 const fmt = (n) => {
-  const c = localStorage.getItem("currency") || "$";
+  const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
   const num = Number(n || 0);
   if (c === "៛" || c === "KHR" || c === "Riel") {
-    const rateItem = localStorage.getItem("exchangeRate");
+    const rateItem = (localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate"));
     const r = rateItem ? Number(rateItem) : 4000;
     return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
   }
@@ -40,10 +41,10 @@ const fmt = (n) => {
 };
 
 const toUSD = (n) => {
-  const c = localStorage.getItem("currency") || "$";
+  const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
   const num = Number(n || 0);
   if (c === "៛" || c === "KHR" || c === "Riel") {
-    const r = Number(localStorage.getItem("exchangeRate") || 4000);
+    const r = Number((localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate")) || 4000);
     return (num / r).toFixed(2);
   }
   return num;
@@ -106,7 +107,7 @@ export default function Utility() {
   const tableHBg = useColorModeValue("gray.50", "#1c2333");
 
   const headers = () => ({
-    Authorization: `Bearer ${localStorage.getItem("token")}`,
+    Authorization: `Bearer ${(localStorage.getItem("token") || sessionStorage.getItem("token"))}`,
     Accept: "application/json",
     "Content-Type": "application/json",
   });
@@ -215,7 +216,7 @@ export default function Utility() {
   };
 
   useEffect(() => { 
-    const token = localStorage.getItem("token");
+    const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
     if (!token) {
       toast.error("Session expired. Please login again.");
       return;
@@ -249,26 +250,28 @@ export default function Utility() {
     }
   };
 
-  const handlePrintInvoice = () => {
+  const handlePrintInvoice = (lang = 'en') => {
     if (selectedIds.length === 0) { toast.error("Select bills to print."); return; }
     
     // Construct query string for bill IDs
     const queryParams = new URLSearchParams();
     selectedIds.forEach(id => queryParams.append('bill_ids[]', id));
-    queryParams.append('token', localStorage.getItem("token"));
+    queryParams.append('token', (localStorage.getItem("token") || sessionStorage.getItem("token")));
+    queryParams.append('lang', lang);
     
     // Open direct URL in new tab
     const printUrl = `http://localhost:8000/api/v1/admin/print/invoice?${queryParams.toString()}`;
     window.open(printUrl, "_blank");
   };
 
-  const handlePrintReceipt = (ids) => {
+  const handlePrintReceipt = (ids, lang = 'en') => {
     const list = Array.isArray(ids) ? ids : [ids];
     if (list.length === 0) { toast.error("Select payments to print."); return; }
     
     const queryParams = new URLSearchParams();
     list.forEach(id => queryParams.append('payment_ids[]', id));
-    queryParams.append('token', localStorage.getItem("token"));
+    queryParams.append('token', (localStorage.getItem("token") || sessionStorage.getItem("token")));
+    queryParams.append('lang', lang);
     
     // Open direct URL in new tab
     const printUrl = `http://localhost:8000/api/v1/admin/print/receipt?${queryParams.toString()}`;
@@ -395,9 +398,15 @@ export default function Utility() {
           </Box>
           <Flex gap={2}>
             {selectedIds.length > 0 && (
-              <Button size="md" colorScheme="purple" variant="outline" leftIcon={<FiPrinter />} onClick={activeTab === 0 ? handlePrintInvoice : () => handlePrintReceipt(selectedIds)}>
-                {activeTab === 0 ? t("utility.print_invoice", { count: selectedIds.length }) : t("payment.print_receipts", `Print Receipts (${selectedIds.length})`)}
-              </Button>
+              <Menu>
+                <MenuButton as={Button} size="md" colorScheme="purple" variant="outline" leftIcon={<FiPrinter />} rightIcon={<FiChevronDown />}>
+                  {activeTab === 0 ? t("utility.print_invoice", { count: selectedIds.length }) : t("payment.print_receipts", `Print Receipts (${selectedIds.length})`)}
+                </MenuButton>
+                <MenuList zIndex={10}>
+                  <MenuItem onClick={activeTab === 0 ? () => handlePrintInvoice('en') : () => handlePrintReceipt(selectedIds, 'en')}>English</MenuItem>
+                  <MenuItem onClick={activeTab === 0 ? () => handlePrintInvoice('km') : () => handlePrintReceipt(selectedIds, 'km')}>Khmer</MenuItem>
+                </MenuList>
+              </Menu>
             )}
             <Button
               size="md"
@@ -635,9 +644,15 @@ export default function Utility() {
                             <Td fontSize="sm" fontWeight="bold" color={mutedText} textTransform="uppercase">{p.payment_method}</Td>
                             <Td fontSize="sm" color={mutedText}>{p.notes || "—"}</Td>
                             <Td textAlign="right">
-                              <Tooltip label="View Print" hasArrow>
-                                <IconButton icon={<FiPrinter />} size="xs" variant="ghost" colorScheme="blue" onClick={() => window.open(`${API}/payments/print-receipt?payment_ids[]=${p.id}`, '_blank')} aria-label="Print" />
-                              </Tooltip>
+                              <Menu>
+                                <Tooltip label="View Print" hasArrow>
+                                  <MenuButton as={IconButton} icon={<FiPrinter />} size="xs" variant="ghost" colorScheme="blue" aria-label="Print" />
+                                </Tooltip>
+                                <MenuList zIndex={10}>
+                                  <MenuItem onClick={() => handlePrintReceipt([p.id], 'en')}>English</MenuItem>
+                                  <MenuItem onClick={() => handlePrintReceipt([p.id], 'km')}>Khmer</MenuItem>
+                                </MenuList>
+                              </Menu>
                             </Td>
                           </Tr>
                         ))
@@ -725,7 +740,7 @@ export default function Utility() {
                           <Input size="sm" bg="white" type="number" step="0.01" value={addForm.current_reading} onChange={e => setAddForm({ ...addForm, current_reading: e.target.value })} />
                         </FormControl>
                         <FormControl isRequired>
-                          <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Rate per Unit ({localStorage.getItem("currency") || "$"})</FormLabel>
+                          <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Rate per Unit ({(localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$"})</FormLabel>
                           <Input size="sm" bg="white" type="number" step="0.01" value={addForm.cost_per_unit} onChange={e => setAddForm({ ...addForm, cost_per_unit: e.target.value })} placeholder="e.g. 0.25" />
                         </FormControl>
                         <Box display="flex" flexDirection="column" justifyContent="center">
@@ -738,7 +753,7 @@ export default function Utility() {
 
                   <SimpleGrid columns={2} spacing={4}>
                     <FormControl isRequired>
-                      <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Total Amount ({localStorage.getItem("currency") || "$"})</FormLabel>
+                      <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Total Amount ({(localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$"})</FormLabel>
                       <Input size="sm" type="number" step="0.01" value={addForm.amount} onChange={e => setAddForm({ ...addForm, amount: e.target.value })} bg="yellow.50" fontWeight="bold" />
                     </FormControl>
                     <FormControl isRequired>

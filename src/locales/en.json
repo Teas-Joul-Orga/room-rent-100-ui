@@ -12,6 +12,7 @@
     "furniture": "Furniture",
     "leases": "Leases",
     "utilities": "Utilities",
+    "bills": "Bills",
     "payments": "Payments",
     "maintenance": "Maintenance",
     "expenses": "Expenses",
@@ -21,7 +22,7 @@
     "settings": "Settings",
     "my_lease": "My Lease",
     "lease_history": "Lease History",
-    "my_billing": "My Billing",
+    "my_billing": "Bills",
     "community": "Community",
     "tenant_mgmt": "Tenants Management",
     "all_rooms": "All Rooms",
@@ -63,7 +64,9 @@
     "password_mismatch": "Passwords do not match",
     "error_occurred": "An error occurred",
     "network_error": "Network error, please try again",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "view_detail": "View Detail",
+    "login": "Login"
   },
   "lease": {
     "statement": "Lease Statement",
@@ -252,7 +255,21 @@
     "name_rent_required": "Room name and base rent are required",
     "create_success": "Room created successfully",
     "create_failed": "Failed to create room",
-    "network_error": "A network error occurred."
+    "network_error": "A network error occurred.",
+    "bulk_create": "Bulk Create",
+    "bulk_create_title": "Bulk Create Rooms",
+    "bulk_create_subtitle": "Quickly generate multiple rooms with shared properties",
+    "prefix": "Name Prefix",
+    "prefix_placeholder": "e.g. Room A",
+    "start_number": "Start Number",
+    "count": "Number of Rooms",
+    "preview_names": "Preview Generated Names",
+    "shared_properties": "Shared Properties",
+    "summary_text": "You are about to create {{count}} rooms",
+    "bulk_create_confirm": "Create {{count}} Rooms",
+    "bulk_creating": "Creating...",
+    "bulk_create_success": "{{count}} rooms created successfully!",
+    "bulk_create_failed": "Failed to create rooms"
   },
   "dashboard": {
     "overview": "Dashboard Overview",
@@ -510,7 +527,8 @@
       "general": "General Info",
       "contact": "Contact Details",
       "finance": "Finance & Bank",
-      "utilities": "Utility Defaults"
+      "utilities": "Utility Defaults",
+      "booking": "Booking Policy"
     },
     "tip_title": "Admin Tip",
     "tip_desc": "Currency and exchange rate settings are sensitive. Changes here will immediately affect how all prices and balances are displayed across the system.",
@@ -551,6 +569,14 @@
       "label_electricity": "Electricity Price",
       "label_water": "Water Price",
       "note": "Note: Individual lease contracts can override these global rates if custom pricing was negotiated with a specific tenant."
+    },
+    "booking": {
+      "header": "Booking Policy",
+      "desc": "Configure down payment requirements for room bookings.",
+      "label_down_payment": "Down Payment Percentage",
+      "down_payment_helper": "This percentage of the room's base rent will be required as a down payment when a tenant books a room.",
+      "info_title": "How it works",
+      "info_desc": "When a tenant submits a booking request, they will be required to pay a down payment equal to this percentage of the room's monthly rent. The admin can verify the payment status before approving the booking."
     }
   },
   "profile_page": {

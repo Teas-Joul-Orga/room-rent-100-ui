@@ -3,6 +3,7 @@ import {
   Flex,
   HStack,
   IconButton,
+  Button,
   Image,
   Text,
   Badge,
@@ -23,7 +24,7 @@ import {
   PopoverArrow,
   PopoverBody,
 } from "@chakra-ui/react";
-import { IoMenu, IoNotificationsOutline, IoMoon, IoSunny, IoKeyOutline, IoChatbubbleEllipsesOutline } from "react-icons/io5";
+import { IoMenu, IoNotificationsOutline, IoMoon, IoSunny, IoKeyOutline, IoChatbubbleEllipsesOutline, IoHomeOutline } from "react-icons/io5";
 import { LuCircleUser, LuLogOut, LuSettings } from "react-icons/lu";
 import { useNavigate, NavLink } from "react-router-dom";
 import logo from "../assets/Arun_MuyKea.png";
@@ -34,7 +35,7 @@ import useNotificationCount from "../hooks/useNotificationCount";
 import Notification from "../page/notification/Notification";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 
-const Topbar = ({ onOpenSidebar }) => {
+const Topbar = ({ onOpenSidebar, onToggleDesktop }) => {
   const { colorMode, toggleColorMode } = useColorMode();
   const navigate = useNavigate();
   const { isOpen: isPasswordOpen, onOpen: onPasswordOpen, onClose: onPasswordClose } = useDisclosure();
@@ -53,7 +54,7 @@ const Topbar = ({ onOpenSidebar }) => {
   // User details from localStorage
   let userDetails = { name: "Admin" };
   try {
-    const storedUser = localStorage.getItem("user");
+    const storedUser = (localStorage.getItem("user") || sessionStorage.getItem("user"));
     if (storedUser) {
       userDetails = JSON.parse(storedUser);
     }
@@ -91,9 +92,22 @@ const Topbar = ({ onOpenSidebar }) => {
             borderRadius="xl"
             size="sm"
           />
+          {/* Desktop Menu Icon to toggle collapse */}
+          <IconButton
+            display={{ base: "none", lg: "flex" }}
+            onClick={onToggleDesktop}
+            variant="ghost"
+            aria-label="Toggle sidebar"
+            icon={<IoMenu size={20} />}
+            color="gray.700"
+            _dark={{ color: "gray.200" }}
+            _hover={{ bg: hoverBg }}
+            borderRadius="xl"
+            size="sm"
+          />
 
           {/* Logo & Title */}
-          <HStack display={{ base: "none", sm: "flex" }} spacing={2} minW={0} ml={2}>
+          <HStack display={{ base: "none", sm: "flex" }} spacing={2} minW={0} ml={2} cursor="pointer" onClick={() => navigate("/")}>
             <Image 
               src={logo} 
               h="12" 
@@ -245,6 +259,17 @@ const Topbar = ({ onOpenSidebar }) => {
               borderColor={borderColor} 
               p={1}
             >
+              <MenuItem
+                as={NavLink}
+                to="/"
+                icon={<IoHomeOutline size={18} />}
+                fontSize="sm"
+                fontWeight="semibold"
+                borderRadius="md"
+                _hover={{ bg: hoverBg, color: "blue.500" }}
+              >
+                Home
+              </MenuItem>
               <MenuItem
                 as={NavLink}
                 to="/dashboard/profile"

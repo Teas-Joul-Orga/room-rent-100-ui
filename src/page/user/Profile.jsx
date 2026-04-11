@@ -26,7 +26,7 @@ export default function Profile() {
   });
 
   const toast = useToast();
-  const token = localStorage.getItem("token");
+  const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
 
   const mainBg = useColorModeValue("sky.50", "#0d1117");
   const cardBg = useColorModeValue("white", "#161b22");
@@ -38,7 +38,7 @@ export default function Profile() {
     const fetchProfile = async () => {
       try {
         // Optimistically load from localStorage first
-        const storedUser = localStorage.getItem("user");
+        const storedUser = (localStorage.getItem("user") || sessionStorage.getItem("user"));
         let initialUser = null;
         if (storedUser) {
           initialUser = JSON.parse(storedUser);
@@ -171,7 +171,7 @@ export default function Profile() {
     );
   }
 
-  const role = localStorage.getItem("role") || "user";
+  const role = (localStorage.getItem("role") || sessionStorage.getItem("role")) || "user";
 
   return (
     <Box bg={mainBg} minH="calc(100vh - 80px)" p={{ base: 4, md: 8 }}>

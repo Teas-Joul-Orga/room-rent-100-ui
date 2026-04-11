@@ -37,7 +37,7 @@ export default function TenantAnnouncements() {
     setLikedPosts(prev => ({ ...prev, [id]: !wasLiked }));
 
     try {
-      const token = localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       const res = await fetch(`${API}/tenant/announcements/${id}/like`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
@@ -64,7 +64,7 @@ export default function TenantAnnouncements() {
   const fetchAnnouncements = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       const res = await fetch(`${API}/tenant/announcements`, {
         headers: { Authorization: `Bearer ${token}` }
       });

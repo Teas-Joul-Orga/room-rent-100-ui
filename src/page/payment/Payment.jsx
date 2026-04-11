@@ -4,19 +4,20 @@ import {
   Box, Flex, Button, Input, Table, Thead, Tbody, Tr, Th, Td,
   TableContainer, Badge, Select, useColorModeValue, Spinner, Text,
   SimpleGrid, IconButton, Tooltip, Heading, useDisclosure,
-  Tabs, TabList, Tab, TabPanels, TabPanel, Checkbox
+  Tabs, TabList, Tab, TabPanels, TabPanel, Checkbox,
+  Menu, MenuButton, MenuList, MenuItem
 } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next";
-import { FiArrowUp, FiArrowDown, FiTrash2, FiPrinter, FiChevronLeft, FiChevronRight, FiPlus, FiSearch, FiDownload } from "react-icons/fi";
+import { FiArrowUp, FiArrowDown, FiTrash2, FiPrinter, FiChevronLeft, FiChevronRight, FiPlus, FiSearch, FiDownload, FiChevronDown } from "react-icons/fi";
 import { exportToExcel } from "../../utils/exportExcel";
 import RecordPaymentModal from "../../components/RecordPaymentModal";
 
 const API = "http://localhost:8000/api/v1/admin";
 const fmt = (n) => {
-  const c = localStorage.getItem("currency") || "$";
+  const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
   const num = Number(n || 0);
   if (c === "៛" || c === "KHR" || c === "Riel") {
-    const rateItem = localStorage.getItem("exchangeRate");
+    const rateItem = (localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate"));
     const r = rateItem ? Number(rateItem) : 4000;
     return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
   }
@@ -68,7 +69,7 @@ export default function Payment() {
   const tableHBg = useColorModeValue("gray.50", "#1c2333");
 
   const headers = () => ({
-    Authorization: `Bearer ${localStorage.getItem("token")}`,
+    Authorization: `Bearer ${(localStorage.getItem("token") || sessionStorage.getItem("token"))}`,
     Accept: "application/json",
   });
 
@@ -108,7 +109,7 @@ export default function Payment() {
   };
 
   useEffect(() => { 
-    const token = localStorage.getItem("token");
+    const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
     if (!token) {
       toast.error("Session expired. Please login again.");
       return;
@@ -143,7 +144,7 @@ export default function Payment() {
   const handleExportExcel = async () => {
     setIsExporting(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
       // Use the same filters as the current view but request all records
       const params = new URLSearchParams();
       params.append("per_page", "all");
@@ -193,13 +194,14 @@ export default function Payment() {
     }
   };
 
-  const handlePrintReceipt = (ids) => {
+  const handlePrintReceipt = (ids, lang = 'en') => {
     const list = Array.isArray(ids) ? ids : [ids];
     if (list.length === 0) { toast.error("Select payments to print."); return; }
     
     const queryParams = new URLSearchParams();
     list.forEach(id => queryParams.append('payment_ids[]', id));
-    queryParams.append('token', localStorage.getItem("token"));
+    queryParams.append('token', (localStorage.getItem("token") || sessionStorage.getItem("token")));
+    queryParams.append('lang', lang);
     
     const printUrl = `http://localhost:8000/api/v1/admin/print/receipt?${queryParams.toString()}`;
     window.open(printUrl, "_blank");
@@ -262,9 +264,15 @@ export default function Payment() {
           </Box>
           <Flex gap={2}>
             {selectedIds.length > 0 && (
-              <Button size="md" colorScheme="purple" variant="outline" leftIcon={<FiPrinter />} onClick={() => handlePrintReceipt(selectedIds)}>
-                {t("payment.print_receipts", `Print Receipts (${selectedIds.length})`)}
-              </Button>
+              <Menu>
+                <MenuButton as={Button} size="md" colorScheme="purple" variant="outline" leftIcon={<FiPrinter />} rightIcon={<FiChevronDown />}>
+                  {t("payment.print_receipts", `Print Receipts (${selectedIds.length})`)}
+                </MenuButton>
+                <MenuList>
+                  <MenuItem onClick={() => handlePrintReceipt(selectedIds, 'en')}>Print (English)</MenuItem>
+                  <MenuItem onClick={() => handlePrintReceipt(selectedIds, 'km')}>Print (Khmer)</MenuItem>
+                </MenuList>
+              </Menu>
             )}
             <Button
               size="md"
@@ -414,9 +422,15 @@ export default function Payment() {
                       <Td fontSize="sm" color={mutedText} maxW="200px" isTruncated title={p.notes}>{p.notes || "—"}</Td>
                       <Td textAlign="right">
                         <Flex gap={1} justify="flex-end">
-                          <Tooltip label="Print Receipt" hasArrow>
-                            <IconButton icon={<FiPrinter />} size="xs" colorScheme="blue" variant="ghost" onClick={() => handlePrintReceipt(p.id)} aria-label="Print" />
-                          </Tooltip>
+                          <Menu>
+                            <Tooltip label="Print Receipt" hasArrow>
+                              <MenuButton as={IconButton} icon={<FiPrinter />} size="xs" colorScheme="blue" variant="ghost" aria-label="Print" />
+                            </Tooltip>
+                            <MenuList zIndex={10}>
+                              <MenuItem onClick={() => handlePrintReceipt(p.id, 'en')}>English</MenuItem>
+                              <MenuItem onClick={() => handlePrintReceipt(p.id, 'km')}>Khmer</MenuItem>
+                            </MenuList>
+                          </Menu>
                           <Tooltip label="Delete" hasArrow>
                             <IconButton icon={<FiTrash2 />} size="xs" colorScheme="red" variant="ghost" onClick={() => handleDelete(p)} aria-label="Delete" />
                           </Tooltip>

@@ -104,7 +104,7 @@ const AddNewTenant = () => {
 
   const fetchTenantData = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
       const res = await fetch(`${API}/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -175,7 +175,7 @@ const AddNewTenant = () => {
     }
 
     try {
-      const token = localStorage.getItem("token");
+      const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
       const data = new FormData();
       
       data.append("name", formData.name);

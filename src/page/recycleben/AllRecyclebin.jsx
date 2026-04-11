@@ -32,7 +32,7 @@ export default function AllRecyclebin() {
   const fetchTrash = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       const params = new URLSearchParams(search ? { search } : {});
       const res = await fetch(`${API}/admin/trash?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -59,7 +59,7 @@ export default function AllRecyclebin() {
 
   const execAction = async (type, id, action) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       // POST for restore, DELETE for force-delete
       const method = action === 'restore' ? 'POST' : 'DELETE';
       const endpoint = `${API}/admin/trash/${type}/${id}/${action === 'restore' ? 'restore' : 'force-delete'}`;

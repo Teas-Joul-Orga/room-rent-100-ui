@@ -8,7 +8,7 @@ let echoInstance = null;
 const echo = () => {
     if (echoInstance) return echoInstance;
     
-    const token = localStorage.getItem('token');
+    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
     echoInstance = new Echo({
         broadcaster: 'reverb',
         key: 'ia6m3xrvsph7zmudqiif',

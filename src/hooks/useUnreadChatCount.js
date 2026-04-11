@@ -8,7 +8,7 @@ export default function useUnreadChatCount(currentUser) {
 
   useEffect(() => {
     if (!currentUser?.id) return;
-    const token = localStorage.getItem('token');
+    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
     if (!token) return;
 
     // 1. Fetch initial count from API

@@ -12,33 +12,33 @@ const API = "http://localhost:8000/api/v1/admin";
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
 
 export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initialData = {} }) {
-  const curr = localStorage.getItem("currency") || "$";
+  const curr = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
   
   const toLocal = (n) => {
-    const c = localStorage.getItem("currency") || "$";
+    const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
     const num = Number(n || 0);
     if (c === "៛" || c === "KHR" || c === "Riel") {
-      const r = Number(localStorage.getItem("exchangeRate") || 4000);
+      const r = Number((localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate")) || 4000);
       return Math.round(num * r);
     }
     return Number(num.toFixed(2));
   };
   
   const toUSD = (n) => {
-    const c = localStorage.getItem("currency") || "$";
+    const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
     const num = Number(n || 0);
     if (c === "៛" || c === "KHR" || c === "Riel") {
-      const r = Number(localStorage.getItem("exchangeRate") || 4000);
+      const r = Number((localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate")) || 4000);
       return Number((num / r).toFixed(2));
     }
     return num;
   };
 
   const fmt = (n) => {
-    const c = localStorage.getItem("currency") || "$";
+    const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
     const num = Number(n || 0);
     if (c === "៛" || c === "KHR" || c === "Riel") {
-      const rateItem = localStorage.getItem("exchangeRate");
+      const rateItem = (localStorage.getItem("exchangeRate") || sessionStorage.getItem("exchangeRate"));
       const r = rateItem ? Number(rateItem) : 4000;
       return "៛" + (num * r).toLocaleString("en-US", { maximumFractionDigits: 0 });
     }
@@ -85,7 +85,7 @@ export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initial
   const fetchLeases = async () => {
     setIsLoadingLeases(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
       if (!token) return;
       const res = await fetch(`${API}/leases?per_page=all&minimal=true&status=active`, {
         headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }
@@ -105,7 +105,7 @@ export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initial
     if (!leaseId) { setUtilityBills([]); return; }
     setIsLoadingBills(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
       const res = await fetch(`${API}/utility-bills?lease_id=${leaseId}&status=unpaid`, {
         headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }
       });
@@ -193,7 +193,7 @@ export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initial
 
     setIsSaving(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
       if (!token) {
         toast.error("Auth token missing");
         return;
