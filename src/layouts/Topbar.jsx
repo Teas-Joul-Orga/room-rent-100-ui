@@ -34,6 +34,8 @@ import useUnreadChatCount from "../hooks/useUnreadChatCount";
 import useNotificationCount from "../hooks/useNotificationCount";
 import Notification from "../page/notification/Notification";
 import LanguageSwitcher from "../components/LanguageSwitcher";
+import { auth } from "../firebase";
+import { signOut } from "firebase/auth";
 
 const Topbar = ({ onOpenSidebar, onToggleDesktop }) => {
   const { colorMode, toggleColorMode } = useColorMode();
@@ -46,8 +48,14 @@ const Topbar = ({ onOpenSidebar, onToggleDesktop }) => {
   const workspaceColor = useColorModeValue("gray.400", "gray.500");
   const hoverBg = useColorModeValue("gray.100", "#1c2333");
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.error(e);
+    }
     localStorage.clear();
+    sessionStorage.clear();
     navigate("/login");
   };
 
@@ -107,7 +115,7 @@ const Topbar = ({ onOpenSidebar, onToggleDesktop }) => {
           />
 
           {/* Logo & Title */}
-          <HStack display={{ base: "none", sm: "flex" }} spacing={2} minW={0} ml={2} cursor="pointer" onClick={() => navigate("/")}>
+          <HStack display="flex" spacing={2} minW={0} ml={2} cursor="pointer" onClick={() => navigate("/")}>
             <Image 
               src={logo} 
               h="12" 

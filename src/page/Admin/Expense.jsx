@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSessionState } from "../../hooks/useSessionState";
 import {
   Box, Flex, Text, Table, Thead, Tbody, Tr, Th, Td, TableContainer,
   Button, useColorModeValue, Select, HStack, Input, InputGroup,
@@ -34,16 +35,16 @@ const toUSD = (n, explicitCurrency) => {
 
 function Expense() {
   const { t } = useTranslation();
-  const [expenses, setExpenses] = useState([]);
+  const [expenses, setExpenses] = useSessionState("allExpenses", []);
   const [rooms, setRooms] = useState([]);
   const [categories, setCategories] = useState([]);
   
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
-  const [roomFilter, setRoomFilter] = useState("");
-  const [sortField, setSortField] = useState("expense_date");
-  const [sortDir, setSortDir] = useState("desc");
+  const [search, setSearch] = useSessionState("expenseSearch", "");
+  const [categoryFilter, setCategoryFilter] = useSessionState("expenseCatFilter", "");
+  const [roomFilter, setRoomFilter] = useSessionState("expenseRoomFilter", "");
+  const [sortField, setSortField] = useSessionState("expenseSortField", "expense_date");
+  const [sortDir, setSortDir] = useSessionState("expenseSortDir", "desc");
 
   // Modal State
   const [isOpen, setIsOpen] = useState(false);

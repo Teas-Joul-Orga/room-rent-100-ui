@@ -36,7 +36,9 @@ export default function useUnreadChatCount(currentUser) {
 
     // Cleanup
     return () => {
-      echo().leaveChannel(`chat.user.${currentUser.id}`);
+      if (channel) {
+        channel.stopListening('.App\\Events\\ChatCountsUpdated');
+      }
     };
   }, [currentUser?.id]);
 

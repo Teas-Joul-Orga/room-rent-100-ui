@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSessionState } from "../../hooks/useSessionState";
 import { useNavigate } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 import {
@@ -79,14 +80,14 @@ export default function Utility() {
   const usage = isMetered ? Math.max(0, Number(addForm.current_reading || 0) - Number(addForm.previous_reading || 0)) : 0;
 
   // Filters
-  const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [activeTab, setActiveTab] = useState(0); // 0 = Bills, 1 = Payments
+  const [search, setSearch] = useSessionState("utilitySearch", "");
+  const [typeFilter, setTypeFilter] = useSessionState("utilityType", "");
+  const [statusFilter, setStatusFilter] = useSessionState("utilityStatus", "");
+  const [activeTab, setActiveTab] = useSessionState("utilityTab", 0); // 0 = Bills, 1 = Payments
 
   // Sorting
-  const [sortField, setSortField] = useState(null);
-  const [sortOrder, setSortOrder] = useState("asc");
+  const [sortField, setSortField] = useSessionState("utilitySort", null);
+  const [sortOrder, setSortOrder] = useSessionState("utilityDir", "asc");
 
   // Delete Modal
   const { isOpen: isDelOpen, onOpen: onDelOpen, onClose: onDelClose } = useDisclosure();
@@ -94,7 +95,7 @@ export default function Utility() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useSessionState("utilityPage", 1);
   const [pagination, setPagination] = useState({ last_page: 1, total: 0 });
 
   const bg = useColorModeValue("gray.50", "#0d1117");
@@ -400,11 +401,11 @@ export default function Utility() {
             {selectedIds.length > 0 && (
               <Menu>
                 <MenuButton as={Button} size="md" colorScheme="purple" variant="outline" leftIcon={<FiPrinter />} rightIcon={<FiChevronDown />}>
-                  {activeTab === 0 ? t("utility.print_invoice", { count: selectedIds.length }) : t("payment.print_receipts", `Print Receipts (${selectedIds.length})`)}
+                  {t("utility.print_invoice", { count: selectedIds.length })}
                 </MenuButton>
                 <MenuList zIndex={10}>
-                  <MenuItem onClick={activeTab === 0 ? () => handlePrintInvoice('en') : () => handlePrintReceipt(selectedIds, 'en')}>English</MenuItem>
-                  <MenuItem onClick={activeTab === 0 ? () => handlePrintInvoice('km') : () => handlePrintReceipt(selectedIds, 'km')}>Khmer</MenuItem>
+                  <MenuItem onClick={() => handlePrintInvoice('en')}>English</MenuItem>
+                  <MenuItem onClick={() => handlePrintInvoice('km')}>Khmer</MenuItem>
                 </MenuList>
               </Menu>
             )}
@@ -414,51 +415,24 @@ export default function Utility() {
               variant="outline"
               leftIcon={<FiDownload />}
               onClick={() => {
-                if (activeTab === 0) {
-                  const dataToExport = bills.map(b => ({
-                    "Tenant": b.lease?.tenant?.name || "—",
-                    "Room": b.lease?.room?.name || b.room?.name || "—",
-                    "Type": b.type,
-                    "Amount": Number(b.amount),
-                    "Due Date": b.due_date,
-                    "Status": b.status,
-                    "Description": b.description || "—"
-                  }));
-                  exportToExcel(dataToExport, "Utility_Bills_" + new Date().toISOString().split('T')[0]);
-                } else {
-                  const dataToExport = payments.map(p => ({
-                    "Tenant": p.lease?.tenant?.name || "—",
-                    "Room": p.lease?.room?.name || "—",
-                    "Date": p.payment_date,
-                    "Amount Paid": Number(p.amount_paid),
-                    "Method": p.payment_method,
-                    "Notes": p.notes || "—"
-                  }));
-                  exportToExcel(dataToExport, "Utility_Payments_" + new Date().toISOString().split('T')[0]);
-                }
+                const dataToExport = bills.map(b => ({
+                  "Tenant": b.lease?.tenant?.name || "—",
+                  "Room": b.lease?.room?.name || b.room?.name || "—",
+                  "Type": b.type,
+                  "Amount": Number(b.amount),
+                  "Due Date": b.due_date,
+                  "Status": b.status,
+                  "Description": b.description || "—"
+                }));
+                exportToExcel(dataToExport, "Utility_Bills_" + new Date().toISOString().split('T')[0]);
               }}
             >
               Export Excel
             </Button>
-            <Button size="md" colorScheme="blue" leftIcon={<FiPlus />} onClick={() => navigate("/dashboard/utility/addbill")}>
-              {t("utility.add_new")}
-            </Button>
           </Flex>
         </Flex>
 
-        <Tabs variant="line" colorScheme="blue" index={activeTab} onChange={(i) => { setActiveTab(i); setSelectedIds([]); }} isLazy>
-          <TabList borderBottom="1px solid" borderColor={borderColor} mb={6}>
-            <Tab fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" pb={4}>
-              {t("utility.statements")}
-            </Tab>
-            <Tab fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" pb={4}>
-              {t("utility.payments_ledger")}
-            </Tab>
-          </TabList>
 
-          <TabPanels>
-            {/* TAB 1: BILLS LIST */}
-            <TabPanel p={0}>
               {/* KPI Cards */}
               <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} mb={6}>
                 <Box bg={cardBg} p={5} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor}>
@@ -546,14 +520,14 @@ export default function Utility() {
                               </Text>
                             </Td>
                             <Td>
-                              <Badge fontSize="sm" fontWeight="black" textTransform="uppercase" colorScheme={typeBadge(bill.type)}>
+                              <Badge px={3} py={1} borderRadius="full" fontSize="xs" fontWeight="bold" textTransform="uppercase" letterSpacing="wider" colorScheme={typeBadge(bill.type)}>
                                 {t(`utility.${bill.type}`)}
                               </Badge>
                             </Td>
                             <Td fontWeight="black" color={textColor}>{fmt(bill.amount)}</Td>
                             <Td fontSize="sm" fontWeight="bold" color={mutedText}>{fmtDate(bill.due_date)}</Td>
                             <Td>
-                              <Badge fontSize="sm" fontWeight="black" textTransform="uppercase" colorScheme={statusBadge(bill.status)}>
+                              <Badge px={3} py={1} borderRadius="full" fontSize="xs" fontWeight="bold" textTransform="uppercase" letterSpacing="wider" colorScheme={statusBadge(bill.status)}>
                                 {t(`utility.${bill.status}`)}
                               </Badge>
                             </Td>
@@ -606,65 +580,6 @@ export default function Utility() {
                 {/* Pagination (Moved inside Box) */}
                 {pagination.last_page > 1 && renderPagination()}
               </Box>
-            </TabPanel>
-
-            {/* TAB 2: PAYMENTS LEDGER */}
-            <TabPanel p={0}>
-              <Box bg={cardBg} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
-                <TableContainer>
-                  <Table variant="simple" size="md">
-                    <Thead bg={tableHBg}>
-                      <Tr>
-                        <Th w="40px" borderBottom="2px solid" borderColor={borderColor}>
-                          <Checkbox onChange={(e) => toggleAll(e.target.checked)} isChecked={selectedIds.length === payments.length && payments.length > 0} />
-                        </Th>
-                        <Th color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">{t("utility.tenant_room")}</Th>
-                        <Th color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">{t("utility.date")}</Th>
-                        <Th color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">{t("utility.amount_paid")}</Th>
-                        <Th color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">{t("utility.method")}</Th>
-                        <Th color={thColor} fontSize="sm" fontWeight="black" textTransform="uppercase">{t("utility.notes")}</Th>
-                        <Th textAlign="right"></Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {payments.length === 0 ? (
-                        <Tr><Td colSpan={6} textAlign="center" py={12} color={mutedText}>No utility payments found.</Td></Tr>
-                      ) : (
-                        payments.map(p => (
-                          <Tr key={p.id} _hover={{ bg: trHoverBg }} bg={selectedIds.includes(p.id) ? "blue.50" : "transparent"}>
-                            <Td>
-                              <Checkbox isChecked={selectedIds.includes(p.id)} onChange={() => toggleSelect(p.id)} />
-                            </Td>
-                            <Td>
-                              <Text fontSize="sm" fontWeight="bold" color={textColor}>{p.lease?.tenant?.name}</Text>
-                              <Text fontSize="sm" color={mutedText}>{p.lease?.room?.name}</Text>
-                            </Td>
-                            <Td fontSize="sm" fontWeight="black" color={mutedText}>{fmtDate(p.payment_date)}</Td>
-                            <Td fontWeight="black" color={textColor}>{fmt(p.amount_paid)}</Td>
-                            <Td fontSize="sm" fontWeight="bold" color={mutedText} textTransform="uppercase">{p.payment_method}</Td>
-                            <Td fontSize="sm" color={mutedText}>{p.notes || "—"}</Td>
-                            <Td textAlign="right">
-                              <Menu>
-                                <Tooltip label="View Print" hasArrow>
-                                  <MenuButton as={IconButton} icon={<FiPrinter />} size="xs" variant="ghost" colorScheme="blue" aria-label="Print" />
-                                </Tooltip>
-                                <MenuList zIndex={10}>
-                                  <MenuItem onClick={() => handlePrintReceipt([p.id], 'en')}>English</MenuItem>
-                                  <MenuItem onClick={() => handlePrintReceipt([p.id], 'km')}>Khmer</MenuItem>
-                                </MenuList>
-                              </Menu>
-                            </Td>
-                          </Tr>
-                        ))
-                      )}
-                    </Tbody>
-                  </Table>
-                </TableContainer>
-                {pagination.last_page > 1 && renderPagination()}
-              </Box>
-            </TabPanel>
-          </TabPanels>
-        </Tabs>
       </Box>
 
       {/* ===== ADD UTILITY BILL MODAL ===== */}

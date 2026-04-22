@@ -139,7 +139,10 @@ export default function Chat() {
       });
 
     return () => {
-      echo().leaveChannel(`chat.user.${currentUser.id}`);
+      if (channel) {
+        channel.stopListening('.App\\Events\\ChatCountsUpdated');
+        channel.stopListening('.App\\Events\\MessageSent');
+      }
     };
   }, [currentUser?.id, token]);
 

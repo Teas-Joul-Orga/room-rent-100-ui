@@ -4,7 +4,7 @@ import {
   Badge, Button, useColorModeValue, Select, HStack, Input, InputGroup,
   InputLeftElement, SimpleGrid, Icon, Spinner, Modal, ModalOverlay, ModalContent,
   ModalHeader, ModalBody, ModalFooter, ModalCloseButton, FormLabel, FormControl, Textarea, Tooltip,
-  VStack
+  VStack, Image
 } from "@chakra-ui/react";
 import { FiSearch, FiCheckCircle, FiTool, FiXCircle, FiClock, FiImage, FiDownload } from "react-icons/fi";
 import { exportToExcel } from "../../utils/exportExcel";
@@ -71,6 +71,10 @@ function MaintenanceRoom() {
     photo: null 
   });
 
+  // Photo Viewer Modal
+  const [isPreviewOpen, setIsPhotoPreviewOpen] = useState(false);
+  const [previewPhoto, setPreviewPhoto] = useState("");
+
   // Refs for real-time fetch to avoid stale closure in socket listener
   const searchRef = React.useRef(search);
   const statusFilterRef = React.useRef(statusFilter);
@@ -116,8 +120,8 @@ function MaintenanceRoom() {
       const res = await fetch(endpoint, { headers: { ...headers(), Accept: "application/json" } });
       if (res.ok) {
         const data = await res.json();
-        // Pagination wrapper for admin, flat array for tenant wrapper
-        setRequests(data.data || data.requests || []);
+        // Pagination wrapper for admin, requests key for tenant, or flat array fallback
+        setRequests(data.data || data.requests || (Array.isArray(data) ? data : []));
       }
     } catch (e) {
       console.error(e);
@@ -129,10 +133,11 @@ function MaintenanceRoom() {
   const fetchRooms = async () => {
     if (role !== 'admin') return;
     try {
-      const res = await fetch(`${API}/admin/rooms?minimal=true&limit=all`, { headers: headers() });
+      // Remove minimal=true to get active lease and tenant info
+      const res = await fetch(`${API}/admin/rooms?limit=all`, { headers: headers() });
       if (res.ok) {
         const data = await res.json();
-        setRooms(data || []);
+        setRooms(Array.isArray(data) ? data : data.data || []);
       }
     } catch (e) {
       console.error("Failed to fetch rooms:", e);
@@ -164,6 +169,7 @@ function MaintenanceRoom() {
 
   const handleUpdateSubmit = async (e) => {
     e.preventDefault();
+    if (!selectedReq?.uid) return;
     try {
       const res = await fetch(`${API}/admin/maintenance/${selectedReq.uid}`, {
         method: "PUT",
@@ -343,7 +349,7 @@ function MaintenanceRoom() {
                             <Flex justify="center">
                               {r.photo_path ? (
                                 <Tooltip label="View Photo" hasArrow>
-                                  <Button size="xs" variant="ghost" as="a" href={`http://localhost:8000/storage/${r.photo_path}`} target="_blank">
+                                  <Button size="xs" variant="ghost" onClick={() => { setPreviewPhoto(`http://localhost:8000/storage/${r.photo_path}`); setIsPhotoPreviewOpen(true); }}>
                                     <Icon as={FiImage} boxSize={5} color="blue.500" />
                                   </Button>
                                 </Tooltip>
@@ -363,13 +369,13 @@ function MaintenanceRoom() {
                             <Text fontSize="xs" color={mutedText} isTruncated title={r.description}>{r.description}</Text>
                           </Td>
                           <Td>
-                            <Badge colorScheme={priorityColor[r.priority]} variant="subtle" fontSize="10px" px={2} borderRadius="full">
-                              {r.priority.toUpperCase()}
+                            <Badge colorScheme={priorityColor[r.priority] || "gray"} variant="subtle" fontSize="10px" px={2} borderRadius="full">
+                              {(r.priority || "").toUpperCase()}
                             </Badge>
                           </Td>
                           <Td>
-                            <Badge colorScheme={statusColor[r.status]} variant="solid" fontSize="10px" px={2} py={0.5} borderRadius="md" letterSpacing="wide">
-                              {r.status.replace("_", " ").toUpperCase()}
+                            <Badge colorScheme={statusColor[r.status] || "gray"} variant="solid" fontSize="10px" px={2} py={0.5} borderRadius="md" letterSpacing="wide">
+                              {(r.status || "").replace("_", " ").toUpperCase()}
                             </Badge>
                           </Td>
                           {role === 'admin' && (
@@ -438,7 +444,7 @@ function MaintenanceRoom() {
                     <Flex justify="space-between" align="flex-start" mb={3}>
                       <Flex gap={3} align="flex-start" flex={1}>
                         {r.photo_path ? (
-                          <Button size="sm" variant="ghost" as="a" href={`http://localhost:8000/storage/${r.photo_path}`} target="_blank" p={0} h="auto" mt={1}>
+                          <Button size="sm" variant="ghost" onClick={() => { setPreviewPhoto(`http://localhost:8000/storage/${r.photo_path}`); setIsPhotoPreviewOpen(true); }} p={0} h="auto" mt={1}>
                             <Icon as={FiImage} boxSize={5} color="blue.500" />
                           </Button>
                         ) : (
@@ -463,11 +469,11 @@ function MaintenanceRoom() {
                     <Flex justify="space-between" align="center" mt={4} pt={3} borderTop="1px solid" borderColor={borderColor}>
                       <VStack align="flex-start" spacing={1}>
                         <Flex gap={2} align="center">
-                          <Badge colorScheme={priorityColor[r.priority]} variant="subtle" fontSize="9px" px={2} borderRadius="full">
-                            {r.priority.toUpperCase()}
+                          <Badge colorScheme={priorityColor[r.priority] || "gray"} variant="subtle" fontSize="9px" px={2} borderRadius="full">
+                            {(r.priority || "").toUpperCase()}
                           </Badge>
-                          <Badge colorScheme={statusColor[r.status]} variant="solid" fontSize="9px" px={2} py={0.5} borderRadius="md" letterSpacing="wide">
-                            {r.status.replace("_", " ").toUpperCase()}
+                          <Badge colorScheme={statusColor[r.status] || "gray"} variant="solid" fontSize="9px" px={2} py={0.5} borderRadius="md" letterSpacing="wide">
+                            {(r.status || "").replace("_", " ").toUpperCase()}
                           </Badge>
                         </Flex>
                         <Flex align="center" gap={1}>
@@ -686,6 +692,38 @@ function MaintenanceRoom() {
               <Button size="sm" colorScheme="blue" type="submit" w={{ base: "full", md: "auto" }}>Add Record</Button>
             </ModalFooter>
           </form>
+        </ModalContent>
+      </Modal>
+
+      {/* Photo Preview Modal */}
+      <Modal isOpen={isPreviewOpen} onClose={() => setIsPhotoPreviewOpen(false)} size="xl" isCentered>
+        <ModalOverlay bg="blackAlpha.800" backdropFilter="blur(4px)" />
+        <ModalContent bg="transparent" shadow="none" mx={4}>
+          <ModalCloseButton color="white" bg="blackAlpha.500" _hover={{ bg: "blackAlpha.700" }} zIndex={2} />
+          <ModalBody p={0}>
+            <VStack justify="center" align="center" spacing={4} pb={6}>
+               <Image 
+                src={previewPhoto} 
+                alt="Maintenance Evidence" 
+                borderRadius="lg" 
+                maxH="85vh" 
+                objectFit="contain" 
+                bg="white"
+              />
+              <Button 
+                mt={4} 
+                leftIcon={<FiDownload />} 
+                size="sm" 
+                colorScheme="whiteAlpha" 
+                as="a" 
+                href={previewPhoto} 
+                download 
+                target="_blank"
+              >
+                Download Original
+              </Button>
+            </VStack>
+          </ModalBody>
         </ModalContent>
       </Modal>
     </Box>

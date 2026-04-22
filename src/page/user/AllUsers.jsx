@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSessionState } from "../../hooks/useSessionState";
 import {
   Box,
   Flex,
@@ -50,9 +51,9 @@ export default function AllUsers() {
   const toast = useToast();
   
   // Pagination & Filtering state
-  const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
-  const [searchTerm, setSearchTerm] = useState("");
-  const [roleFilter, setRoleFilter] = useState("");
+  const [pagination, setPagination] = useSessionState("allUsersPagination", { current_page: 1, last_page: 1, total: 0 });
+  const [searchTerm, setSearchTerm] = useSessionState("allUsersSearch", "");
+  const [roleFilter, setRoleFilter] = useSessionState("allUsersRole", "");
   const [perPage, setPerPage] = useState(8);
 
   useEffect(() => {
@@ -89,11 +90,13 @@ export default function AllUsers() {
   const { isOpen: isCreateOpen, onOpen: onOpenCreate, onClose: onCloseCreate } = useDisclosure();
   const { isOpen: isEditOpen, onOpen: onOpenEdit, onClose: onCloseEdit } = useDisclosure();
   const { isOpen: isDeleteOpen, onOpen: onOpenDelete, onClose: onCloseDelete } = useDisclosure();
+  const { isOpen: isStatusOpen, onOpen: onOpenStatus, onClose: onCloseStatus } = useDisclosure();
   
   // Form State
   const initialForm = { name: "", username: "", email: "", password: "", password_confirmation: "", role: "tenant", tenant_id: "" };
   const [formData, setFormData] = useState(initialForm);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [userToToggle, setUserToToggle] = useState(null);
 
   // Retrieve token
   const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
@@ -228,9 +231,16 @@ export default function AllUsers() {
     }
   };
 
-  const handleToggleStatus = async (user) => {
+  const openStatusModal = (user) => {
+    setUserToToggle(user);
+    onOpenStatus();
+  };
+
+  const confirmToggleStatus = async () => {
+    if (!userToToggle) return;
+    setIsSubmitLoading(true);
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/admin/users/${user.uid}/toggle-status`, {
+      const res = await fetch(`http://localhost:8000/api/v1/admin/users/${userToToggle.uid}/toggle-status`, {
         method: "PATCH",
         headers: {
           Accept: "application/json",
@@ -239,12 +249,15 @@ export default function AllUsers() {
       });
       if (res.ok) {
         fetchUsers();
-        toast({ title: t("users.success"), description: t("users.status_toggled"), status: "success", duration: 3000 });
+        toast({ title: "Success", description: "Account status updated", status: "success", duration: 3000 });
+        onCloseStatus();
       } else {
-        toast({ title: t("users.error"), description: t("users.failed_toggle"), status: "error", duration: 3000 });
+        toast({ title: "Error", description: "Failed to update status", status: "error", duration: 3000 });
       }
     } catch (err) {
-      toast({ title: t("users.network_error"), status: "error", duration: 3000 });
+      toast({ title: "Network Error", status: "error", duration: 3000 });
+    } finally {
+      setIsSubmitLoading(false);
     }
   };
 
@@ -417,7 +430,7 @@ export default function AllUsers() {
                         letterSpacing="wider"
                         boxShadow="sm"
                         transition="all 0.2s"
-                        onClick={() => handleToggleStatus(user)}
+                        onClick={() => openStatusModal(user)}
                         _hover={{ 
                           transform: "translateY(-1px)", 
                           boxShadow: "md",
@@ -434,7 +447,7 @@ export default function AllUsers() {
                           <MenuItem icon={<FiEdit2 />} onClick={() => openEditModal(user)} borderRadius="md">{t("users.edit_details")}</MenuItem>
                           <MenuItem 
                             icon={user.is_active ? <FiUserX /> : <FiUserCheck />} 
-                            onClick={() => handleToggleStatus(user)}
+                            onClick={() => openStatusModal(user)}
                             borderRadius="md"
                           >
                             {user.is_active ? t("users.disable_account") : t("users.enable_account")}
@@ -606,6 +619,35 @@ export default function AllUsers() {
           <ModalFooter>
             <Button variant="ghost" mr={3} onClick={onCloseDelete}>{t("users.cancel")}</Button>
             <Button colorScheme="red" onClick={handleDelete}>{t("users.delete_permanently")}</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* STATUS TOGGLE MODAL */}
+      <Modal isOpen={isStatusOpen} onClose={onCloseStatus} isCentered>
+        <ModalOverlay backdropFilter="blur(5px)" bg="blackAlpha.600" />
+        <ModalContent borderRadius="xl" bg={cardBg}>
+          <ModalHeader>
+            {userToToggle?.is_active ? "Disable Account" : "Enable Account"}
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text color={textColor}>
+              {userToToggle?.is_active 
+                ? `Are you sure you want to disable ${userToToggle?.name}'s account? They will no longer be able to log in.`
+                : `Are you sure you want to enable ${userToToggle?.name}'s account? They will be able to log in again.`
+              }
+            </Text>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={onCloseStatus}>{t("users.cancel")}</Button>
+            <Button 
+              colorScheme={userToToggle?.is_active ? "red" : "green"} 
+              onClick={confirmToggleStatus}
+              isLoading={isSubmitLoading}
+            >
+              Confirm
+            </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

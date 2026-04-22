@@ -41,6 +41,9 @@ function resolveRoute(url) {
     if (clean.includes('announcement')) return '/dashboard/announcements';
     if (clean.includes('chat')) return '/dashboard/chat';
     if (clean.includes('expense')) return '/dashboard/expenses';
+    if (clean.includes('tenant') && clean.includes('booking')) return '/dashboard/my-bookings';
+    if (clean.includes('my-bookings')) return '/dashboard/my-bookings';
+    if (clean.includes('booking')) return '/dashboard/bookings';
     if (clean.includes('tenant')) return '/dashboard/tenants';
     if (clean.includes('room')) return '/dashboard/rooms';
     // If the path itself looks like a frontend route, use it directly

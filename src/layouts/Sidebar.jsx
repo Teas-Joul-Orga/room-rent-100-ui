@@ -35,10 +35,8 @@ const getSidebarGroups = (role, t) => {
           { label: t("sidebar.my_lease") || "My Lease", path: "/dashboard/lease/my-lease", exact: false, pathD: ["M7 3h8l4 4v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z", "M9 13h6M9 17h6M9 9h3"] },
           { label: t("sidebar.lease_history") || "Lease History", path: "/dashboard/lease/history", exact: false, pathD: ["M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"] },
           { label: "My Bookings", path: "/dashboard/my-bookings", exact: false, pathD: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
-          { label: "My Waitlists", path: "/dashboard/my-waitlists", exact: false, pathD: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
           { label: t("sidebar.my_billing"), path: "/dashboard/utility", exact: false, pathD: ["M7 3h10v18H7z", "M9 7h6M9 11h6M9 15h4"] },
           { label: t("sidebar.maintenance"), path: "/dashboard/maintenance", exact: false, pathD: ["M14.7 6.3a4 4 0 0 0-5.7 5.7l-6.3 6.3 2 2 6.3-6.3a4 4 0 0 0 5.7-5.7Z", "M16 8l4-4"] },
-          { label: t("sidebar.announcements"), path: "/dashboard/announcements", exact: false, pathD: ["M4 11v2a1 1 0 0 0 1 1h2l5 5V6L7 11H5a1 1 0 0 0-1 1Z", "M15 9a4 4 0 0 1 0 6", "M17 7a7 7 0 0 1 0 10"] },
           { label: t("sidebar.available_rooms") || "Available Rooms", path: "/dashboard/available-rooms", exact: false, pathD: ["M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"] },
         ]
       }
@@ -54,13 +52,12 @@ const getSidebarGroups = (role, t) => {
         { label: t("sidebar.tenants"), path: "/dashboard/tenants", exact: false, pathD: ["M20 21a8 8 0 1 0-16 0", "M12 13a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z"] },
         { label: t("sidebar.system_users"), path: "/dashboard/users", exact: false, pathD: ["M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"] },
         { label: "Bookings", path: "/dashboard/bookings", exact: false, pathD: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
-        { label: "Waitlists", path: "/dashboard/waitlists", exact: false, pathD: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
         { label: t("sidebar.rooms"), path: "/dashboard/rooms", exact: false, pathD: "M3 11 12 3l9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z" },
         { label: t("sidebar.furniture"), path: "/dashboard/furniture", exact: false, pathD: ["M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"] },
         { label: t("sidebar.leases"), path: "/dashboard/lease", exact: false, pathD: ["M7 3h8l4 4v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z", "M9 13h6M9 17h6M9 9h3"] },
         { label: t("sidebar.utilities"), path: "/dashboard/utility", exact: false, pathD: ["M12 2v4", "M7 8h10", "M8 22h8", "M9 12h6v6H9z"] },
         { label: t("sidebar.bills"), path: "/dashboard/bills", exact: false, pathD: ["M9 14l2 2 4-4", "M21 12a9 9 0 11-18 0 9 9 0 0118 0z"] },
-        { label: t("sidebar.payments"), path: "/dashboard/payments", exact: false, pathD: ["M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7z", "M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0", "M6 12h.01", "M18 12h.01"] },
+        { label: "Transaction", path: "/dashboard/payments", exact: false, pathD: ["M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7z", "M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0", "M6 12h.01", "M18 12h.01"] },
         { label: t("sidebar.maintenance"), path: "/dashboard/maintenance", exact: false, pathD: ["M14.7 6.3a4 4 0 0 0-5.7 5.7l-6.3 6.3 2 2 6.3-6.3a4 4 0 0 0 5.7-5.7Z", "M16 8l4-4"] },
         { label: t("sidebar.expenses"), path: "/dashboard/expenses", exact: false, pathD: ["M20 12V8H4v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2z", "M4 12V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4", "M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"] },
       ]
@@ -93,7 +90,7 @@ const getSidebarGroups = (role, t) => {
   ];
 };
 
-const SidebarLinkItem = ({ link, location, linkColor, hoverBg, onClose, pendingMaintenanceCount, userRole, useColorModeValue, isDesktopCollapsed }) => {
+const SidebarLinkItem = ({ link, location, linkColor, hoverBg, onClose, pendingMaintenanceCount, sidebarStats, userRole, useColorModeValue, isDesktopCollapsed }) => {
   const isDropdown = !!link.subLinks;
   
   const isAnySubActive = isDropdown && link.subLinks.some(s => {
@@ -158,18 +155,24 @@ const SidebarLinkItem = ({ link, location, linkColor, hoverBg, onClose, pendingM
             )}
           </Flex>
         </Tooltip>
-        {link.label === "Maintenance" && pendingMaintenanceCount > 0 && userRole === 'admin' && !isDesktopCollapsed && (
-          <Box
-            bg="red.500"
-            color="white"
-            fontSize="10px"
-            fontWeight="bold"
-            px={2}
-            py={0.5}
-            borderRadius="full"
-            ml="auto"
-          >
+        {link.path === "/dashboard/maintenance" && pendingMaintenanceCount > 0 && userRole === 'admin' && !isDesktopCollapsed && (
+          <Box bg="red.500" color="white" fontSize="10px" fontWeight="bold" px={2} py={0.5} borderRadius="full" ml="auto">
             {pendingMaintenanceCount}
+          </Box>
+        )}
+        {link.path === "/dashboard/payments" && sidebarStats?.new_transactions > 0 && userRole === 'admin' && !isDesktopCollapsed && (
+          <Box bg="blue.500" color="white" fontSize="10px" fontWeight="bold" px={2} py={0.5} borderRadius="full" ml="auto">
+            {sidebarStats.new_transactions}
+          </Box>
+        )}
+        {link.path === "/dashboard/bookings" && sidebarStats?.pending_bookings > 0 && userRole === 'admin' && !isDesktopCollapsed && (
+          <Box bg="orange.500" color="white" fontSize="10px" fontWeight="bold" px={2} py={0.5} borderRadius="full" ml="auto">
+            {sidebarStats.pending_bookings}
+          </Box>
+        )}
+        {link.path === "/dashboard/users" && sidebarStats?.new_users > 0 && userRole === 'admin' && !isDesktopCollapsed && (
+          <Box bg="green.500" color="white" fontSize="10px" fontWeight="bold" px={2} py={0.5} borderRadius="full" ml="auto">
+            {sidebarStats.new_users}
           </Box>
         )}
         {isDropdown && !isDesktopCollapsed && (
@@ -238,6 +241,7 @@ const Sidebar = ({ isOpen, onClose, isDesktopCollapsed }) => {
   };
 
   const [pendingMaintenanceCount, setPendingMaintenanceCount] = React.useState(0);
+  const [sidebarStats, setSidebarStats] = React.useState({ pending_bookings: 0, new_users: 0, new_transactions: 0 });
   const [appName, setAppName] = React.useState(localStorage.getItem("app_name") || "RoomRent 100");
   const userRole = (localStorage.getItem('role') || sessionStorage.getItem('role'))?.toLowerCase();
 
@@ -279,7 +283,22 @@ const Sidebar = ({ isOpen, onClose, isDesktopCollapsed }) => {
       }
     };
 
+    const fetchSidebarStats = async () => {
+      try {
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
+        if (!token) return;
+        const res = await fetch(`${API}/admin/sidebar-stats`, {
+          headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSidebarStats(data);
+        }
+      } catch (e) {}
+    };
+
     fetchCount(); // Initial fetch
+    fetchSidebarStats(); // Initial fetch
     
     // Listen for immediate local updates (e.g., when admin resolves a request on this device)
     window.addEventListener('maintenanceUpdated', fetchCount);
@@ -294,9 +313,15 @@ const Sidebar = ({ isOpen, onClose, isDesktopCollapsed }) => {
         setPendingMaintenanceCount(e.count);
       });
 
+    const channelStats = echoInstance.channel('admin-stats')
+      .listen('.App\\Events\\SidebarStatsUpdated', (e) => {
+        setSidebarStats(e.stats);
+      });
+
     return () => {
       window.removeEventListener('maintenanceUpdated', fetchCount);
       channel.stopListening('.App\\Events\\MaintenanceCountUpdated');
+      channelStats.stopListening('.App\\Events\\SidebarStatsUpdated');
     };
   }, [userRole]);
 
@@ -330,6 +355,7 @@ const Sidebar = ({ isOpen, onClose, isDesktopCollapsed }) => {
                 hoverBg={hoverBg} 
                 onClose={onClose} 
                 pendingMaintenanceCount={pendingMaintenanceCount} 
+                sidebarStats={sidebarStats}
                 userRole={userRole} 
                 useColorModeValue={useColorModeValue}
                 isDesktopCollapsed={isDesktopCollapsed}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSessionState } from "../../hooks/useSessionState";
 import toast, { Toaster } from "react-hot-toast";
 import {
   Box, Flex, Button, Input, Table, Thead, Tbody, Tr, Th, Td,
@@ -8,7 +9,7 @@ import {
   Menu, MenuButton, MenuList, MenuItem
 } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next";
-import { FiArrowUp, FiArrowDown, FiTrash2, FiPrinter, FiChevronLeft, FiChevronRight, FiPlus, FiSearch, FiDownload, FiChevronDown } from "react-icons/fi";
+import { FiArrowUp, FiArrowDown, FiPrinter, FiChevronLeft, FiChevronRight, FiPlus, FiSearch, FiDownload, FiChevronDown } from "react-icons/fi";
 import { exportToExcel } from "../../utils/exportExcel";
 import RecordPaymentModal from "../../components/RecordPaymentModal";
 
@@ -36,13 +37,13 @@ export default function Payment() {
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   // Filters
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
-  const [methodFilter, setMethodFilter] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [paymentGroup, setPaymentGroup] = useState("admin");
+  const [search, setSearch] = useSessionState("paymentSearch", "");
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+  const [typeFilter, setTypeFilter] = useSessionState("paymentType", "");
+  const [methodFilter, setMethodFilter] = useSessionState("paymentMethod", "");
+  const [startDate, setStartDate] = useSessionState("paymentStart", "");
+  const [endDate, setEndDate] = useSessionState("paymentEnd", "");
+  const [paymentGroup, setPaymentGroup] = useSessionState("paymentGroup", "admin");
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -52,11 +53,11 @@ export default function Payment() {
   }, [search]);
 
   // Sorting
-  const [sortField, setSortField] = useState("payment_date");
-  const [sortOrder, setSortOrder] = useState("desc");
+  const [sortField, setSortField] = useSessionState("paymentSort", "payment_date");
+  const [sortOrder, setSortOrder] = useSessionState("paymentDir", "desc");
 
   // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useSessionState("paymentPage", 1);
   const [pagination, setPagination] = useState({ last_page: 1, total: 0 });
 
   const bg = useColorModeValue("gray.50", "#0d1117");
@@ -123,22 +124,6 @@ export default function Payment() {
 
   const toggleAll = (checked) => {
     setSelectedIds(checked ? payments.map(p => p.id) : []);
-  };
-
-  const handleDelete = async (p) => {
-    if (!window.confirm(`Delete this ${p.type} payment of ${fmt(p.amount_paid)}?`)) return;
-    try {
-      const res = await fetch(`${API}/payments/${p.id}`, { 
-        method: "DELETE", 
-        headers: headers() 
-      });
-      if (res.ok) { 
-        toast.success("Payment record deleted"); 
-        fetchPayments(); 
-      } else {
-        toast.error("Failed to delete record");
-      }
-    } catch (e) { toast.error("Network error"); }
   };
 
   const handleExportExcel = async () => {
@@ -285,9 +270,6 @@ export default function Payment() {
             >
               Export Excel
             </Button>
-            <Button size="md" colorScheme="blue" leftIcon={<FiPlus />} onClick={onOpen}>
-              {t("payment.record_new")}
-            </Button>
           </Flex>
         </Flex>
 
@@ -413,7 +395,7 @@ export default function Payment() {
                       </Td>
                       <Td fontSize="sm" fontWeight="bold" color={mutedText}>{fmtDate(p.payment_date)}</Td>
                       <Td>
-                        <Badge fontSize="sm" fontWeight="black" colorScheme={typeBadge(p.type)} textTransform="uppercase">
+                        <Badge px={3} py={1} borderRadius="full" fontSize="xs" fontWeight="bold" textTransform="uppercase" letterSpacing="wider" colorScheme={typeBadge(p.type)}>
                           {t(`payment.${p.type}`)}
                         </Badge>
                       </Td>
@@ -431,9 +413,6 @@ export default function Payment() {
                               <MenuItem onClick={() => handlePrintReceipt(p.id, 'km')}>Khmer</MenuItem>
                             </MenuList>
                           </Menu>
-                          <Tooltip label="Delete" hasArrow>
-                            <IconButton icon={<FiTrash2 />} size="xs" colorScheme="red" variant="ghost" onClick={() => handleDelete(p)} aria-label="Delete" />
-                          </Tooltip>
                         </Flex>
                       </Td>
                     </Tr>

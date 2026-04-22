@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSessionState } from "../../hooks/useSessionState";
 import {
   Box,
   Heading,
@@ -20,7 +21,7 @@ import toast from "react-hot-toast";
 import api from "../../api/axios";
 
 export default function AdminWaitlistManagement() {
-  const [waitlists, setWaitlists] = useState([]);
+  const [waitlists, setWaitlists] = useSessionState("allWaitlists", []);
   const [isLoading, setIsLoading] = useState(true);
 
   const bg = useColorModeValue("white", "gray.800");

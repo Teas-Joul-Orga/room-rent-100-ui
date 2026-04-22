@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Box, Flex, Text, Tabs, TabList, TabPanels, Tab, TabPanel, VStack, Badge, Button, useColorModeValue, Spinner, SimpleGrid, Card, CardBody, Select, Tooltip, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure } from "@chakra-ui/react";
-import { FiBell, FiAlertCircle, FiDroplet, FiCalendar, FiSend } from "react-icons/fi";
+import { useSessionState } from "../../hooks/useSessionState";
+import { Box, Flex, Text, Tabs, TabList, TabPanels, Tab, TabPanel, Badge, Button, useColorModeValue, Spinner, Select, Tooltip, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, TableContainer, Table, Thead, Tbody, Tr, Th, Td, Input } from "@chakra-ui/react";
+import { FiBell, FiAlertCircle, FiDroplet, FiCalendar, FiSend, FiArrowUp, FiArrowDown } from "react-icons/fi";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 
@@ -13,6 +14,8 @@ const formatCurrency = (val) => {
   return isRiel ? `៛ ${(Number(val) * r).toLocaleString("en-US", { maximumFractionDigits: 0 })}` : `$ ${Number(val).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
 };
 
+const KHQR_LOGO = "https://nbc.gov.kh/images/khqr_logo.png";
+
 export default function Bills() {
   const { t } = useTranslation();
   const [leases, setLeases] = useState([]);
@@ -22,7 +25,16 @@ export default function Bills() {
   const [isNotifying, setIsNotifying] = useState(false);
   const [isNotifyingAllRent, setIsNotifyingAllRent] = useState(false);
   const [isNotifyingAllUtil, setIsNotifyingAllUtil] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState("all");
+  const [selectedMonth, setSelectedMonth] = useSessionState("billsMonth", "all");
+
+  const [searchRent, setSearchRent] = useSessionState("billsSearchRent", "");
+  const [sortFieldRent, setSortFieldRent] = useSessionState("billsSortRent", null);
+  const [sortOrderRent, setSortOrderRent] = useSessionState("billsDirRent", "asc");
+
+  const [searchUtil, setSearchUtil] = useSessionState("billsSearchUtil", "");
+  const [typeFilterUtil, setTypeFilterUtil] = useSessionState("billsTypeUtil", "");
+  const [sortFieldUtil, setSortFieldUtil] = useSessionState("billsSortUtil", null);
+  const [sortOrderUtil, setSortOrderUtil] = useSessionState("billsDirUtil", "asc");
 
   const { isOpen: isAlertOpen, onOpen: onAlertOpen, onClose: onAlertClose } = useDisclosure();
   const cancelRef = React.useRef();
@@ -168,7 +180,79 @@ export default function Bills() {
     return Array.from(months).sort().reverse();
   }, [utilities]);
 
+  const sortData = (data, field, order) => {
+    if (!field) return data;
+    return [...data].sort((a, b) => {
+      let aVal = a[field];
+      let bVal = b[field];
+      
+      if (field === 'tenant_name') {
+          aVal = a.tenant?.name || a.tenant_name || a.lease?.tenant?.name || "";
+          bVal = b.tenant?.name || b.tenant_name || b.lease?.tenant?.name || "";
+      }
+      if (field === 'room_name') {
+          aVal = a.room?.name || a.room_name || a.lease?.room?.name || "";
+          bVal = b.room?.name || b.room_name || b.lease?.room?.name || "";
+      }
 
+      if (['rentDue', 'amount'].includes(field)) {
+        aVal = Number(aVal || 0);
+        bVal = Number(bVal || 0);
+      } else if (typeof aVal === 'string') {
+        aVal = aVal.toLowerCase();
+        bVal = bVal?.toLowerCase() || '';
+      }
+      
+      if (aVal < bVal) return order === "asc" ? -1 : 1;
+      if (aVal > bVal) return order === "asc" ? 1 : -1;
+      return 0;
+    });
+  };
+
+  const processedRent = useMemo(() => {
+    let filtered = overdueRentLeases;
+    if (searchRent) {
+      const s = searchRent.toLowerCase();
+      filtered = filtered.filter(l => 
+        (l.tenant?.name || l.tenant_name || "").toLowerCase().includes(s) ||
+        (l.room?.name || l.room_name || "").toLowerCase().includes(s)
+      );
+    }
+    return sortData(filtered, sortFieldRent, sortOrderRent);
+  }, [overdueRentLeases, searchRent, sortFieldRent, sortOrderRent]);
+
+  const processedUtil = useMemo(() => {
+    let filtered = unpaidUtilities;
+    if (searchUtil) {
+      const s = searchUtil.toLowerCase();
+      filtered = filtered.filter(b => 
+        (b.lease?.tenant?.name || "").toLowerCase().includes(s) ||
+        (b.room?.name || b.lease?.room?.name || "").toLowerCase().includes(s)
+      );
+    }
+    if (typeFilterUtil) {
+      filtered = filtered.filter(b => b.type === typeFilterUtil);
+    }
+    return sortData(filtered, sortFieldUtil, sortOrderUtil);
+  }, [unpaidUtilities, searchUtil, typeFilterUtil, sortFieldUtil, sortOrderUtil]);
+
+  const handleSortRent = (field) => {
+    if (sortFieldRent === field) {
+      setSortOrderRent(sortOrderRent === "asc" ? "desc" : "asc");
+    } else {
+      setSortFieldRent(field);
+      setSortOrderRent("asc");
+    }
+  };
+
+  const handleSortUtil = (field) => {
+    if (sortFieldUtil === field) {
+      setSortOrderUtil(sortOrderUtil === "asc" ? "desc" : "asc");
+    } else {
+      setSortFieldUtil(field);
+      setSortOrderUtil("asc");
+    }
+  };
 
   return (
     <Box p={{ base: 4, md: 8 }} maxW="full" mx="auto">
@@ -231,44 +315,74 @@ export default function Bills() {
                   </Flex>
                 ) : (
                   <>
-                    <Flex justify="flex-end" mb={4}>
+                    <Flex justify="space-between" mb={4} flexWrap="wrap" gap={4} align="center">
+                      <Flex gap={2}>
+                        <Input 
+                          placeholder="Search tenant or room..." 
+                          size="md" w={{ base: "full", md: "250px" }} borderRadius="lg" bg="white" _dark={{ bg: "gray.800" }}
+                          value={searchRent} 
+                          onChange={e => setSearchRent(e.target.value)} 
+                        />
+                      </Flex>
                       <Tooltip label={`Send notifications to all ${overdueRentLeases.length} tenants`} hasArrow placement="top">
                         <Button 
-                          size="sm" 
+                          size="md" 
                           colorScheme="red" 
                           leftIcon={<FiSend />} 
                           onClick={() => { setAlertConfig({ type: 'rent', count: overdueRentLeases.length }); onAlertOpen(); }} 
                           isLoading={isNotifyingAllRent}
                         >
-                          Send All Rent Notifications
+                          Send All Notifications
                         </Button>
                       </Tooltip>
                     </Flex>
-                    <SimpleGrid columns={{ base: 1, md: 2, lg: 3, xl: 4, "2xl": 5 }} spacing={6}>
-                      {overdueRentLeases.map(lease => (
-                      <Card key={lease.id} variant="outline" borderColor="red.100" bg="red.50" _dark={{ bg: "red.900/20", borderColor: "red.900" }}>
-                        <CardBody>
-                          <Flex justify="space-between" mb={4}>
-                            <Box>
-                              <Text fontSize="xs" fontWeight="bold" color="red.500" textTransform="uppercase">Outstanding Rent</Text>
-                              <Text fontSize="2xl" fontWeight="black" color="red.700" _dark={{ color: "red.300" }}>{formatCurrency(lease.rentDue)}</Text>
-                            </Box>
-                            <Badge colorScheme="red" variant="subtle" alignSelf="start">Overdue</Badge>
-                          </Flex>
-                          <Text fontSize="sm" fontWeight="bold" mb={1}>{lease.tenant?.name || lease.tenant_name}</Text>
-                          <Text fontSize="xs" color="gray.600" mb={4}>{lease.room?.name || lease.room_name}</Text>
-                          <Button 
-                            w="full" size="sm" colorScheme="red" variant="solid" 
-                            isLoading={isNotifying === lease.uid}
-                            onClick={() => handleNotifyRent(lease.uid)} 
-                            leftIcon={<FiBell />}
-                          >
-                            Send Notification
-                          </Button>
-                        </CardBody>
-                      </Card>
-                    ))}
-                  </SimpleGrid>
+                    
+                    <Box borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
+                      <TableContainer>
+                        <Table variant="simple" size="md">
+                          <Thead bg={useColorModeValue("gray.50", "gray.800")}>
+                            <Tr>
+                              <Th color="gray.500" fontSize="xs" fontWeight="black" textTransform="uppercase" cursor="pointer" onClick={() => handleSortRent('tenant_name')}>
+                                <Flex align="center" gap={1}>Tenant {sortFieldRent==='tenant_name' && (sortOrderRent==='asc'?<FiArrowUp/>:<FiArrowDown/>)}</Flex>
+                              </Th>
+                              <Th color="gray.500" fontSize="xs" fontWeight="black" textTransform="uppercase" cursor="pointer" onClick={() => handleSortRent('room_name')}>
+                                <Flex align="center" gap={1}>Room {sortFieldRent==='room_name' && (sortOrderRent==='asc'?<FiArrowUp/>:<FiArrowDown/>)}</Flex>
+                              </Th>
+                              <Th color="gray.500" fontSize="xs" fontWeight="black" textTransform="uppercase" cursor="pointer" onClick={() => handleSortRent('rentDue')}>
+                                <Flex align="center" gap={1}>Amount Due {sortFieldRent==='rentDue' && (sortOrderRent==='asc'?<FiArrowUp/>:<FiArrowDown/>)}</Flex>
+                              </Th>
+                              <Th color="gray.500" fontSize="xs" fontWeight="black" textTransform="uppercase">Status</Th>
+                              <Th color="gray.500" fontSize="xs" fontWeight="black" textTransform="uppercase" textAlign="right"></Th>
+                            </Tr>
+                          </Thead>
+                          <Tbody>
+                            {processedRent.map(lease => (
+                              <Tr key={lease.id} _hover={{ bg: useColorModeValue("gray.50", "gray.800") }}>
+                                <Td fontSize="sm" fontWeight="bold">{lease.tenant?.name || lease.tenant_name}</Td>
+                                <Td fontSize="sm" color="gray.500">{lease.room?.name || lease.room_name}</Td>
+                                <Td fontSize="sm" fontWeight="black" color="red.600">{formatCurrency(lease.rentDue)}</Td>
+                                <Td>
+                                  <Badge px={3} py={1} borderRadius="full" fontSize="xs" fontWeight="bold" textTransform="uppercase" letterSpacing="wider" colorScheme="red">Overdue</Badge>
+                                </Td>
+                                <Td textAlign="right">
+                                  <Button 
+                                    size="sm" colorScheme="red" variant="outline"
+                                    isLoading={isNotifying === lease.uid}
+                                    onClick={() => handleNotifyRent(lease.uid)} 
+                                    leftIcon={<FiBell />}
+                                  >
+                                    Notify
+                                  </Button>
+                                </Td>
+                              </Tr>
+                            ))}
+                            {processedRent.length === 0 && (
+                                <Tr><Td colSpan={5} textAlign="center" py={6} color="gray.500">No matching overdue rent found.</Td></Tr>
+                            )}
+                          </Tbody>
+                        </Table>
+                      </TableContainer>
+                    </Box>
                   </>
                 )}
               </TabPanel>
@@ -281,45 +395,89 @@ export default function Bills() {
                   </Flex>
                 ) : (
                   <>
-                    <Flex justify="flex-end" mb={4}>
+                    <Flex justify="space-between" mb={4} flexWrap="wrap" gap={4} align="center">
+                      <Flex gap={2} flexWrap="wrap">
+                        <Input 
+                          placeholder="Search tenant or room..." 
+                          size="md" w={{ base: "full", md: "250px" }} borderRadius="lg" bg="white" _dark={{ bg: "gray.800" }}
+                          value={searchUtil} 
+                          onChange={e => setSearchUtil(e.target.value)} 
+                        />
+                        <Select size="md" w="150px" borderRadius="lg" bg="white" _dark={{ bg: "gray.800" }} value={typeFilterUtil} onChange={e => setTypeFilterUtil(e.target.value)}>
+                          <option value="">All Types</option>
+                          <option value="electricity">Electricity</option>
+                          <option value="water">Water</option>
+                          <option value="trash">Trash</option>
+                          <option value="internet">Internet</option>
+                        </Select>
+                      </Flex>
                       <Tooltip label={`Send notifications to all ${unpaidUtilities.length} tenants`} hasArrow placement="top">
                         <Button 
-                          size="sm" 
+                          size="md" 
                           colorScheme="orange" 
                           leftIcon={<FiSend />} 
                           onClick={() => { setAlertConfig({ type: 'utility', count: unpaidUtilities.length }); onAlertOpen(); }} 
                           isLoading={isNotifyingAllUtil}
                         >
-                          Send All Utility Notifications
+                          Send All Notifications
                         </Button>
                       </Tooltip>
                     </Flex>
-                    <SimpleGrid columns={{ base: 1, md: 2, lg: 3, xl: 4, "2xl": 5 }} spacing={6}>
-                      {unpaidUtilities.map(bill => (
-                      <Card key={bill.id} variant="outline" borderColor="orange.100" bg="orange.50" _dark={{ bg: "orange.900/20", borderColor: "orange.900" }}>
-                        <CardBody>
-                          <Flex justify="space-between" mb={4}>
-                            <Box>
-                              <Badge mb={2} colorScheme={bill.type === "electricity" ? "yellow" : bill.type === "water" ? "blue" : "gray"}>
-                                {bill.type}
-                              </Badge>
-                              <Text fontSize="2xl" fontWeight="black" color="orange.700" _dark={{ color: "orange.300" }}>{formatCurrency(bill.amount)}</Text>
-                            </Box>
-                          </Flex>
-                          <Text fontSize="sm" fontWeight="bold" mb={1}>{bill.lease?.tenant?.name || "Unknown Tenant"}</Text>
-                          <Text fontSize="xs" color="gray.600" mb={4}>{bill.room?.name || bill.lease?.room?.name} • Due: {new Date(bill.due_date).toLocaleDateString()}</Text>
-                          <Button 
-                            w="full" size="sm" colorScheme="orange" variant="solid"
-                            isLoading={isNotifying === bill.uid}
-                            onClick={() => handleNotifyUtility(bill.uid)} 
-                            leftIcon={<FiBell />}
-                          >
-                            Send Notification
-                          </Button>
-                        </CardBody>
-                      </Card>
-                    ))}
-                  </SimpleGrid>
+                    
+                    <Box borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
+                      <TableContainer>
+                        <Table variant="simple" size="md">
+                          <Thead bg={useColorModeValue("gray.50", "gray.800")}>
+                            <Tr>
+                              <Th color="gray.500" fontSize="xs" fontWeight="black" textTransform="uppercase" cursor="pointer" onClick={() => handleSortUtil('tenant_name')}>
+                                <Flex align="center" gap={1}>Tenant {sortFieldUtil==='tenant_name' && (sortOrderUtil==='asc'?<FiArrowUp/>:<FiArrowDown/>)}</Flex>
+                              </Th>
+                              <Th color="gray.500" fontSize="xs" fontWeight="black" textTransform="uppercase" cursor="pointer" onClick={() => handleSortUtil('room_name')}>
+                                <Flex align="center" gap={1}>Room {sortFieldUtil==='room_name' && (sortOrderUtil==='asc'?<FiArrowUp/>:<FiArrowDown/>)}</Flex>
+                              </Th>
+                              <Th color="gray.500" fontSize="xs" fontWeight="black" textTransform="uppercase" cursor="pointer" onClick={() => handleSortUtil('type')}>
+                                <Flex align="center" gap={1}>Type {sortFieldUtil==='type' && (sortOrderUtil==='asc'?<FiArrowUp/>:<FiArrowDown/>)}</Flex>
+                              </Th>
+                              <Th color="gray.500" fontSize="xs" fontWeight="black" textTransform="uppercase" cursor="pointer" onClick={() => handleSortUtil('due_date')}>
+                                <Flex align="center" gap={1}>Due Date {sortFieldUtil==='due_date' && (sortOrderUtil==='asc'?<FiArrowUp/>:<FiArrowDown/>)}</Flex>
+                              </Th>
+                              <Th color="gray.500" fontSize="xs" fontWeight="black" textTransform="uppercase" cursor="pointer" onClick={() => handleSortUtil('amount')}>
+                                <Flex align="center" gap={1}>Amount {sortFieldUtil==='amount' && (sortOrderUtil==='asc'?<FiArrowUp/>:<FiArrowDown/>)}</Flex>
+                              </Th>
+                              <Th color="gray.500" fontSize="xs" fontWeight="black" textTransform="uppercase" textAlign="right"></Th>
+                            </Tr>
+                          </Thead>
+                          <Tbody>
+                            {processedUtil.map(bill => (
+                              <Tr key={bill.id} _hover={{ bg: useColorModeValue("gray.50", "gray.800") }}>
+                                <Td fontSize="sm" fontWeight="bold">{bill.lease?.tenant?.name || "Unknown Tenant"}</Td>
+                                <Td fontSize="sm" color="gray.500">{bill.room?.name || bill.lease?.room?.name}</Td>
+                                <Td>
+                                  <Badge px={3} py={1} borderRadius="full" fontSize="xs" fontWeight="bold" textTransform="uppercase" letterSpacing="wider" colorScheme={bill.type === "electricity" ? "yellow" : bill.type === "water" ? "blue" : "gray"}>
+                                    {bill.type}
+                                  </Badge>
+                                </Td>
+                                <Td fontSize="sm" color="gray.500">{new Date(bill.due_date).toLocaleDateString()}</Td>
+                                <Td fontSize="sm" fontWeight="black" color="orange.600">{formatCurrency(bill.amount)}</Td>
+                                <Td textAlign="right">
+                                  <Button 
+                                    size="sm" colorScheme="orange" variant="outline"
+                                    isLoading={isNotifying === bill.uid}
+                                    onClick={() => handleNotifyUtility(bill.uid)} 
+                                    leftIcon={<FiBell />}
+                                  >
+                                    Notify
+                                  </Button>
+                                </Td>
+                              </Tr>
+                            ))}
+                            {processedUtil.length === 0 && (
+                                <Tr><Td colSpan={6} textAlign="center" py={6} color="gray.500">No matching unpaid utilities found.</Td></Tr>
+                            )}
+                          </Tbody>
+                        </Table>
+                      </TableContainer>
+                    </Box>
                   </>
                 )}
               </TabPanel>

@@ -248,15 +248,6 @@ export default function ViewLease() {
     };
   }, [lease?.id, fetchLease]);
 
-  const handleDeletePayment = async (paymentId) => {
-    if (!window.confirm("Delete this payment record?")) return;
-    try {
-      const res = await fetch(`${API}/payments/${paymentId}`, { method: "DELETE", headers: headers() });
-      if (res.ok) { toast.success("Payment deleted"); fetchLease(); }
-      else toast.error("Failed to delete payment");
-    } catch (e) { console.error(e);  toast.error("Network error"); }
-  };
-
   const handleDeleteBill = async (billId) => {
     if (!window.confirm("Delete this utility bill?")) return;
     try {
@@ -448,7 +439,8 @@ export default function ViewLease() {
               current_reading: bill.current_reading, 
               cost_per_unit: toUSD(getDefaultRate(bill.type)), 
               amount: toUSD(bill.type === "electricity" || bill.type === "water" ? 0 : bill.amount), 
-              description: bill.description 
+              description: bill.description,
+              notify: false
             })
         });
     });
@@ -456,6 +448,21 @@ export default function ViewLease() {
     try {
       const results = await Promise.all(requests);
       if (results.every(r => r.ok)) {
+         // Get the IDs of the created bills to send a group notification
+         const createdBills = await Promise.all(results.map(r => r.json()));
+         const billIds = createdBills.map(b => b.id);
+         
+         // Send consolidated notification
+         try {
+           await fetch(`${API}/utility-bills/notify-group`, {
+             method: "POST",
+             headers: headers(),
+             body: JSON.stringify({ bill_ids: billIds })
+           });
+         } catch (notifyErr) {
+           console.error("Failed to send group notification:", notifyErr);
+         }
+
          toast.success("Package generated successfully!");
          onBulkBillClose();
          fetchLease();
@@ -1454,9 +1461,6 @@ export default function ViewLease() {
                                       <MenuItem onClick={() => handlePrintReceipt(payment.id, 'km')}>Khmer</MenuItem>
                                     </MenuList>
                                   </Menu>
-                                  <Tooltip label="Delete" hasArrow>
-                                    <IconButton icon={<FiTrash2 />} size="xs" colorScheme="red" variant="ghost" onClick={() => handleDeletePayment(payment.id)} aria-label="Delete payment" />
-                                  </Tooltip>
                                 </Flex>
                               </Td>
                             </Tr>
@@ -1801,7 +1805,7 @@ export default function ViewLease() {
       </Modal>
 
       {/* ===== RECORD PAYMENT MODAL ===== */}
-      <Modal isOpen={isPayOpen} onClose={onPayClose} isCentered size="lg">
+      <Modal isOpen={isPayOpen} onClose={onPayClose} isCentered size="2xl">
         <ModalOverlay bg="blackAlpha.600" />
         <ModalContent bg={cardBg} borderRadius="xl">
           <form onSubmit={handleSavePayment}>
@@ -1821,7 +1825,7 @@ export default function ViewLease() {
                 <FormControl isRequired>
                   <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Amount</FormLabel>
                   <Flex gap={2}>
-                    <Select w="80px" size="md" value={payForm.currency} onChange={e => setPayForm({ ...payForm, currency: e.target.value })}>
+                    <Select w="80px" size="md" isDisabled value={payForm.currency} onChange={e => setPayForm({ ...payForm, currency: e.target.value })}>
                       <option value="$">$</option>
                       <option value="៛">៛</option>
                     </Select>
@@ -1966,62 +1970,91 @@ export default function ViewLease() {
       </Modal>
 
       {/* ===== PAY SELECTED BILLS MODAL ===== */}
-      <Modal isOpen={isPayAllOpen} onClose={onPayAllClose} isCentered size="md">
-        <ModalOverlay bg="blackAlpha.600" />
-        <ModalContent bg={cardBg} borderRadius="xl">
+      <Modal isOpen={isPayAllOpen} onClose={onPayAllClose} isCentered size="4xl">
+        <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(3px)" />
+        <ModalContent bg={cardBg} borderRadius="2xl" shadow="2xl">
           <form onSubmit={handlePaySelected}>
-            <ModalHeader color={textColor}>Pay Selected Bills</ModalHeader>
+            <ModalHeader color={textColor} fontWeight="black" fontSize="2xl">Pay Selected Bills</ModalHeader>
             <ModalCloseButton />
-            <ModalBody pb={6}>
-              {/* Bill list */}
-              <Box maxH="200px" overflowY="auto" border="1px solid" borderColor={borderColor} borderRadius="lg" mb={4}>
-                {(lease.utility_bills || []).filter(b => b.status === "unpaid").map(bill => (
-                  <Flex key={bill.id} align="center" justify="space-between" px={3} py={2} borderBottom="1px solid" borderColor={borderColor} bg={selectedBillIds.includes(bill.id) ? successBg : "transparent"}>
-                    <Flex align="center" gap={2}>
-                      <Checkbox
-                        isChecked={selectedBillIds.includes(bill.id)}
-                        onChange={(e) => setSelectedBillIds(e.target.checked ? [...selectedBillIds, bill.id] : selectedBillIds.filter(i => i !== bill.id))}
-                      />
-                      <Box>
-                        <Text fontSize="xs" fontWeight="bold" textTransform="uppercase">{bill.type}</Text>
-                        <Text fontSize="10px" color={mutedText}>Due: {fmtDate(bill.due_date)}</Text>
-                      </Box>
-                    </Flex>
-                    <Text fontWeight="black">{fmt(bill.amount)}</Text>
+            <ModalBody pb={8} px={8}>
+              <SimpleGrid columns={{base: 1, md: 2}} spacing={10}>
+                {/* Left Column: Bill List */}
+                <Box>
+                  <Flex justify="space-between" align="center" mb={3} px={1}>
+                    <Text fontSize="sm" fontWeight="bold" color={mutedText} textTransform="uppercase">Unpaid Bills</Text>
+                    <Checkbox 
+                      size="md" 
+                      colorScheme="green"
+                      isChecked={(lease?.utility_bills || []).filter(b => b.status === "unpaid").length > 0 && selectedBillIds.length === (lease.utility_bills || []).filter(b => b.status === "unpaid").length}
+                      onChange={(e) => {
+                        const unpaid = (lease.utility_bills || []).filter(b => b.status === "unpaid");
+                        if (e.target.checked) setSelectedBillIds(unpaid.map(b => b.id));
+                        else setSelectedBillIds([]);
+                      }}
+                    >
+                      <Text fontSize="sm" fontWeight="bold">Select All</Text>
+                    </Checkbox>
                   </Flex>
-                ))}
-              </Box>
+                  <Box maxH="350px" overflowY="auto" border="1px solid" borderColor={borderColor} borderRadius="lg">
+                    {(lease.utility_bills || []).filter(b => b.status === "unpaid").map(bill => (
+                      <Flex key={bill.id} align="center" justify="space-between" px={4} py={3} borderBottom="1px solid" borderColor={borderColor} bg={selectedBillIds.includes(bill.id) ? successBg : "transparent"} _last={{ borderBottom: "none" }} transition="background 0.2s">
+                        <Flex align="center" gap={3}>
+                          <Checkbox
+                            size="lg"
+                            colorScheme="green"
+                            isChecked={selectedBillIds.includes(bill.id)}
+                            onChange={(e) => setSelectedBillIds(e.target.checked ? [...selectedBillIds, bill.id] : selectedBillIds.filter(i => i !== bill.id))}
+                          />
+                          <Box>
+                            <Text fontSize="sm" fontWeight="black" textTransform="uppercase">{bill.type}</Text>
+                            <Text fontSize="xs" fontWeight="bold" color={mutedText}>Due: {fmtDate(bill.due_date)}</Text>
+                          </Box>
+                        </Flex>
+                        <Text fontWeight="black" fontSize="md">{fmt(bill.amount)}</Text>
+                      </Flex>
+                    ))}
+                  </Box>
+                </Box>
 
-              {/* Total */}
-              <Flex justify="space-between" align="flex-end" borderTop="1px solid" borderColor={borderColor} pt={3} mb={4}>
-                <Text fontSize="xs" fontWeight="black" textTransform="uppercase" color={mutedText}>Total To Pay</Text>
-                <Text fontSize="xl" fontWeight="black" color="green.600">
-                  {fmt((lease.utility_bills || []).filter(b => b.status === "unpaid" && selectedBillIds.includes(b.id)).reduce((s, b) => s + Number(b.amount), 0))}
-                </Text>
-              </Flex>
+                {/* Right Column: Payment Form */}
+                <Flex direction="column" justify="space-between">
+                  <Box>
+                    <Text fontSize="sm" fontWeight="bold" color={mutedText} textTransform="uppercase" mb={4} px={1}>Payment Details</Text>
+                    <SimpleGrid columns={1} spacing={5}>
+                      <FormControl isRequired>
+                        <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Date</FormLabel>
+                        <Input size="md" type="date" value={payAllForm.payment_date} onChange={e => setPayAllForm({ ...payAllForm, payment_date: e.target.value })} />
+                      </FormControl>
+                      <FormControl isRequired>
+                        <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Method</FormLabel>
+                        <Select size="md" value={payAllForm.payment_method} onChange={e => setPayAllForm({ ...payAllForm, payment_method: e.target.value })}>
+                          <option value="cash">Cash</option>
+                          <option value="bank">Bank Transfer</option>
+                        </Select>
+                      </FormControl>
+                      <FormControl>
+                        <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Notes (optional)</FormLabel>
+                        <Textarea size="md" rows={3} value={payAllForm.notes} onChange={e => setPayAllForm({ ...payAllForm, notes: e.target.value })} placeholder="e.g. Cleared by tenant" />
+                      </FormControl>
+                    </SimpleGrid>
+                  </Box>
 
-              <SimpleGrid columns={2} spacing={4}>
-                <FormControl isRequired>
-                  <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Date</FormLabel>
-                  <Input size="sm" type="date" value={payAllForm.payment_date} onChange={e => setPayAllForm({ ...payAllForm, payment_date: e.target.value })} />
-                </FormControl>
-                <FormControl isRequired>
-                  <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Method</FormLabel>
-                  <Select size="sm" value={payAllForm.payment_method} onChange={e => setPayAllForm({ ...payAllForm, payment_method: e.target.value })}>
-                    <option value="cash">Cash</option>
-                    <option value="bank">Bank Transfer</option>
-                  </Select>
-                </FormControl>
-                <FormControl gridColumn="span 2">
-                  <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Notes (optional)</FormLabel>
-                  <Textarea size="sm" rows={2} value={payAllForm.notes} onChange={e => setPayAllForm({ ...payAllForm, notes: e.target.value })} placeholder="e.g. Cleared by tenant" />
-                </FormControl>
+                  {/* Total & Action */}
+                  <Box mt={6} borderTop="2px dashed" borderColor={borderColor} pt={5}>
+                    <Flex justify="space-between" align="flex-end" mb={6}>
+                      <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={mutedText}>Total To Pay</Text>
+                      <Text fontSize="3xl" fontWeight="black" color="green.600">
+                        {fmt((lease.utility_bills || []).filter(b => b.status === "unpaid" && selectedBillIds.includes(b.id)).reduce((s, b) => s + Number(b.amount), 0))}
+                      </Text>
+                    </Flex>
+                    <Flex justify="flex-end" gap={3}>
+                      <Button onClick={onPayAllClose} variant="ghost" size="md">Cancel</Button>
+                      <Button colorScheme="green" type="submit" size="md" px={8} isLoading={isPayingAll} isDisabled={selectedBillIds.length === 0}>Confirm Pay</Button>
+                    </Flex>
+                  </Box>
+                </Flex>
               </SimpleGrid>
             </ModalBody>
-            <ModalFooter>
-              <Button onClick={onPayAllClose} variant="ghost" mr={3} size="sm">Cancel</Button>
-              <Button colorScheme="green" type="submit" size="sm" isLoading={isPayingAll} isDisabled={selectedBillIds.length === 0}>Confirm Pay</Button>
-            </ModalFooter>
           </form>
         </ModalContent>
       </Modal>

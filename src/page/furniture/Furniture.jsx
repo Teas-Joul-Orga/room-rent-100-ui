@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSessionState } from "../../hooks/useSessionState";
 import { useNavigate } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 import {
@@ -39,8 +40,8 @@ export default function Furniture() {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const [search, setSearch] = useState("");
-  const [furniture, setFurniture] = useState([]);
+  const [search, setSearch] = useSessionState("furnitureSearch", "");
+  const [furniture, setFurniture] = useSessionState("allFurniture", []);
   const [isLoading, setIsLoading] = useState(true);
 
   // Modal State
@@ -54,7 +55,7 @@ export default function Furniture() {
   const [viewData, setViewData] = useState(null);
 
   // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useSessionState("furniturePage", 1);
   const [rowsPerPage, setRowsPerPage] = useState(10); 
 
   useEffect(() => {
@@ -212,8 +213,8 @@ export default function Furniture() {
   const filtered = [...furniture]
     .filter((f) => (f?.name || "").toLowerCase().includes(search.trim().toLowerCase()));
 
-  const [sortField, setSortField] = useState(null);
-  const [sortDir, setSortDir] = useState("asc");
+  const [sortField, setSortField] = useSessionState("furnitureSortField", null);
+  const [sortDir, setSortDir] = useSessionState("furnitureSortDir", "asc");
 
   const handleSort = (field) => {
     if (sortField === field) {

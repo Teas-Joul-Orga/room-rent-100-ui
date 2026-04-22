@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useSessionState } from "../../hooks/useSessionState";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -31,12 +32,12 @@ export default function AllTenants() {
   const { t } = useTranslation();
   const { request, loading } = useApi();
   
-  const [search, setSearch] = useState("");
-  const [tenants, setTenants] = useState([]);
+  const [search, setSearch] = useSessionState("allTenants_search", "");
+  const [tenants, setTenants] = useSessionState("allTenants_data", []);
   const [selectedIds, setSelectedIds] = useState([]);
-  const [sortField, setSortField] = useState("name");
-  const [sortDir, setSortDir] = useState("asc");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [sortField, setSortField] = useSessionState("allTenants_sortField", "name");
+  const [sortDir, setSortDir] = useSessionState("allTenants_sortDir", "asc");
+  const [currentPage, setCurrentPage] = useSessionState("allTenants_page", 1);
   const rowsPerPage = 10;
 
   const deleteDisc = useDisclosure();

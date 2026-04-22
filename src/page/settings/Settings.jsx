@@ -392,7 +392,7 @@ export default function Settings() {
                   <FormControl>
                     <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.booking.label_down_payment')}</FormLabel>
                     <InputGroup size="lg">
-                      <Input type="number" step="1" min="0" max="100" name="booking_down_payment_percent" value={settings.booking_down_payment_percent || '20'} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500" />
+                      <Input type="number" step="1" min="0" max="100" name="booking_down_payment_percent" value={settings.booking_down_payment_percent !== undefined ? settings.booking_down_payment_percent : '20'} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500" />
                       <InputLeftAddon borderRightRadius="xl"><FiPercent /></InputLeftAddon>
                     </InputGroup>
                     <FormHelperText fontSize="xs">{t('settings_page.booking.down_payment_helper')}</FormHelperText>

@@ -24,7 +24,6 @@ import AdminViewTenant from "./page/Admin/ViewTenant";
 import AdminCreateAccount from "./page/Admin/CreateAccount";
 import AdminExpense from "./page/Admin/Expense";
 import AdminBookingManagement from "./page/Admin/BookingManagement";
-import AdminWaitlistManagement from "./page/Admin/WaitlistManagement";
 
 // Tenant Pages
 import TenantDashboard from "./page/tenant/Dashboard";
@@ -37,8 +36,6 @@ import TenantChat from "./page/tenant/Chat";
 import AvailableRooms from "./page/tenant/AvailableRooms";
 import AvailableRoomDetail from "./page/tenant/AvailableRoomDetail";
 import MyBookings from "./page/tenant/MyBookings";
-import MyWaitlists from "./page/tenant/MyWaitlists";
-
 // Shared/Common
 import AllRoom from "./page/room/AllRoom";
 import AvailableRoom from "./page/room/AvailableRoom";
@@ -69,6 +66,7 @@ import RoomFurniture from "./page/furniture/RoomFurniture";
 import Bills from "./page/utility/Bills";
 
 import Landing from "./page/Landing";
+import PublicAnnouncements from "./page/PublicAnnouncements";
 import Login from "./Login";
 import Signup from "./Signup";
 import ProtectedRoute from "./ProtectedRoute";
@@ -105,8 +103,9 @@ function App() {
           {/* login page public */}
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          {/* Public Landing Page */}
+          {/* Public Landing Pages */}
           <Route path="/" element={<Landing />} />
+          <Route path="/announcements" element={<PublicAnnouncements />} />
 
           {/* Dashboard Area */}
           <Route
@@ -123,22 +122,19 @@ function App() {
 
             {/* Admin-only Management: Tenants */}
             <Route path="tenants">
-              <Route index element={<AdminAllTenants />} />
-              <Route path="activetenant" element={<AdminActiveTenant />} />
-              <Route path="pendingtenant" element={<AdminPendingTenant />} />
-              <Route path="addtenant" element={<AdminAddNewTenant />} />
-              <Route path="edit/:id" element={<AdminAddNewTenant />} />
-              <Route path="view/:id" element={<AdminViewTenant />} />
-              <Route path="createaccount/:id" element={<AdminCreateAccount />} />
+              <Route index element={<ProtectedRoute allowedRoles={['admin']}><AdminAllTenants /></ProtectedRoute>} />
+              <Route path="activetenant" element={<ProtectedRoute allowedRoles={['admin']}><AdminActiveTenant /></ProtectedRoute>} />
+              <Route path="pendingtenant" element={<ProtectedRoute allowedRoles={['admin']}><AdminPendingTenant /></ProtectedRoute>} />
+              <Route path="addtenant" element={<ProtectedRoute allowedRoles={['admin']}><AdminAddNewTenant /></ProtectedRoute>} />
+              <Route path="edit/:id" element={<ProtectedRoute allowedRoles={['admin']}><AdminAddNewTenant /></ProtectedRoute>} />
+              <Route path="view/:id" element={<ProtectedRoute allowedRoles={['admin']}><AdminViewTenant /></ProtectedRoute>} />
+              <Route path="createaccount/:id" element={<ProtectedRoute allowedRoles={['admin']}><AdminCreateAccount /></ProtectedRoute>} />
             </Route>
 
-            <Route path="bookings" element={<AdminBookingManagement />} />
-            <Route path="waitlists" element={<AdminWaitlistManagement />} />
+            <Route path="bookings" element={<ProtectedRoute allowedRoles={['admin']}><AdminBookingManagement /></ProtectedRoute>} />
 
             {/* Users */}
-            <Route path="users">
-              <Route index element={<AllUsers />} />
-            </Route>
+            <Route path="users" element={<ProtectedRoute allowedRoles={['admin']}><AllUsers /></ProtectedRoute>} />
             <Route path="profile" element={<Profile />} />
 
             {/* Furniture  */}
@@ -208,7 +204,6 @@ function App() {
             </Route>
 
             <Route path="my-bookings" element={<MyBookings />} />
-            <Route path="my-waitlists" element={<MyWaitlists />} />
           </Route>
           {/* Catch-all 404 Page */}
           <Route path="*" element={<NotFound />} />

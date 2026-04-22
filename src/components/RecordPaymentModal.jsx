@@ -229,7 +229,7 @@ export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initial
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="2xl">
+    <Modal isOpen={isOpen} onClose={onClose} size="3xl">
       <ModalOverlay bg="blackAlpha.700" backdropFilter="blur(5px)" />
       <ModalContent bg={modalBg} borderRadius="2xl" overflow="hidden" shadow="2xl" border="1px solid" borderColor={borderColor}>
         <form onSubmit={handleSubmit}>

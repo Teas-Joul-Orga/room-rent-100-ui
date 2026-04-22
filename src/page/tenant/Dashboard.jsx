@@ -4,7 +4,8 @@ import {
   VStack, HStack, Spinner, Button, Badge, Avatar, Progress, SimpleGrid,
   Table, Tbody, Tr, Td, TableContainer, Divider, Center,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
-  useDisclosure, Checkbox, Image
+  useDisclosure, Checkbox, Image,
+  Alert, AlertIcon, AlertTitle, AlertDescription
 } from "@chakra-ui/react";
 import {
   LuReceipt, LuWrench, LuDoorOpen
@@ -15,7 +16,7 @@ import {
 } from "react-icons/fi";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid
+  AreaChart, Area, XAxis, YAxis, CartesianGrid
 } from "recharts";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -33,11 +34,13 @@ const MotionBox = motion(Box);
 const MotionFlex = motion(Flex);
 
 const COLORS = ['#6366f1', '#10b981', '#f43f5e', '#f59e0b', '#8b5cf6'];
-const BAKONG_LOGO_RED = "https://bakong.nbc.gov.kh/images/logo.png";
+const BAKONG_LOGO_RED = "https://raw.githubusercontent.com/sokeng/khqr-gateway/main/assets/khqr.png";
+const KHQR_LOGO = "https://nbc.gov.kh/images/khqr_logo.png";
 
 export default function TenantDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedLease, setSelectedLease] = useState(null);
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { colorMode } = useColorMode();
@@ -90,6 +93,17 @@ export default function TenantDashboard() {
       setLoading(true);
       const res = await api.get("/tenant/dashboard");
       setData(res.data);
+      if (res.data.active_leases && res.data.active_leases.length > 0) {
+        setSelectedLease(prev => {
+          if (prev) {
+            const updated = res.data.active_leases.find(l => l.id === prev.id);
+            return updated || res.data.active_leases[0];
+          }
+          return res.data.active_leases[0];
+        });
+      } else {
+        setSelectedLease(res.data.lease);
+      }
     } catch (err) {
       console.error("API error", err);
     } finally {
@@ -112,10 +126,10 @@ export default function TenantDashboard() {
 
   const calculateSubtotal = () => {
     let total = 0;
-    if (selectedItems.rent && data?.lease?.rent_amount) {
-      total += Number(data.lease.rent_amount);
+    if (selectedItems.rent && selectedLease?.rent_amount) {
+      total += Number(selectedLease.rent_amount);
     }
-    const unpaidBills = data?.lease?.utility_bills?.filter(b => b.status === "unpaid") || [];
+    const unpaidBills = selectedLease?.utility_bills?.filter(b => b.status === "unpaid") || [];
     unpaidBills.forEach(b => {
       if (selectedItems.utilities.includes(b.id)) {
         total += Number(b.amount);
@@ -130,7 +144,7 @@ export default function TenantDashboard() {
     try {
       const res = await api.post("/tenant/payment/bakong/generate-qr", {
         type: "bundle",
-        id: data.lease.id,
+        id: selectedLease.id,
         rent: selectedItems.rent,
         utility_ids: selectedItems.utilities
       });
@@ -167,7 +181,7 @@ export default function TenantDashboard() {
   };
 
   const handleOpenPayment = () => {
-    const unpaidBills = data?.lease?.utility_bills?.filter(b => b.status === "unpaid") || [];
+    const unpaidBills = selectedLease?.utility_bills?.filter(b => b.status === "unpaid") || [];
     setSelectedItems({ rent: true, utilities: unpaidBills.map(b => b.id) });
     setQrString(null);
     setQrMd5(null);
@@ -190,7 +204,8 @@ export default function TenantDashboard() {
 
   if (!data) return <Center h="70vh"><Text color="red.400">Error loading your portal. Please try again.</Text></Center>;
 
-  const { lease, stats, recent_requests, recent_payments, tenant, utilityTrends, announcements } = data;
+  const { stats, recent_requests, recent_payments, tenant, utilityTrends, announcements, active_leases } = data;
+  const lease = selectedLease;
   const totalDue = stats?.total_due || 0;
   
   // Chart Data Preparation
@@ -214,6 +229,39 @@ export default function TenantDashboard() {
     <Box p={{ base: 4, md: 8 }} bg={bg} minH="100vh">
       <Toaster position="top-right" />
       
+      {stats?.overdue_bills_count > 0 && (
+        <Alert status="error" variant="solid" borderRadius="2xl" mb={6} shadow="lg">
+          <AlertIcon />
+          <Box flex="1">
+            <AlertTitle fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider">
+              Overdue Payments Detected
+            </AlertTitle>
+            <AlertDescription fontSize="xs" fontWeight="bold">
+              You have {stats.overdue_bills_count} utility bill(s) that are past their due date. Please settle your balance to avoid service interruption.
+            </AlertDescription>
+          </Box>
+        </Alert>
+      )}
+
+      {active_leases?.length > 1 && (
+        <Flex mb={6} overflowX="auto" pb={2} gap={3}>
+          {active_leases.map(l => (
+            <Button
+              key={l.id}
+              size="sm"
+              borderRadius="full"
+              colorScheme={selectedLease?.id === l.id ? "blue" : "gray"}
+              variant={selectedLease?.id === l.id ? "solid" : "outline"}
+              onClick={() => setSelectedLease(l)}
+              flexShrink={0}
+              leftIcon={<Icon as={FiFileText} />}
+            >
+              {l.room?.name || `Lease #${l.id}`}
+            </Button>
+          ))}
+        </Flex>
+      )}
+
       {/* Header & Resident Profile Card */}
       <Flex direction={{ base: "column", lg: "row" }} gap={8} mb={10}>
         
@@ -267,7 +315,16 @@ export default function TenantDashboard() {
       </Flex>
 
       {/* Action Row */}
-      <SimpleGrid columns={{ base: 2, md: 5 }} spacing={4} mb={10}>
+      <Flex 
+        gap={4} mb={10} 
+        overflowX={{ base: "auto", md: "visible" }} 
+        flexWrap="nowrap"
+        pb={{ base: 2, md: 0 }}
+        css={{
+          '&::-webkit-scrollbar': { display: 'none' },
+          scrollbarWidth: 'none',
+        }}
+      >
         {[
           { label: "Pay Rent", icon: LuReceipt, color: "blue", link: "/dashboard/utility" },
           { label: "Fix Request", icon: LuWrench, color: "orange", link: "/dashboard/maintenance" },
@@ -277,7 +334,7 @@ export default function TenantDashboard() {
         ].map((act, i) => (
           <ActionCard key={i} {...act} delay={i * 0.05} />
         ))}
-      </SimpleGrid>
+      </Flex>
 
       {/* Main Content Grid */}
       <Grid templateColumns={{ base: "1fr", lg: "1.8fr 1.2fr" }} gap={8}>
@@ -293,21 +350,31 @@ export default function TenantDashboard() {
                 <Heading size="md" fontWeight="900">Utility Consumption</Heading>
               </Box>
               <HStack spacing={4}>
-                <HStack><Box w="3" h="3" rounded="full" bg="blue.400" /><Text fontSize="xs" fontWeight="800">Electric</Text></HStack>
-                <HStack><Box w="3" h="3" rounded="full" bg="cyan.400" /><Text fontSize="xs" fontWeight="800">Water</Text></HStack>
+                <HStack><Box w="3" h="3" rounded="full" bg="#8b5cf6" /><Text fontSize="xs" fontWeight="800">Electric</Text></HStack>
+                <HStack><Box w="3" h="3" rounded="full" bg="#0bc5ea" /><Text fontSize="xs" fontWeight="800">Water</Text></HStack>
               </HStack>
             </Flex>
             <Box h="300px" minWidth={0}>
               {consumptionData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={consumptionData}>
+                  <AreaChart data={consumptionData}>
+                    <defs>
+                      <linearGradient id="colorElec" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorWater" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0bc5ea" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#0bc5ea" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={borderColor} />
                     <XAxis dataKey="month" tick={{fontSize: 10, fill: mutedText}} axisLine={false} tickLine={false} dy={10} />
-                    <YAxis tick={{fontSize: 10, fill: mutedText}} axisLine={false} tickLine={false} />
+                    <YAxis tick={{fontSize: 10, fill: mutedText}} axisLine={false} tickLine={false} dx={-10} />
                     <RechartsTooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '15px', border: 'none', shadow: 'xl', background: cardBg }} />
-                    <Bar dataKey="electric" fill="#3182ce" radius={[4, 4, 0, 0]} barSize={12} />
-                    <Bar dataKey="water" fill="#0bc5ea" radius={[4, 4, 0, 0]} barSize={12} />
-                  </BarChart>
+                    <Area type="monotone" dataKey="electric" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorElec)" />
+                    <Area type="monotone" dataKey="water" stroke="#0bc5ea" strokeWidth={3} fillOpacity={1} fill="url(#colorWater)" />
+                  </AreaChart>
                 </ResponsiveContainer>
               ) : (
                 <Center h="full"><Text fontSize="sm" color={mutedText}>No usage data yet.</Text></Center>
@@ -316,18 +383,18 @@ export default function TenantDashboard() {
           </Box>
 
           {/* Billboard / Announcements */}
-          <Box bg={cardBg} p={8} borderRadius="3xl" border="1px" borderColor={borderColor} shadow="md">
-            <Text fontWeight="900" fontSize="xs" color={mutedText} textTransform="uppercase" letterSpacing="widest" mb={6}>Community Hub</Text>
-            <VStack spacing={6} align="stretch">
+          <Box bg={cardBg} p={{ base: 4, sm: 6, md: 8 }} borderRadius="3xl" border="1px" borderColor={borderColor} shadow="md">
+            <Text fontWeight="900" fontSize="xs" color={mutedText} textTransform="uppercase" letterSpacing="widest" mb={{ base: 4, md: 6 }}>Community Hub</Text>
+            <VStack spacing={{ base: 3, md: 6 }} align="stretch">
                {announcements?.slice(0, 3).map((anc, i) => (
-                 <Flex key={i} gap={4} p={6} bg={annItemBg} borderRadius="2xl" border="1px" borderColor={borderColor}>
-                    <Center w="12" h="12" bg="brand.50" color="brand.600" rounded="xl" flexShrink={0}>
-                       <Icon as={FiBell} boxSize={5} />
+                 <Flex key={i} gap={{ base: 3, md: 4 }} p={{ base: 4, md: 6 }} bg={annItemBg} borderRadius="2xl" border="1px" borderColor={borderColor}>
+                    <Center w={{ base: 10, md: 12 }} h={{ base: 10, md: 12 }} bg="blue.50" color="blue.600" _dark={{ bg: "blue.900", color: "blue.200" }} rounded={{ base: "lg", md: "xl" }} flexShrink={0}>
+                       <Icon as={FiBell} boxSize={{ base: 4, md: 5 }} />
                     </Center>
-                    <Box>
-                       <Text fontSize="sm" fontWeight="900" mb={1}>{anc.title}</Text>
-                       <Text fontSize="xs" color={mutedText} mb={3} noOfLines={2}>{anc.content}</Text>
-                       <Text fontSize="10px" fontWeight="900" color="brand.500">{dayjs(anc.created_at).fromNow()}</Text>
+                    <Box flex="1" minW={0}>
+                       <Text fontSize={{ base: "xs", md: "sm" }} fontWeight="900" mb={1} isTruncated display="block">{anc.title}</Text>
+                       <Text fontSize={{ base: "11px", md: "xs" }} color={mutedText} mb={{ base: 2, md: 3 }} noOfLines={2} lineHeight="1.4">{anc.content}</Text>
+                       <Text fontSize="10px" fontWeight="900" color="blue.500">{dayjs(anc.created_at).fromNow()}</Text>
                     </Box>
                  </Flex>
                ))}
@@ -358,7 +425,7 @@ export default function TenantDashboard() {
               {billBreakdownData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={billBreakdownData} innerRadius={60} outerRadius={90} paddingAngle={8} dataKey="value" stroke="none">
+                    <Pie data={billBreakdownData} innerRadius={70} outerRadius={90} paddingAngle={5} cornerRadius={10} dataKey="value" stroke="none">
                       {billBreakdownData.map((e, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Pie>
                     <RechartsTooltip contentStyle={{ borderRadius: '15px', border: 'none', shadow: 'xl', background: cardBg }} />
@@ -371,7 +438,7 @@ export default function TenantDashboard() {
                 </Center>
               )}
             </Box>
-            <VStack spacing={2} align="stretch">
+            <VStack spacing={2} align="stretch" mt={2}>
                {billBreakdownData.map((b, i) => (
                  <Flex key={i} justify="space-between" align="center" fontSize="xs" fontWeight="700">
                     <HStack><Box w="2" h="2" rounded="full" bg={COLORS[i % COLORS.length]} /><Text color={mutedText}>{b.name}</Text></HStack>
@@ -540,13 +607,15 @@ function ActionCard({ label, icon, color, link, delay }) {
     <MotionBox 
       whileHover={{ y: -5, shadow: "xl" }} whileActive={{ scale: 0.95 }}
       initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay }}
-      bg={actionCardBg} p={6} borderRadius="2xl" border="1px" borderColor={actionCardBorder} shadow="sm"
+      bg={actionCardBg} p={{ base: 4, md: 6 }} borderRadius="2xl" border="1px" borderColor={actionCardBorder} shadow="sm"
       cursor="pointer" onClick={() => navigate(link)} textAlign="center"
+      flex={{ base: "0 0 100px", md: "1" }}
+      display="flex" flexDirection="column" alignItems="center" justifyContent="center"
     >
-      <Center w="12" h="12" bg={`${color}.50`} color={`${color}.500`} _dark={{ bg: `${color}.900`, color: `${color}.300` }} rounded="2xl" mx="auto" mb={4}>
-        <Icon as={icon} boxSize={6} />
+      <Center w={{ base: 10, md: 12 }} h={{ base: 10, md: 12 }} bg={`${color}.50`} color={`${color}.500`} _dark={{ bg: `${color}.900`, color: `${color}.300` }} rounded={{ base: "xl", md: "2xl" }} mb={{ base: 3, md: 4 }}>
+        <Icon as={icon} boxSize={{ base: 5, md: 6 }} />
       </Center>
-      <Text fontSize="xs" fontWeight="900" textTransform="uppercase" letterSpacing="wide">{label}</Text>
+      <Text fontSize={{ base: "10px", md: "xs" }} fontWeight="900" textTransform="uppercase" letterSpacing="wide" lineHeight="1.2">{label}</Text>
     </MotionBox>
   );
 }

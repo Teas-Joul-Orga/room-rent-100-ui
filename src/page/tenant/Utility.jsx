@@ -33,7 +33,8 @@ import toast, { Toaster } from "react-hot-toast";
 import { QRCodeCanvas } from "qrcode.react";
 import echo from "../../lib/echo";
 
-const BAKONG_LOGO_RED = "https://bakong.nbc.gov.kh/images/logo.png";
+const BAKONG_LOGO_RED = "https://raw.githubusercontent.com/sokeng/khqr-gateway/main/assets/khqr.png";
+const KHQR_LOGO = "https://nbc.gov.kh/images/khqr_logo.png";
 
 const API = "http://localhost:8000/api/v1/tenant";
 
@@ -320,9 +321,14 @@ export default function TenantUtility() {
                     <Text fontSize="md" fontWeight="black" color={textColor} textTransform="uppercase">
                       {t(`utility.${bill.type}`)}
                     </Text>
-                    <Text fontSize="sm" color={mutedText} fontWeight="bold">
-                      {dayjs(bill.due_date).format('MMMM YYYY')}
-                    </Text>
+                    <HStack spacing={2}>
+                      <Text fontSize="xs" color="blue.500" fontWeight="black" textTransform="uppercase">
+                        {bill.room_name}
+                      </Text>
+                      <Text fontSize="sm" color={mutedText} fontWeight="bold">
+                        {dayjs(bill.due_date).format('MMMM YYYY')}
+                      </Text>
+                    </HStack>
                   </Box>
                 </Flex>
                 <VStack align="flex-end" spacing={1}>

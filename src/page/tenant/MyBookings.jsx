@@ -2,12 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   Box,
   Heading,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
   Badge,
   Button,
   useColorModeValue,
@@ -20,24 +14,16 @@ import {
   SimpleGrid,
   Image,
   Divider,
+  Alert,
+  AlertIcon,
+  AlertDescription,
+  Progress,
 } from "@chakra-ui/react";
-import { FiCalendar, FiHome, FiInfo, FiCheckCircle, FiXCircle, FiClock, FiAlertCircle, FiArrowRight, FiDollarSign } from "react-icons/fi";
+import { FiCalendar, FiHome, FiCheckCircle, FiXCircle, FiClock, FiAlertCircle, FiArrowRight, FiDollarSign, FiDownload, FiAlertTriangle } from "react-icons/fi";
+import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import api from "../../api/axios";
 import echo from "../../utils/echo";
-import { QRCodeCanvas } from "qrcode.react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  useDisclosure,
-} from "@chakra-ui/react";
-
-const BAKONG_LOGO_RED = "https://bakong.nbc.gov.kh/images/logo.png";
 
 const BookingStep = ({ label, isCompleted, isActive, isLast }) => (
   <Flex align="center" flex={isLast ? "none" : 1}>
@@ -67,19 +53,11 @@ const BookingStep = ({ label, isCompleted, isActive, isLast }) => (
 const FiCircle = () => <Box w={2} h={2} borderRadius="full" border="2px solid currentColor" />;
 
 export default function MyBookings() {
+  const { t } = useTranslation();
   const [bookings, setBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [isLive, setIsLive] = useState(false);
-
-  // Payment Modal
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const [selectedBooking, setSelectedBooking] = useState(null);
-  const [qrString, setQrString] = useState(null);
-  const [qrMd5, setQrMd5] = useState(null);
-  const [loadingQr, setLoadingQr] = useState(false);
-  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
-  const pollingRef = React.useRef(null);
 
   const bg = useColorModeValue("gray.50", "gray.900");
   const cardBg = useColorModeValue("white", "gray.800");
@@ -102,73 +80,8 @@ export default function MyBookings() {
       if (user?.tenant?.id) {
         echo.leaveChannel(`tenant.bookings.${user.tenant.id}`);
       }
-      if (pollingRef.current) clearInterval(pollingRef.current);
     };
   }, []);
-
-  // Listen for specific payment MD5 if open
-  useEffect(() => {
-    if (!qrMd5) return;
-    const channel = echo.channel(`bakong.payment.${qrMd5}`)
-      .listen('.App\\Events\\BakongPaymentConfirmed', (e) => {
-          if (pollingRef.current) clearInterval(pollingRef.current);
-          handlePaymentSuccess();
-      });
-    return () => echo.leaveChannel(`bakong.payment.${qrMd5}`);
-  }, [qrMd5]);
-
-  const handlePayNow = async (booking) => {
-    setSelectedBooking(booking);
-    setPaymentConfirmed(false);
-    setQrString(null);
-    setQrMd5(null);
-    onOpen();
-    setLoadingQr(true);
-
-    try {
-      const res = await api.post(`/tenant/payment/bakong/generate-qr`, {
-        type: "booking",
-        id: booking.id,
-      });
-      const data = res.data;
-      if (data.status === "success") {
-        setQrString(data.data.qrString);
-        setQrMd5(data.data.md5);
-        startPolling(data.data.md5);
-      }
-    } catch (e) {
-      toast.error("Failed to generate payment QR");
-    } finally {
-      setLoadingQr(false);
-    }
-  };
-
-  const startPolling = (md5) => {
-    if (pollingRef.current) clearInterval(pollingRef.current);
-    pollingRef.current = setInterval(async () => {
-      try {
-        const res = await api.post(`/tenant/payment/bakong/check-transaction`, { md5 });
-        if (res.data.status === "success" && res.data.paid === true) {
-          clearInterval(pollingRef.current);
-          handlePaymentSuccess();
-        }
-      } catch (_) {}
-    }, 5000);
-  };
-
-  const handlePaymentSuccess = () => {
-    setPaymentConfirmed(true);
-    toast.success("Payment verified successfully!");
-    fetchBookings();
-    setTimeout(() => {
-      onClose();
-    }, 3000);
-  };
-
-  const handleCloseModal = () => {
-    if (pollingRef.current) clearInterval(pollingRef.current);
-    onClose();
-  };
 
   const fetchUser = async () => {
     try {
@@ -190,32 +103,59 @@ export default function MyBookings() {
     }
   };
 
-  const cancelBooking = async (id) => {
-    if (!window.confirm("Are you sure you want to cancel this booking?")) return;
+  const cancelBooking = async (booking) => {
+    const msg = booking.status === 'confirmed' 
+      ? t('my_bookings.cancel_confirmed_warn') 
+      : t('my_bookings.cancel_default_warn');
+    if (!window.confirm(msg)) return;
 
-    // Optimistic UI update
     const previousBookings = [...bookings];
-    setBookings(bookings.filter(b => b.id !== id));
+    setBookings(bookings.filter(b => b.id !== booking.id));
 
     try {
-      await api.post(`/tenant/bookings/${id}/cancel`);
+      await api.post(`/tenant/bookings/${booking.uid}/cancel`);
       toast.success("Booking cancelled successfully");
+      fetchBookings();
     } catch (error) {
       setBookings(previousBookings);
-      toast.error("Failed to cancel booking");
+      toast.error(error.response?.data?.message || "Failed to cancel booking");
+    }
+  };
+
+  const downloadContract = async (booking) => {
+    try {
+      const res = await api.get(`/tenant/bookings/${booking.uid}/contract`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      window.open(url, '_blank');
+    } catch (error) {
+      toast.error("Failed to download contract");
     }
   };
 
   const getStatusBadge = (status) => {
     const colorMap = {
       pending: "yellow",
+      confirmed: "blue",
       approved: "green",
+      completed: "green",
       rejected: "red",
       cancelled: "gray",
+      no_show: "red",
+    };
+    const labelMap = {
+      pending: t('my_bookings.pending'),
+      confirmed: t('my_bookings.confirmed'),
+      approved: t('my_bookings.approved'),
+      completed: t('my_bookings.completed'),
+      rejected: t('my_bookings.rejected'),
+      cancelled: t('my_bookings.cancelled'),
+      no_show: t('my_bookings.no_show'),
     };
     return (
       <Badge colorScheme={colorMap[status] || "gray"} px={3} py={1} borderRadius="full" textTransform="uppercase" fontSize="xs">
-        {status}
+        {labelMap[status] || status}
       </Badge>
     );
   };
@@ -223,6 +163,17 @@ export default function MyBookings() {
   const formatCurrency = (amount) => {
     const num = Number(amount || 0);
     return `$${num.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+  };
+
+  const getDeadlineInfo = (booking) => {
+    if (!booking.move_in_deadline) return null;
+    const days = booking.days_until_deadline;
+    if (days === null || days === undefined) return null;
+    
+    if (days < 0) return { color: "red", text: t('my_bookings.expired'), urgency: "expired" };
+    if (days === 0) return { color: "red", text: t('my_bookings.today'), urgency: "critical" };
+    if (days <= 7) return { color: "orange", text: t('my_bookings.days_left', { days }), urgency: "warning" };
+    return { color: "green", text: t('my_bookings.days_left', { days }), urgency: "ok" };
   };
 
   if (isLoading) return (
@@ -240,178 +191,179 @@ export default function MyBookings() {
         <Flex justify="space-between" align="center">
           <VStack align="flex-start" spacing={0}>
             <Heading size="lg" color={textColor} letterSpacing="tight">
-              My Bookings
+              {t('my_bookings.title')}
             </Heading>
-            <Text color={mutedText} fontSize="sm">Track your room reservation status.</Text>
+            <Text color={mutedText} fontSize="sm">{t('my_bookings.subtitle')}</Text>
           </VStack>
           
           <HStack bg={cardBg} px={4} py={2} borderRadius="full" shadow="sm" border="1px" borderColor={borderColor}>
             <Box w={2} h={2} borderRadius="full" bg={isLive ? "green.500" : "red.500"} />
-            <Text fontSize="xs" fontWeight="bold" color={mutedText}>{isLive ? "Live Updates" : "Offline"}</Text>
+            <Text fontSize="xs" fontWeight="bold" color={mutedText}>{isLive ? t('my_bookings.live_updates') : t('my_bookings.offline')}</Text>
           </HStack>
         </Flex>
 
         {bookings.length === 0 ? (
           <Box bg={cardBg} p={20} borderRadius="2xl" shadow="sm" textAlign="center" border="1px" borderColor={borderColor}>
             <Icon as={FiHome} boxSize={12} color="gray.300" mb={4} />
-            <Heading size="md" mb={2}>No Bookings Yet</Heading>
-            <Text color={mutedText} mb={6}>You haven't made any room reservations.</Text>
-            <Button colorScheme="blue" borderRadius="full" leftIcon={<FiArrowRight />} onClick={() => window.location.href='/public/rooms'}>
-              Find a Room
+            <Heading size="md" mb={2}>{t('my_bookings.no_bookings_yet')}</Heading>
+            <Text color={mutedText} mb={6}>{t('my_bookings.no_bookings_desc')}</Text>
+            <Button colorScheme="blue" borderRadius="full" leftIcon={<FiArrowRight />} onClick={() => window.location.href='/dashboard/available-rooms'}>
+              {t('my_bookings.find_a_room')}
             </Button>
           </Box>
         ) : (
           <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
-            {bookings.map((b) => (
-              <Box key={b.id} bg={cardBg} borderRadius="2xl" shadow="md" overflow="hidden" border="1px" borderColor={borderColor}>
-                <Flex direction={{ base: "column", sm: "row" }}>
-                  <Box w={{ base: "full", sm: "200px" }} h={{ base: "150px", sm: "auto" }} bg="gray.100" position="relative">
-                    {b.room?.images?.[0] ? (
-                      <Image src={b.room.images[0].url} alt={b.room.name} objectFit="cover" h="full" w="full" />
-                    ) : (
-                      <Flex h="full" w="full" align="center" justify="center" direction="column">
-                        <Icon as={FiHome} boxSize={8} color="gray.400" />
-                        <Text fontSize="xs" color="gray.400" mt={2}>Room Preview</Text>
-                      </Flex>
-                    )}
-                    <Box position="absolute" top={2} left={2}>
-                      {getStatusBadge(b.status)}
-                    </Box>
-                  </Box>
-
-                  <Box p={6} flex={1}>
-                    <VStack align="stretch" spacing={4}>
-                      <Flex justify="space-between" align="flex-start">
-                        <VStack align="flex-start" spacing={0}>
-                          <Text fontWeight="bold" fontSize="xl">{b.room?.name || "Room Details"}</Text>
-                          <HStack spacing={1} color={mutedText} fontSize="sm">
-                            <Icon as={FiCalendar} />
-                            <Text>Move-in: {b.desired_move_in_date || "Anytime"}</Text>
-                          </HStack>
-                        </VStack>
-                        <VStack align="flex-end" spacing={0}>
-                          <Text fontWeight="black" fontSize="xl" color="blue.600">{formatCurrency(b.down_payment_amount)}</Text>
-                          <Text fontSize="xs" color={mutedText} fontWeight="bold">DOWN PAYMENT</Text>
-                        </VStack>
-                      </Flex>
-
-                      <Box py={4} px={2}>
-                        <Flex justify="space-between" position="relative">
-                          <BookingStep label="Submitted" isCompleted={true} isLast={false} />
-                          <BookingStep 
-                            label="Payment" 
-                            isCompleted={b.down_payment_status === 'paid'} 
-                            isActive={b.down_payment_status === 'unpaid' && b.status === 'pending'} 
-                            isLast={false} 
-                          />
-                          <BookingStep 
-                            label="Approval" 
-                            isCompleted={b.status === 'approved'} 
-                            isActive={b.status === 'pending' && b.down_payment_status === 'paid'} 
-                            isLast={true} 
-                          />
+            {bookings.map((b) => {
+              const deadlineInfo = getDeadlineInfo(b);
+              
+              return (
+                <Box key={b.id} bg={cardBg} borderRadius="2xl" shadow="md" overflow="hidden" border="1px" borderColor={borderColor}>
+                  <Flex direction={{ base: "column", sm: "row" }}>
+                    <Box w={{ base: "full", sm: "200px" }} h={{ base: "150px", sm: "auto" }} bg="gray.100" position="relative">
+                      {b.room?.images?.[0] ? (
+                        <Image src={b.room.images[0].url} alt={b.room.name} objectFit="cover" h="full" w="full" />
+                      ) : (
+                        <Flex h="full" w="full" align="center" justify="center" direction="column">
+                          <Icon as={FiHome} boxSize={8} color="gray.400" />
+                          <Text fontSize="xs" color="gray.400" mt={2}>{t('my_bookings.room_preview')}</Text>
                         </Flex>
+                      )}
+                      <Box position="absolute" top={2} left={2}>
+                        {getStatusBadge(b.status)}
                       </Box>
+                    </Box>
 
-                      <Divider />
+                    <Box p={6} flex={1}>
+                      <VStack align="stretch" spacing={4}>
+                        <Flex justify="space-between" align="flex-start">
+                          <VStack align="flex-start" spacing={0}>
+                            <Text fontWeight="bold" fontSize="xl">{b.room?.name || t('my_bookings.room_details')}</Text>
+                            <HStack spacing={1} color={mutedText} fontSize="sm">
+                              <Icon as={FiCalendar} />
+                              <Text>{b.desired_move_in_date ? t('my_bookings.move_in', { date: new Date(b.desired_move_in_date).toLocaleDateString() }) : t('my_bookings.anytime')}</Text>
+                            </HStack>
+                          </VStack>
+                          <VStack align="flex-end" spacing={0}>
+                            <Text fontWeight="black" fontSize="xl" color="blue.600">{formatCurrency(b.down_payment_amount)}</Text>
+                            <Text fontSize="xs" color={mutedText} fontWeight="bold">{t('my_bookings.down_payment')}</Text>
+                          </VStack>
+                        </Flex>
 
-                      <Flex justify="space-between" align="center">
-                        <HStack>
-                          <Icon as={b.down_payment_status === 'paid' ? FiCheckCircle : FiAlertCircle} color={b.down_payment_status === 'paid' ? "green.500" : "orange.500"} />
-                          <Text fontSize="sm" fontWeight="medium">
-                            {b.down_payment_status === 'paid' ? "Payment Verified" : "Awaiting Payment"}
-                          </Text>
-                        </HStack>
-                        
-                        <HStack spacing={2}>
-                          {b.down_payment_status === 'unpaid' && b.status === 'pending' && (
-                            <Button size="sm" colorScheme="blue" variant="solid" leftIcon={<FiDollarSign />} onClick={() => handlePayNow(b)}>
-                              Pay Now
-                            </Button>
-                          )}
-                          {b.status === "pending" && (
-                            <Button size="sm" colorScheme="red" variant="ghost" leftIcon={<FiXCircle />} onClick={() => cancelBooking(b.id)}>
-                              Cancel
-                            </Button>
-                          )}
-                        </HStack>
-                      </Flex>
-                    </VStack>
-                  </Box>
-                </Flex>
-              </Box>
-            ))}
+                        {/* Booking Steps */}
+                        <Box py={4} px={2}>
+                          <Flex justify="space-between" position="relative">
+                            <BookingStep label={t('my_bookings.submitted')} isCompleted={true} isLast={false} />
+                            <BookingStep 
+                              label={t('my_bookings.payment')} 
+                              isCompleted={b.down_payment_status === 'paid'} 
+                              isActive={b.down_payment_status === 'unpaid' && b.status === 'pending'} 
+                              isLast={false} 
+                            />
+                            <BookingStep 
+                              label={t('my_bookings.confirmed')} 
+                              isCompleted={['confirmed', 'completed'].includes(b.status)} 
+                              isActive={b.down_payment_status === 'paid' && b.status === 'pending'} 
+                              isLast={true} 
+                            />
+                          </Flex>
+                        </Box>
+
+                        {/* Move-in Deadline Alert */}
+                        {b.status === 'confirmed' && b.move_in_deadline && deadlineInfo && (
+                          <Box 
+                            bg={`${deadlineInfo.color}.50`} 
+                            p={3} 
+                            borderRadius="xl" 
+                            border="1px" 
+                            borderColor={`${deadlineInfo.color}.200`}
+                          >
+                            <HStack spacing={3}>
+                              <Icon 
+                                as={deadlineInfo.urgency === 'ok' ? FiClock : FiAlertTriangle} 
+                                color={`${deadlineInfo.color}.500`} 
+                                boxSize={5} 
+                              />
+                              <VStack align="flex-start" spacing={0} flex={1}>
+                                <Text fontSize="xs" fontWeight="bold" color={`${deadlineInfo.color}.700`}>
+                                  {t('my_bookings.move_in_deadline')}
+                                </Text>
+                                <Text fontWeight="bold" fontSize="sm" color={`${deadlineInfo.color}.800`}>
+                                  {new Date(b.move_in_deadline).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                                </Text>
+                              </VStack>
+                              <Badge colorScheme={deadlineInfo.color} borderRadius="full" px={3} py={1} fontSize="xs" fontWeight="bold">
+                                {deadlineInfo.text}
+                              </Badge>
+                            </HStack>
+                            {deadlineInfo.urgency !== 'ok' && (
+                              <Progress 
+                                value={Math.max(0, 100 - ((b.days_until_deadline ?? 0) / 14) * 100)} 
+                                size="xs" 
+                                colorScheme={deadlineInfo.color} 
+                                mt={2} 
+                                borderRadius="full" 
+                              />
+                            )}
+                          </Box>
+                        )}
+
+                        {/* No-Show Message */}
+                        {b.status === 'no_show' && (
+                          <Alert status="error" borderRadius="xl" variant="left-accent">
+                            <AlertIcon />
+                            <AlertDescription fontSize="sm">
+                              {t('my_bookings.no_show_msg', {
+                                date: b.move_in_deadline ? ` (${new Date(b.move_in_deadline).toLocaleDateString()})` : ''
+                              })}
+                            </AlertDescription>
+                          </Alert>
+                        )}
+
+                        {/* Completed Message */}
+                        {b.status === 'completed' && (
+                          <Alert status="success" borderRadius="xl" variant="left-accent">
+                            <AlertIcon />
+                            <AlertDescription fontSize="sm">
+                              {t('my_bookings.completed_msg')}
+                            </AlertDescription>
+                          </Alert>
+                        )}
+
+                        <Divider />
+
+                        <Flex justify="space-between" align="center">
+                          <HStack>
+                            <Icon as={b.down_payment_status === 'paid' ? FiCheckCircle : FiAlertCircle} color={b.down_payment_status === 'paid' ? "green.500" : "orange.500"} />
+                            <Text fontSize="sm" fontWeight="medium">
+                              {b.down_payment_status === 'paid' ? t('my_bookings.payment_verified') : t('my_bookings.awaiting_payment')}
+                            </Text>
+                          </HStack>
+                          
+                          <HStack spacing={2}>
+                            {/* Download Contract */}
+                            {b.status === 'confirmed' && (
+                              <Button size="sm" colorScheme="purple" variant="outline" leftIcon={<FiDownload />} onClick={() => downloadContract(b)} borderRadius="full">
+                                {t('my_bookings.contract')}
+                              </Button>
+                            )}
+                            
+                            {/* Cancel */}
+                            {['pending', 'confirmed'].includes(b.status) && (
+                              <Button size="sm" colorScheme="red" variant="ghost" leftIcon={<FiXCircle />} onClick={() => cancelBooking(b)}>
+                                {t('my_bookings.cancel')}
+                              </Button>
+                            )}
+                          </HStack>
+                        </Flex>
+                      </VStack>
+                    </Box>
+                  </Flex>
+                </Box>
+              );
+            })}
           </SimpleGrid>
         )}
       </VStack>
-
-      {/* Payment Modal */}
-      <Modal isOpen={isOpen} onClose={handleCloseModal} isCentered size="md">
-        <ModalOverlay backdropFilter="blur(4px)" />
-        <ModalContent borderRadius="2xl" bg={cardBg} shadow="2xl">
-          <ModalHeader color={textColor}>Complete Down Payment</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody pb={6}>
-            <VStack spacing={5}>
-              <Box w="full" bg={useColorModeValue("green.50", "rgba(72,187,120,0.1)")} p={5} borderRadius="xl" border="1px solid" borderColor={useColorModeValue("green.200", "green.800")}>
-                <VStack spacing={1}>
-                  <Text fontSize="sm" color={mutedText} fontWeight="bold">Amount Due</Text>
-                  <Heading size="lg" color="green.600" _dark={{ color: "green.300" }}>
-                    {selectedBooking ? formatCurrency(selectedBooking.down_payment_amount) : "$0.00"}
-                  </Heading>
-                </VStack>
-              </Box>
-
-              <Box w="full" bg={cardBg} borderRadius="2xl" overflow="hidden" border="2px solid" borderColor={paymentConfirmed ? "green.400" : qrString ? "blue.300" : borderColor} transition="all 0.5s ease" shadow={qrString && !paymentConfirmed ? "0 0 30px -5px rgba(66,153,225,0.4)" : "none"}>
-                {paymentConfirmed ? (
-                  <Box bgGradient="linear(to-br, green.400, green.600)" p={8} textAlign="center">
-                    <Icon as={FiCheckCircle} boxSize={12} color="white" mb={4} />
-                    <Heading size="md" color="white" mb={2}>Payment Verified!</Heading>
-                    <Text color="whiteAlpha.900" fontSize="sm">Your booking status will update shortly.</Text>
-                  </Box>
-                ) : (
-                  <>
-                    <Box bg={qrString ? "blue.500" : "gray.100"} px={5} py={2}>
-                      <Text fontSize="sm" fontWeight="bold" color={qrString ? "white" : "gray.600"} textAlign="center">Bakong KHQR</Text>
-                    </Box>
-                    <Box p={6} textAlign="center">
-                       {loadingQr ? (
-                         <VStack spacing={4} py={8}>
-                           <Spinner size="xl" color="blue.500" thickness="4px" />
-                           <Text fontSize="sm" fontWeight="bold" color={textColor}>Generating Secure QR...</Text>
-                         </VStack>
-                       ) : qrString ? (
-                         <VStack spacing={5}>
-                           <Box w="240px" bg="white" borderRadius="xl" p={4} shadow="xl" border="1px solid" borderColor="gray.200" mx="auto">
-                             <Box bg="#005EAA" p={2} mb={3} borderRadius="md">
-                               <Text color="white" fontSize="md" fontWeight="black" fontStyle="italic" letterSpacing="widest">KHQR</Text>
-                             </Box>
-                             <QRCodeCanvas 
-                               value={qrString} size={200} level="H" includeMargin={false}
-                                imageSettings={{ src: BAKONG_LOGO_RED, x: undefined, y: undefined, height: 40, width: 40, excavate: true }}
-                             />
-                           </Box>
-                           <HStack justify="center" spacing={3}>
-                              <Spinner size="xs" color="blue.400" />
-                              <Text fontSize="xs" color={mutedText} fontWeight="bold">Awaiting Transaction Confirmation</Text>
-                           </HStack>
-                         </VStack>
-                       ) : (
-                         <Text color="red.500">Error loading QR code.</Text>
-                       )}
-                    </Box>
-                  </>
-                )}
-              </Box>
-            </VStack>
-          </ModalBody>
-          <ModalFooter>
-             <Button variant="ghost" w="full" onClick={handleCloseModal} color={textColor} isDisabled={paymentConfirmed}>
-                Close
-             </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
     </Box>
   );
 }

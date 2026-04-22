@@ -349,45 +349,7 @@ export default function Dashboard() {
               </SimpleGrid>
           </Box>
 
-          {/* 5. Global Payments Ledger */}
-          <Box bg={cardBg} borderRadius="3xl" border="1px" borderColor={borderColor} shadow="sm" overflow="hidden">
-             <Flex p={6} borderBottom="1px" borderColor={borderColor} justify="space-between" align="center" bg={tableHeaderBg}>
-                <Box>
-                   <Text fontWeight="800" textTransform="uppercase" letterSpacing="widest" fontSize="xs" color={mutedText}>Treasury</Text>
-                   <Text fontSize="lg" fontWeight="900">Recent Transactions</Text>
-                </Box>
-                <Button size="sm" variant="ghost" colorScheme="blue" rightIcon={<FiArrowRight />}>Full Ledger</Button>
-             </Flex>
-             <TableContainer>
-                <Table variant="simple" size="sm">
-                   <Thead>
-                      <Tr>
-                         <Th color={mutedText}>Tenant / Unit</Th>
-                         <Th color={mutedText}>Date</Th>
-                         <Th color={mutedText}>Amount</Th>
-                         <Th color={mutedText}>Type</Th>
-                         <Th color={mutedText}>Method</Th>
-                      </Tr>
-                   </Thead>
-                   <Tbody>
-                      {detailedPayments.map((p, i) => (
-                        <Tr key={i} _hover={{ bg: hoverBg }} cursor="pointer">
-                           <Td>
-                              <VStack align="start" spacing={0}>
-                                 <Text fontWeight="800" fontSize="xs">{p.tenant_name}</Text>
-                                 <Text fontSize="10px" color={mutedText}>{p.room_name}</Text>
-                              </VStack>
-                           </Td>
-                           <Td fontSize="xs" fontWeight="700">{dayjs(p.date).format('MMM DD, YYYY')}</Td>
-                           <Td fontSize="xs" fontWeight="900" color="emerald.500">+{fmt(p.amount)}</Td>
-                           <Td><Badge size="xs" colorScheme="blue" rounded="full" px={2}>{p.type}</Badge></Td>
-                           <Td fontSize="xs" color={mutedText} fontWeight="600">{p.method}</Td>
-                        </Tr>
-                      ))}
-                   </Tbody>
-                </Table>
-             </TableContainer>
-          </Box>
+
 
         </Box>
 
@@ -457,6 +419,46 @@ export default function Dashboard() {
 
       </Grid>
       
+      {/* 5. Global Payments Ledger (Full Width) */}
+      <Box mt={8} bg={cardBg} borderRadius="3xl" border="1px" borderColor={borderColor} shadow="sm" overflow="hidden">
+         <Flex p={6} borderBottom="1px" borderColor={borderColor} justify="space-between" align="center" bg={tableHeaderBg}>
+            <Box>
+               <Text fontWeight="800" textTransform="uppercase" letterSpacing="widest" fontSize="xs" color={mutedText}>Treasury</Text>
+               <Text fontSize="lg" fontWeight="900">Recent Transactions</Text>
+            </Box>
+            <Button size="sm" variant="ghost" colorScheme="blue" rightIcon={<FiArrowRight />}>Full Ledger</Button>
+         </Flex>
+         <TableContainer>
+            <Table variant="simple" size="sm">
+               <Thead>
+                  <Tr>
+                     <Th color={mutedText}>Tenant / Unit</Th>
+                     <Th color={mutedText}>Date</Th>
+                     <Th color={mutedText}>Amount</Th>
+                     <Th color={mutedText}>Type</Th>
+                     <Th color={mutedText}>Method</Th>
+                  </Tr>
+               </Thead>
+               <Tbody>
+                  {detailedPayments.map((p, i) => (
+                    <Tr key={i} _hover={{ bg: hoverBg }} cursor="pointer">
+                       <Td>
+                          <VStack align="start" spacing={0}>
+                             <Text fontWeight="800" fontSize="xs">{p.tenant_name}</Text>
+                             <Text fontSize="10px" color={mutedText}>{p.room_name}</Text>
+                          </VStack>
+                       </Td>
+                       <Td fontSize="xs" fontWeight="700">{dayjs(p.date).format('MMM DD, YYYY')}</Td>
+                       <Td fontSize="xs" fontWeight="900" color="emerald.500">+{fmt(p.amount)}</Td>
+                       <Td><Badge size="xs" colorScheme="blue" rounded="full" px={2}>{p.type}</Badge></Td>
+                       <Td fontSize="xs" color={mutedText} fontWeight="600">{p.method}</Td>
+                    </Tr>
+                  ))}
+               </Tbody>
+            </Table>
+         </TableContainer>
+      </Box>
+
       {/* Footer Branding */}
 
       {/* Command Center Quick Access Modal */}

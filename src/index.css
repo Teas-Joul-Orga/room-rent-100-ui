@@ -1,1 +1,28 @@
 @import "tailwindcss";
+
+/* Custom Date Picker Styles */
+::-webkit-calendar-picker-indicator {
+  background-color: transparent;
+  padding: 6px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+}
+
+::-webkit-calendar-picker-indicator:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  opacity: 1;
+}
+
+.chakra-ui-dark ::-webkit-calendar-picker-indicator,
+[data-theme='dark'] ::-webkit-calendar-picker-indicator {
+  filter: invert(1) hue-rotate(180deg);
+  opacity: 0.6;
+}
+
+.chakra-ui-dark ::-webkit-calendar-picker-indicator:hover,
+[data-theme='dark'] ::-webkit-calendar-picker-indicator:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  opacity: 1;
+}

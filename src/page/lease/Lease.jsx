@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSessionState } from "../../hooks/useSessionState";
 import { useNavigate } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 import {
@@ -66,26 +67,26 @@ export default function Leases() {
   };
 
   // Data
-  const [leases, setLeases] = useState([]);
+  const [leases, setLeases] = useSessionState("allLeases", []);
   const [tenants, setTenants] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Filters
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [startsAfter, setStartsAfter] = useState("");
-  const [endsBefore, setEndsBefore] = useState("");
+  const [search, setSearch] = useSessionState("leaseSearch", "");
+  const [statusFilter, setStatusFilter] = useSessionState("leaseStatusFilter", "");
+  const [startsAfter, setStartsAfter] = useSessionState("leaseStartsAfter", "");
+  const [endsBefore, setEndsBefore] = useSessionState("leaseEndsBefore", "");
 
   // Sorting
-  const [sortField, setSortField] = useState(null); // 'rent', 'end_date', 'status'
-  const [sortOrder, setSortOrder] = useState('asc');
+  const [sortField, setSortField] = useSessionState("leaseSortField", null); // 'rent', 'end_date', 'status'
+  const [sortOrder, setSortOrder] = useSessionState("leaseSortOrder", "asc");
 
   // Selection
   const [selectedIds, setSelectedIds] = useState([]);
 
   // Pagination bounds
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useSessionState("leasePage", 1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
   
   // Bulk Renew Modal
@@ -126,6 +127,8 @@ export default function Leases() {
   const thColor = useColorModeValue("gray.500", "gray.400");
   const trHoverBg = useColorModeValue("gray.50", "#1c2333");
   const expiringBgRow = useColorModeValue("orange.50", "orange.900");
+  const upcomingBgRow = useColorModeValue("green.50", "green.900");
+  const newlyExpiredBgRow = useColorModeValue("red.50", "red.900");
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -330,6 +333,15 @@ export default function Leases() {
     return endDate >= today && endDate <= in30Days;
   };
 
+  const isNewlyExpired = (lease) => {
+    if (!lease.end_date) return false;
+    const endDate = new Date(lease.end_date);
+    const today = new Date(new Date().setHours(0,0,0,0));
+    const activePast = lease.status === 'active' && endDate < today;
+    const recentExpired = lease.status === 'expired' && endDate < today && ((today - endDate) / (1000 * 60 * 60 * 24)) <= 14;
+    return activePast || recentExpired;
+  };
+
   // Process data (Filter & Sort)
   let processed = [...leases].filter((l) => {
     const s = search.toLowerCase();
@@ -490,7 +502,14 @@ export default function Leases() {
 
           <Flex gap={3} flexShrink={0} align="center" justify="flex-end" flex="1">
             {selectedIds.length > 0 && (
-              <Button size="md" colorScheme="purple" borderRadius="full" onClick={handleRenew} px={6}>
+              <Button 
+                size="md" 
+                colorScheme="purple" 
+                borderRadius="full" 
+                onClick={handleRenew} 
+                isDisabled={selectedIds.some(id => leases.find(l => String(l.uid) === String(id))?.status === 'active')}
+                px={6}
+              >
                 {t("lease.renew")} {selectedIds.length > 1 ? `(${selectedIds.length})` : ""}
               </Button>
             )}
@@ -526,6 +545,8 @@ export default function Leases() {
             >
               {processed.filter(l => l.status === 'active').slice(0, 10).map((l) => {
                 const expiring = isExpiringSoon(l);
+                const upcoming = l.start_date && new Date(l.start_date) > new Date(new Date().setHours(0,0,0,0));
+                const newlyExpired = isNewlyExpired(l);
                 const isChecked = selectedIds.includes(l.uid);
                 
                 // Room card theme matching mockup
@@ -539,6 +560,30 @@ export default function Leases() {
                   borderColor: "transparent", 
                   watermarkColor: "whiteAlpha.200" 
                 };
+
+                if (newlyExpired) {
+                  theme = {
+                    bg: "red.500",
+                    color: "white",
+                    priceColor: "white",
+                    badgeBg: "white",
+                    badgeColor: "red.500",
+                    border: "none",
+                    borderColor: "transparent",
+                    watermarkColor: "whiteAlpha.200"
+                  };
+                } else if (upcoming) {
+                  theme = {
+                    bg: "green.500",
+                    color: "white",
+                    priceColor: "white",
+                    badgeBg: "white",
+                    badgeColor: "green.500",
+                    border: "none",
+                    borderColor: "transparent",
+                    watermarkColor: "whiteAlpha.200"
+                  };
+                }
                 
                 const RoomIcon = getRoomIcon(l.room?.name);
                 const start = l.start_date ? new Date(l.start_date) : null;
@@ -616,8 +661,14 @@ export default function Leases() {
 
                         {/* Price */}
                         <Flex align="center" gap={2}>
-                          {expiring && (
+                          {newlyExpired && (
+                            <Badge bg="orange.400" color="white" border="none" borderRadius="md" px={2} py={0.5} fontSize="9px">EXPIRED</Badge>
+                          )}
+                          {!newlyExpired && expiring && (
                             <Badge bg="red.400" color="white" border="none" borderRadius="md" px={2} py={0.5} fontSize="9px">! EXP</Badge>
+                          )}
+                          {upcoming && (
+                            <Badge bg="green.400" color="white" border="none" borderRadius="md" px={2} py={0.5} fontSize="9px">UPCOMING</Badge>
                           )}
                           <Text fontSize="xl" fontWeight="black" color={theme.priceColor}>{fmt(l.rent_amount)}</Text>
                         </Flex>
@@ -709,10 +760,12 @@ export default function Leases() {
                <Tbody>
                  {paginated.map((l) => {
                    const expiring = isExpiringSoon(l);
+                   const upcoming = l.start_date && new Date(l.start_date) > new Date(new Date().setHours(0,0,0,0));
+                   const newlyExpired = isNewlyExpired(l);
                    const isChecked = selectedIds.includes(l.uid);
                    const badge = getStatusBadge(l.status);
                    return (
-                     <Tr key={l.uid} bg={expiring ? expiringBgRow : "transparent"} _hover={{ bg: trHoverBg }}>
+                     <Tr key={l.uid} bg={newlyExpired ? newlyExpiredBgRow : (upcoming ? upcomingBgRow : (expiring ? expiringBgRow : "transparent"))} _hover={{ bg: trHoverBg }}>
                        <Td px={6}>
                           <Checkbox 
                             size="md" 

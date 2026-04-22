@@ -57,7 +57,7 @@ import api from "../../api/axios";
 import { QRCodeCanvas } from "qrcode.react";
 import echo from "../../lib/echo";
 
-const BAKONG_LOGO_RED = "https://bakong.nbc.gov.kh/images/logo.png";
+const BAKONG_LOGO_RED = "https://raw.githubusercontent.com/sokeng/khqr-gateway/main/assets/khqr.png";
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/public/rooms` : "http://localhost:8000/api/v1/public/rooms";
 const PUBLIC_SETTINGS_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/public/settings` : "http://localhost:8000/api/v1/public/settings";
@@ -194,10 +194,10 @@ export default function AvailableRoomDetail() {
 
   const handlePaymentSuccess = () => {
     setPaymentConfirmed(true);
-    toast.success("🎉 Down payment successful! Booking confirmed.");
+    toast.success("🎉 Booking confirmed! Room is reserved for you. You have 1 month to move in.");
     setTimeout(() => {
       handleCloseModal();
-      navigate('/dashboard/bookings');
+      navigate('/dashboard/my-bookings');
     }, 3000);
   };
 
@@ -510,20 +510,8 @@ export default function AvailableRoomDetail() {
                     </Button>
                   </VStack>
                 ) : (
-                  <Button
-                    w="full"
-                    size="lg"
-                    colorScheme="purple"
-                    leftIcon={<FiClock />}
-                    h="60px"
-                    borderRadius="2xl"
-                    shadow="md"
-                    onClick={handleWaitlist}
-                    isLoading={isWaitlistLoading}
-                    fontSize="md"
-                    fontWeight="black"
-                  >
-                    Join Waitlist
+                  <Button w="full" size="lg" colorScheme="gray" h="60px" borderRadius="2xl" shadow="md" fontSize="md" fontWeight="black" isDisabled>
+                    Not Available
                   </Button>
                 )}
 

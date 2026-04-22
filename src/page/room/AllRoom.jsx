@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSessionState } from "../../hooks/useSessionState";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import toast, { Toaster } from "react-hot-toast";
@@ -28,7 +29,7 @@ import {
   Tooltip,
   Spinner,
 } from "@chakra-ui/react";
-import { FiEdit2, FiTrash2, FiEye, FiPlus, FiDownload, FiLayout, FiBriefcase, FiStar, FiAward, FiUser, FiUserX, FiBellOff, FiDroplet, FiLayers } from "react-icons/fi";
+import { FiEdit2, FiTrash2, FiEye, FiPlus, FiDownload, FiLayout, FiBriefcase, FiStar, FiAward, FiUser, FiUserX, FiBellOff, FiDroplet, FiLayers, FiCalendar } from "react-icons/fi";
 import { exportToExcel } from "../../utils/exportExcel";
 
 const getRoomIcon = (name = "") => {
@@ -42,9 +43,14 @@ const getRoomIcon = (name = "") => {
 export default function AllRoom() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [search, setSearch] = useState("");
-  const [rooms, setRooms] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [search, setSearch] = useSessionState("allRoomsSearch", "");
+  const [rooms, setRooms] = useSessionState("allRoomsCache", []);
+  
+  // We keep isLoading as standard state initializing from whether cache exists natively or from rooms.length,
+  // but it's simpler to just initialize it false if rooms has data
+  const [isLoading, setIsLoading] = useState(() => {
+    return !sessionStorage.getItem("allRoomsCache");
+  });
   
   // No pagination state
   const [selectedIds, setSelectedIds] = useState([]);
@@ -52,8 +58,8 @@ export default function AllRoom() {
   const [showBulkDelete, setShowBulkDelete] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
 
-  const [sortField, setSortField] = useState(null);
-  const [sortDir, setSortDir] = useState("desc");
+  const [sortField, setSortField] = useSessionState("allRoomsSortField", null);
+  const [sortDir, setSortDir] = useSessionState("allRoomsSortDir", "desc");
 
   const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
 
@@ -272,6 +278,31 @@ export default function AllRoom() {
         </HStack>
       </Flex>
 
+      {/* ===== LEGEND / COLOR TIPS ===== */}
+      <HStack spacing={6} mb={6} px={2} overflowX="auto" className="hide-scroll" flexShrink={0}>
+        <Text fontSize="sm" fontWeight="bold" color={mutedText}>Status Guide:</Text>
+        
+        <HStack spacing={2}>
+          <Box w={4} h={4} borderRadius="md" bg="white" border="2px dashed" borderColor="purple.300" shadow="sm" />
+          <Text fontSize="sm" color={mutedText} fontWeight="medium">Available</Text>
+        </HStack>
+        
+        <HStack spacing={2}>
+          <Box w={4} h={4} borderRadius="md" bg="green.500" shadow="sm" />
+          <Text fontSize="sm" color={mutedText} fontWeight="medium">Reserved</Text>
+        </HStack>
+        
+        <HStack spacing={2}>
+          <Box w={4} h={4} borderRadius="md" bg="blue.500" shadow="sm" />
+          <Text fontSize="sm" color={mutedText} fontWeight="medium">Occupied</Text>
+        </HStack>
+        
+        <HStack spacing={2}>
+          <Box w={4} h={4} borderRadius="md" bg="white" border="2px solid" borderColor="orange.200" shadow="sm" />
+          <Text fontSize="sm" color={mutedText} fontWeight="medium">Maintenance</Text>
+        </HStack>
+      </HStack>
+
       {/* ===== GRID ===== */}
       <Box flex={1} overflowY="auto" pb={4} minH={0} className="hide-scroll">
         {isLoading ? (
@@ -283,18 +314,36 @@ export default function AllRoom() {
             {rooms.map((r) => {
               const lastLease = r.leases && r.leases.length > 0 ? r.leases[r.leases.length - 1] : null;
               const activeLease = lastLease && lastLease.status === 'active' ? lastLease : null;
-              const tenantName = activeLease?.tenant?.name;
-              let sinceDate = '';
-              if (activeLease && activeLease.start_date) {
-                const start = new Date(activeLease.start_date);
-                sinceDate = `${String(start.getMonth() + 1).padStart(2,'0')}/${String(start.getDate()).padStart(2,'0')}`;
+              const activeBooking = r.bookings && r.bookings.length > 0 ? r.bookings[0] : null;
+              
+              let tenantName = '';
+              let dateSubtitle = '';
+              let dateLabel = '';
+
+              if (r.status === 'occupied' && activeLease) {
+                tenantName = activeLease.tenant?.name;
+                if (activeLease.start_date) {
+                  const start = new Date(activeLease.start_date);
+                  dateSubtitle = `${String(start.getMonth() + 1).padStart(2,'0')}/${String(start.getDate()).padStart(2,'0')}`;
+                  dateLabel = 'SINCE';
+                }
+              } else if (r.status === 'reserved' && activeBooking) {
+                tenantName = activeBooking.tenant?.name;
+                const targetDate = activeBooking.move_in_deadline || activeBooking.desired_move_in_date;
+                if (targetDate) {
+                  const dateObj = new Date(targetDate);
+                  dateSubtitle = `${String(dateObj.getMonth() + 1).padStart(2,'0')}/${String(dateObj.getDate()).padStart(2,'0')}`;
+                  dateLabel = 'DUE';
+                }
               }
 
               // Card theme based on mockup
               let theme = { bg: "white", color: "gray.800", priceColor: "gray.800", badgeBg: "gray.100", badgeColor: "gray.600", border: "1px solid", borderColor: "gray.200", watermarkColor: "gray.100" };
               
               if (r.status === 'occupied') {
-                theme = { bg: "teal.500", color: "white", priceColor: "white", badgeBg: "white", badgeColor: "teal.500", border: "none", borderColor: "transparent", watermarkColor: "whiteAlpha.200" };
+                theme = { bg: "blue.500", color: "white", priceColor: "white", badgeBg: "white", badgeColor: "blue.500", border: "none", borderColor: "transparent", watermarkColor: "whiteAlpha.200" };
+              } else if (r.status === 'reserved') {
+                theme = { bg: "green.500", color: "white", priceColor: "white", badgeBg: "white", badgeColor: "green.600", border: "none", borderColor: "transparent", watermarkColor: "whiteAlpha.200" };
               } else if (r.status === 'available') {
                 theme = { bg: "white", color: "gray.800", priceColor: "purple.600", badgeBg: "purple.50", badgeColor: "purple.600", border: "1px dashed", borderColor: "purple.200", watermarkColor: "purple.50" };
               } else if (r.status === 'maintenance') {
@@ -302,7 +351,7 @@ export default function AllRoom() {
               }
 
               const RoomIcon = getRoomIcon(r.name);
-              const WatermarkIcon = (r.status === 'occupied' && tenantName) ? FiUser : RoomIcon;
+              const WatermarkIcon = ((r.status === 'occupied' || r.status === 'reserved') && tenantName) ? FiUser : RoomIcon;
 
               return (
               <Box 
@@ -374,9 +423,7 @@ export default function AllRoom() {
 
                     {/* Price */}
                     <Flex align="center" gap={2}>
-                      {r.status === 'occupied' && (
-                        <Badge bg="green.400" color="white" border="none" borderRadius="md" px={2} py={0.5} fontSize="xs">-10%</Badge>
-                      )}
+                      {/* Price */}
                       <Text fontSize="xl" fontWeight="black" color={theme.priceColor}>${r.base_rent_price}</Text>
                     </Flex>
                   </Flex>
@@ -387,16 +434,20 @@ export default function AllRoom() {
                     <Flex gap={2}>
                       {r.status === 'occupied' ? (
                         <>
-                          <Flex align="center" justify="center" bg="white" w={7} h={7} borderRadius="full" color="teal.500">
+                          <Flex align="center" justify="center" bg="white" w={7} h={7} borderRadius="full" color="blue.500">
                             <Icon as={FiBellOff} boxSize={3.5} />
                           </Flex>
-                          <Flex align="center" justify="center" bg="white" w={7} h={7} borderRadius="full" color="teal.500">
+                          <Flex align="center" justify="center" bg="white" w={7} h={7} borderRadius="full" color="blue.500">
                             <Icon as={FiDroplet} boxSize={3.5} />
                           </Flex>
-                          <Flex align="center" justify="center" bg="white" w={7} h={7} borderRadius="full" color="teal.500" fontSize="xs" fontWeight="bold">
+                          <Flex align="center" justify="center" bg="white" w={7} h={7} borderRadius="full" color="blue.500" fontSize="xs" fontWeight="bold">
                             2
                           </Flex>
                         </>
+                      ) : r.status === 'reserved' ? (
+                        <Flex align="center" justify="center" bg="white" w={7} h={7} borderRadius="full" color="green.600">
+                          <Icon as={FiCalendar} boxSize={3.5} />
+                        </Flex>
                       ) : (
                         <Box />
                       )}
@@ -407,7 +458,11 @@ export default function AllRoom() {
                       {tenantName ? (
                         <>
                           <Text fontWeight="bold" fontSize="md" noOfLines={1} align="right">{tenantName}</Text>
-                          <Text fontSize="10px" opacity={0.9} textTransform="uppercase" letterSpacing="wide" align="right" mt={0.5}>SINCE {sinceDate}</Text>
+                          {dateSubtitle && (
+                            <Text fontSize="10px" opacity={0.9} textTransform="uppercase" letterSpacing="wide" align="right" mt={0.5}>
+                              {dateLabel} {dateSubtitle}
+                            </Text>
+                          )}
                         </>
                       ) : (
                         <Flex align="center" justify="center" bg={theme.badgeBg} w={8} h={8} borderRadius="full" color={theme.badgeColor} display="inline-flex">
@@ -417,25 +472,7 @@ export default function AllRoom() {
                     </Box>
                   </Flex>
 
-                  {/* Absolute Edit Button */}
-                  <Box position="absolute" bottom={0} left="120px" onClick={(e) => e.stopPropagation()}>
-                     <Tooltip label="Edit Room" hasArrow>
-                        <IconButton
-                          icon={<FiEdit2 />}
-                          size="sm"
-                          colorScheme="blue"
-                          css={{
-                            background: "transparent",
-                            color: theme.color,
-                            opacity: 0.3,
-                            _hover: { opacity: 1, background: "rgba(0,0,0,0.1)" }
-                          }}
-                          onClick={() => navigate(`/dashboard/rooms/edit/${r.uid}`)}
-                          aria-label="Edit room"
-                          borderRadius="full"
-                        />
-                      </Tooltip>
-                  </Box>
+
                 </Box>
               </Box>
               );

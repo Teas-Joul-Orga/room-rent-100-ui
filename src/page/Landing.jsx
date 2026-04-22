@@ -52,7 +52,7 @@ import {
   SkeletonCircle,
 } from "@chakra-ui/react";
 import { motion } from "framer-motion";
-import { FiSearch, FiMapPin, FiMaximize, FiPhone, FiLogIn, FiMail, FiArrowRight, FiArrowUp, FiCalendar, FiCheckCircle, FiDollarSign, FiClock, FiInfo, FiGrid } from "react-icons/fi";
+import { FiSearch, FiMapPin, FiMaximize, FiPhone, FiLogIn, FiMail, FiArrowRight, FiArrowUp, FiCalendar, FiCheckCircle, FiDollarSign, FiClock, FiInfo, FiGrid, FiHome, FiHeart, FiSpeaker, FiUsers } from "react-icons/fi";
 import { LuCircleUser, LuLogOut, LuSettings } from "react-icons/lu";
 import { IoKeyOutline } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
@@ -63,8 +63,9 @@ import api from "../api/axios";
 import { QRCodeCanvas } from "qrcode.react";
 import echo from "../lib/echo";
 import ChangePasswordModal from "../components/ChangePasswordModal";
+import LanguageSwitcher from "../components/LanguageSwitcher";
 
-const BAKONG_LOGO_RED = "https://bakong.nbc.gov.kh/images/logo.png";
+const BAKONG_LOGO_RED = "https://raw.githubusercontent.com/sokeng/khqr-gateway/main/assets/khqr.png";
 
 const MotionBox = motion(Box);
 
@@ -79,7 +80,8 @@ const Landing = () => {
     phone: "+855 87 94 60 60",
     email: "support@roomrent100.com",
     currency: "$",
-    exchange_rate: 4000
+    exchange_rate: 4000,
+    bakong_merchant_name: "SIEVTHAI PHEAK"
   });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -89,6 +91,9 @@ const Landing = () => {
   const [isBookingMode, setIsBookingMode] = useState(false);
   const [desiredDate, setDesiredDate] = useState("");
   const [bookingNotes, setBookingNotes] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
   const [isBookingLoading, setIsBookingLoading] = useState(false);
   const [downPaymentPercent, setDownPaymentPercent] = useState(20);
 
@@ -193,7 +198,8 @@ const Landing = () => {
           phone: data.contact_phone || "+855 12 345 678",
           email: data.contact_email || "support@roomrent100.com",
           currency: data.finance_currency || "$",
-          exchange_rate: data.finance_exchange_rate || 4000
+          exchange_rate: data.finance_exchange_rate || 4000,
+          bakong_merchant_name: data.bakong_merchant_name || "SIEVTHAI PHEAK"
         });
         if (data.booking_down_payment_percent) {
           setDownPaymentPercent(Number(data.booking_down_payment_percent));
@@ -215,11 +221,13 @@ const Landing = () => {
     setQrString(null);
     setQrMd5(null);
     try {
+      const combinedNotes = `Contact Name: ${contactName}\nPhone: ${contactPhone}\nEmail: ${contactEmail}\n\nNotes: ${bookingNotes}`.trim();
+
       const res = await api.post(`/tenant/payment/bakong/generate-qr`, {
         type: "booking_prepay",
         room_id: selectedRoom.id,
         desired_move_in_date: desiredDate,
-        notes: bookingNotes
+        notes: combinedNotes
       });
       const data = res.data;
       if (data.status === "success") {
@@ -269,7 +277,7 @@ const Landing = () => {
     toast.success("🎉 Down payment successful! Booking confirmed.");
     setTimeout(() => {
       handleCloseBookingModal();
-      navigate('/dashboard/bookings');
+      navigate('/dashboard/my-bookings');
     }, 3000);
   };
 
@@ -280,6 +288,9 @@ const Landing = () => {
     setBookingStep("details");
     setDesiredDate("");
     setBookingNotes("");
+    setContactName("");
+    setContactPhone("");
+    setContactEmail("");
   };
 
   const filteredRooms = rooms.filter((room) =>
@@ -315,12 +326,13 @@ const Landing = () => {
       <Box bg={cardBg} px={4} shadow="sm" position="sticky" top="0" zIndex="1000">
         <Container maxW="container.xl">
           <Flex h={16} alignItems="center" justifyContent="space-between">
-            <HStack spacing={2} cursor="pointer" onClick={() => navigate("/")}>
-              <Box p={1} borderRadius="md" display="flex" alignItems="center">
+            <HStack spacing={4} align="center">
+              <Box p={1} borderRadius="md" display="flex" alignItems="center" cursor="pointer" onClick={() => navigate("/")}>
                 <Image src={Logo} alt="Logo" boxSize="150px" objectFit="contain" />
               </Box>
             </HStack>
             <HStack spacing={4}>
+              <LanguageSwitcher />
               {isLoggedIn ? (
                 <Menu placement="bottom-end">
                   <MenuButton
@@ -405,21 +417,8 @@ const Landing = () => {
                 </Menu>
               ) : (
                 <>
-                  <Button 
-                    leftIcon={<FiLogIn />} 
-                    variant="ghost" 
-                    color="gray.800"
-                    _hover={{ bg: "gray.100" }}
-                    _active={{ bg: "gray.200" }}
-                    onClick={() => navigate("/login")} 
-                    rounded="full" 
-                    fontWeight="bold" 
-                    fontSize="sm"
-                  >
+                  <Button leftIcon={<FiLogIn />} variant="ghost" color="gray.800" _hover={{ bg: "gray.100" }} _active={{ bg: "gray.200" }} onClick={() => navigate("/login")} rounded="full" fontWeight="bold" fontSize="sm">
                     {t("common.login")}
-                  </Button>
-                  <Button colorScheme="blue" onClick={() => navigate("/login")} rounded="full" fontWeight="bold" fontSize="sm" px={6}>
-                    Get Started
                   </Button>
                 </>
               )}
@@ -429,56 +428,114 @@ const Landing = () => {
       </Box>
 
       {/* Hero Section */}
-      <Box bg="blue.600" py={20} color="white">
-        <Container maxW="container.xl">
-          <Stack direction={{ base: "column", md: "row" }} spacing={10} align="center">
-            <VStack align="flex-start" spacing={6} flex="1">
-              <Heading as="h1" size="2xl" lineHeight="shorter">
-                Find Your Perfect Room <br />
-                With Zero Hassle
-              </Heading>
-              <Text fontSize="xl" opacity={0.9}>
-                Modern, affordable, and fully managed rooms available now at <b>{settings.company_name}</b>. 
-                Browse our collection and find your next home today.
+      <Box 
+        position="relative" 
+        w="full" 
+        minH="80vh" 
+        display="flex" 
+        alignItems="center"
+        backgroundImage="url('https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&q=80&w=2000')"
+        backgroundSize="cover"
+        backgroundPosition="center"
+        _before={{
+          content: '""',
+          position: "absolute",
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0,
+          bgGradient: "linear(to-b, blackAlpha.300, transparent, blackAlpha.600)",
+        }}
+      >
+        {/* Floating Pill Navbar */}
+        <Flex position="absolute" top="40px" w="full" justify="center" zIndex={10}>
+          <Flex bg="whiteAlpha.900" backdropFilter="blur(10px)" borderRadius="full" shadow="xl" p={1.5} align="center" border="1px solid" borderColor="whiteAlpha.500">
+            <Button leftIcon={<FiHome />} colorScheme="blue" bg="blue.500" color="white" borderRadius="full" px={6} py={6} fontSize="15px" fontWeight="bold" _hover={{ bg: "blue.600" }} onClick={() => navigate('/')}>Home</Button>
+            <Button leftIcon={<FiSpeaker />} variant="ghost" color="gray.700" borderRadius="full" px={6} py={6} fontSize="15px" fontWeight="bold" _hover={{ bg: "blackAlpha.100" }} onClick={() => navigate('/announcements')}>Announcement</Button>
+            <Button leftIcon={<FiUsers />} variant="ghost" color="gray.700" borderRadius="full" px={6} py={6} fontSize="15px" fontWeight="bold" _hover={{ bg: "blackAlpha.100" }}>About Us</Button>
+          </Flex>
+        </Flex>
+
+        <Container maxW="container.xl" position="relative" zIndex={2} mt={20}>
+          <Stack direction={{ base: "column", lg: "row" }} spacing={10} align="center" justify="flex-end" w="full">
+            
+            <VStack align={{ base: "center", lg: "flex-end" }} spacing={6} maxW="2xl" textAlign={{ base: "center", lg: "right" }} w="full">
+              <Text fontSize="2xl" color="white" fontWeight="medium" letterSpacing="wide">
+                Exploring the
               </Text>
-              <Box w="full" maxW="md">
-                <InputGroup size="lg">
-                  <InputLeftElement pointerEvents="none">
-                    <FiSearch color="gray.300" />
-                  </InputLeftElement>
-                  <Input 
-                    bg="white" 
-                    color="gray.800" 
-                    placeholder="Search by room name or details..." 
-                    _placeholder={{ color: "gray.400" }}
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                </InputGroup>
-              </Box>
+              <Heading as="h1" size="3xl" color="white" lineHeight="1.1" textTransform="uppercase" letterSpacing="tight">
+                Rental <Text as="span" color="red.400">Community</Text>
+              </Heading>
+              
+              <Text fontSize="lg" color="whiteAlpha.900" maxW="xl">
+                "More than just listings — we're building neighborhoods. Discover your next home and connect with a community that fits your lifestyle."
+              </Text>
+              
+              <HStack w="full" maxW="md" mt={4} justify={{ base: "center", lg: "flex-end" }}>
+                <Button 
+                  size="lg" 
+                  leftIcon={<FiSearch />}
+                  bg="gray.800"
+                  color="white"
+                  borderRadius="full"
+                  px={8}
+                  _hover={{ bg: "gray.700" }}
+                  onClick={() => {
+                    const el = document.getElementById("available-rooms");
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                >
+                  Find House
+                </Button>
+                <Button 
+                  size="lg"
+                  rightIcon={<FiArrowRight />}
+                  bg="blue.500"
+                  color="white"
+                  borderRadius="full"
+                  px={8}
+                  _hover={{ bg: "blue.600" }}
+                  onClick={() => navigate('/announcements')}
+                >
+                  Explore More
+                </Button>
+              </HStack>
             </VStack>
-            <Box flex="1" display={{ base: "none", md: "block" }}>
-              <Image 
-                src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
-                borderRadius="2xl" 
-                shadow="2xl"
-                alt="Room Hero"
-              />
-            </Box>
+
           </Stack>
         </Container>
       </Box>
 
       {/* Available Rooms Section */}
-      <Container maxW="container.xl" py={16}>
-        <VStack spacing={8} align="flex-start" mb={12}>
-          <Heading size="lg" borderBottom="4px solid" borderColor="blue.500" pb={2}>
-            Available Rooms
-          </Heading>
-          <Text color={textColor}>
-            Browse our current vacancies and find a space that fits your lifestyle.
-          </Text>
-        </VStack>
+      <Container maxW="container.xl" py={16} id="available-rooms">
+        <Flex direction={{ base: "column", md: "row" }} justify="space-between" align={{ base: "flex-start", md: "center" }} mb={12} gap={6}>
+          <VStack spacing={2} align="flex-start">
+            <Heading size="lg" borderBottom="4px solid" borderColor="blue.500" pb={2}>
+              Available Rooms
+            </Heading>
+            <Text color={textColor}>
+              Browse our current vacancies and find a space that fits your lifestyle.
+            </Text>
+          </VStack>
+          
+          <Box w={{ base: "full", md: "400px" }}>
+            <InputGroup size="lg">
+              <InputLeftElement pointerEvents="none">
+                <FiSearch color="gray.400" />
+              </InputLeftElement>
+              <Input 
+                bg="white" 
+                color="gray.800" 
+                placeholder="Search by room name or details..." 
+                _placeholder={{ color: "gray.400" }}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                borderRadius="full"
+                shadow="sm"
+              />
+            </InputGroup>
+          </Box>
+        </Flex>
 
         {loading ? (
           <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} spacing={10} w="full">
@@ -567,7 +624,7 @@ const Landing = () => {
                     <Divider />
 
                     <HStack w="full">
-                      <Button flex="1" colorScheme="blue" variant="outline" onClick={() => { setSelectedRoom(room); setIsBookingMode(false); }} rounded="full" fontWeight="bold" textTransform="uppercase" fontSize="xs">
+                      <Button flex="1" colorScheme="blue" variant="outline" onClick={() => { setSelectedRoom(room); setIsBookingMode(false); setBookingStep("details"); }} rounded="full" fontWeight="bold" textTransform="uppercase" fontSize="xs">
                         View Details
                       </Button>
                       <Button 
@@ -575,6 +632,7 @@ const Landing = () => {
                           if (isLoggedIn) {
                             setSelectedRoom(room);
                             setIsBookingMode(true);
+                            setBookingStep("terms");
                           } else {
                             navigate("/login");
                           }
@@ -675,6 +733,7 @@ const Landing = () => {
             <VStack align="flex-start" spacing={4}>
               <Heading size="sm" color="white">Quick Links</Heading>
               <Button variant="link" size="sm" onClick={() => navigate("/")}>Home</Button>
+              <Button variant="link" size="sm" onClick={() => navigate("/announcements")}>Announcements</Button>
               <Button variant="link" size="sm" onClick={() => navigate("/login")}>Login</Button>
               <Button variant="link" size="sm" onClick={() => setShowAll(true)}>Available Rooms</Button>
             </VStack>
@@ -732,19 +791,22 @@ const Landing = () => {
             {/* Step Indicator for Booking Mode */}
             {isBookingMode && (
               <HStack spacing={2} mb={3}>
-                <Box w="40px" h="3px" borderRadius="full" bg={bookingStep === "details" ? "white" : "whiteAlpha.500"} transition="all 0.3s" />
-                <Box w="40px" h="3px" borderRadius="full" bg={bookingStep === "payment" ? "white" : "whiteAlpha.300"} transition="all 0.3s" />
+                <Box w="30px" h="3px" borderRadius="full" bg={bookingStep === "terms" ? "white" : "whiteAlpha.500"} transition="all 0.3s" />
+                <Box w="30px" h="3px" borderRadius="full" bg={bookingStep === "details" ? "white" : "whiteAlpha.300"} transition="all 0.3s" />
+                <Box w="30px" h="3px" borderRadius="full" bg={bookingStep === "payment" ? "white" : "whiteAlpha.300"} transition="all 0.3s" />
               </HStack>
             )}
             <Text color="whiteAlpha.800" fontSize="xs" fontWeight="bold" textTransform="uppercase" letterSpacing="wider">
-              {bookingStep === "payment" ? "Step 2 of 2" : isBookingMode ? "Step 1 of 2" : "Room Details"}
+              {bookingStep === "payment" ? "Step 3 of 3" : bookingStep === "details" ? "Step 2 of 3" : isBookingMode ? "Step 1 of 3" : "Room Details"}
             </Text>
             <Heading size="md" color="white" mt={1} pr={8}>
               {bookingStep === "payment"
                 ? "Complete Down Payment"
-                : isBookingMode
+                : bookingStep === "details"
                   ? `Book: ${selectedRoom?.name}`
-                  : selectedRoom?.name}
+                  : bookingStep === "terms"
+                    ? t("booking_agreement.step_terms")
+                    : selectedRoom?.name}
             </Heading>
           </Box>
 
@@ -804,6 +866,45 @@ const Landing = () => {
                     {selectedRoom.description || "No description provided. Please contact us for more details about this room."}
                   </Text>
                 </Box>
+              </VStack>
+            )}
+
+            {/* Terms and Conditions Step */}
+            {selectedRoom && isBookingMode && bookingStep === "terms" && (
+              <VStack spacing={5} align="stretch">
+                <Box bg="white" p={6} borderRadius="xl" shadow="sm" border="1px solid" borderColor="gray.100">
+                  <VStack align="stretch" spacing={4}>
+                    <Heading size="sm" color="blue.600">{t("booking_agreement.title")}</Heading>
+                    <Divider />
+                    <Box fontSize="sm" color="gray.600" lineHeight="tall">
+                      <Text fontWeight="bold" mb={2}>{t("booking_agreement.policy_title")}</Text>
+                      <Text mb={4}>
+                        {t("booking_agreement.policy_desc", { percent: downPaymentPercent })}
+                      </Text>
+                      
+                      <Text fontWeight="bold" mb={2}>{t("booking_agreement.reservation_title")}</Text>
+                      <Text mb={4}>
+                        {t("booking_agreement.reservation_desc")}
+                      </Text>
+
+                      <Text fontWeight="bold" mb={2}>{t("booking_agreement.id_title")}</Text>
+                      <Text mb={4}>
+                        {t("booking_agreement.id_desc")}
+                      </Text>
+
+                      <Text fontWeight="bold" mb={2}>{t("booking_agreement.rules_title")}</Text>
+                      <Text>
+                        {t("booking_agreement.rules_desc")}
+                      </Text>
+                    </Box>
+                  </VStack>
+                </Box>
+                <Alert status="info" borderRadius="xl" variant="subtle">
+                  <AlertIcon />
+                  <AlertDescription fontSize="xs">
+                    {t("booking_agreement.alert_msg")}
+                  </AlertDescription>
+                </Alert>
               </VStack>
             )}
 
@@ -869,6 +970,60 @@ const Landing = () => {
                       />
                       <Text fontSize="xs" color="gray.400" mt={1}>Select a date within the next 2 months</Text>
                     </FormControl>
+
+                    <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
+                      <FormControl isRequired>
+                        <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" mb={2}>
+                          Contact Name
+                        </FormLabel>
+                        <Input
+                          placeholder="Your full name"
+                          value={contactName}
+                          onChange={(e) => setContactName(e.target.value)}
+                          bg="gray.50"
+                          borderColor="gray.200"
+                          borderRadius="md"
+                          fontSize="sm"
+                          _hover={{ borderColor: "blue.300" }}
+                          _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                        />
+                      </FormControl>
+                      <FormControl isRequired>
+                        <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" mb={2}>
+                          Phone Number
+                        </FormLabel>
+                        <Input
+                          placeholder="Your phone number"
+                          value={contactPhone}
+                          onChange={(e) => setContactPhone(e.target.value)}
+                          bg="gray.50"
+                          borderColor="gray.200"
+                          borderRadius="md"
+                          fontSize="sm"
+                          _hover={{ borderColor: "blue.300" }}
+                          _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                        />
+                      </FormControl>
+                    </SimpleGrid>
+
+                    <FormControl>
+                      <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" mb={2}>
+                        Email Address
+                      </FormLabel>
+                      <Input
+                        type="email"
+                        placeholder="Your email address"
+                        value={contactEmail}
+                        onChange={(e) => setContactEmail(e.target.value)}
+                        bg="gray.50"
+                        borderColor="gray.200"
+                        borderRadius="md"
+                        fontSize="sm"
+                        _hover={{ borderColor: "blue.300" }}
+                        _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                      />
+                    </FormControl>
+
                     <FormControl>
                       <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" mb={2}>
                         <HStack spacing={2}>
@@ -933,14 +1088,16 @@ const Landing = () => {
                              <Box w={{ base: "240px", md: "280px" }} bg="white" borderRadius="xl" overflow="hidden" shadow="xl" border="1px solid" borderColor="gray.200" mx="auto">
                                <Box bg="#005EAA" p={3}>
                                  <Flex align="center" justify="center">
-                                    <Text color="white" fontSize="xl" fontWeight="black" fontStyle="italic" letterSpacing="widest">KHQR</Text>
+                                    <Text color="white" fontSize="md" fontWeight="black" letterSpacing="wider" textAlign="center">
+                                      {settings.bakong_merchant_name}
+                                    </Text>
                                  </Flex>
                                </Box>
                                <Box p={4} bg="white">
                                  <Flex justify="center" align="center" py={2}>
                                    <QRCodeCanvas 
                                      value={qrString} size={200} level="H" includeMargin={false}
-                                      imageSettings={{ src: BAKONG_LOGO_RED, x: undefined, y: undefined, height: 40, width: 40, excavate: true }}
+                                      imageSettings={{ src: BAKONG_LOGO_RED, height: 40, width: 40, excavate: true }}
                                    />
                                  </Flex>
                                </Box>
@@ -1002,6 +1159,7 @@ const Landing = () => {
                   onClick={() => {
                     if (isLoggedIn) {
                       setIsBookingMode(true);
+                      setBookingStep("terms");
                     } else {
                       navigate("/login");
                     }
@@ -1010,11 +1168,38 @@ const Landing = () => {
                   {isLoggedIn ? "Book Now" : "Login to Book"}
                 </Button>
               </Stack>
+            ) : bookingStep === "terms" ? (
+              <Stack direction={{ base: "column-reverse", sm: "row" }} w="full" spacing={3}>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => { setIsBookingMode(false); setBookingStep("details"); }} 
+                  rounded="xl" 
+                  fontWeight="bold" 
+                  fontSize="sm"
+                  h="48px"
+                  flex={{ base: "auto", sm: 1 }}
+                >
+                  {t("booking_agreement.back_to_details")}
+                </Button>
+                <Button
+                  colorScheme="blue"
+                  onClick={() => setBookingStep("details")}
+                  rounded="xl"
+                  fontWeight="bold"
+                  fontSize="sm"
+                  h="48px"
+                  flex={{ base: "auto", sm: 1 }}
+                  shadow="md"
+                  rightIcon={<FiArrowRight />}
+                >
+                  {t("booking_agreement.accept_continue")}
+                </Button>
+              </Stack>
             ) : (
               <Stack direction={{ base: "column-reverse", sm: "row" }} w="full" spacing={3}>
                 <Button 
                   variant="ghost" 
-                  onClick={() => setIsBookingMode(false)} 
+                  onClick={() => setBookingStep("terms")} 
                   rounded="xl" 
                   fontWeight="bold" 
                   fontSize="sm"
@@ -1167,7 +1352,7 @@ const Landing = () => {
                 <Button variant="outline" mr={3} onClick={onDrawerClose} w="full" rounded="full">
                   Close
                 </Button>
-                <Button colorScheme="blue" onClick={() => navigate("/dashboard/bookings")} w="full" rounded="full">
+                <Button colorScheme="blue" onClick={() => navigate("/dashboard/my-bookings")} w="full" rounded="full">
                   Manage All
                 </Button>
               </DrawerFooter>
