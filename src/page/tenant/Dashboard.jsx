@@ -574,6 +574,9 @@ export default function TenantDashboard() {
                                     imageSettings={{ src: BAKONG_LOGO_RED, height: 40, width: 40, excavate: true }}
                                   />
                                 </Center>
+                                <Text fontSize="xs" fontWeight="bold" color="gray.500" textAlign="center" mt={3} pb={2}>
+                                  Exchange Rate: 1$ = 4000 Riel
+                                </Text>
                              </Box>
                              <Box p={3} bg="blue.50" rounded="xl" w="full">
                                 <HStack justify="center" spacing={3}>

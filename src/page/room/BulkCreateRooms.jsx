@@ -194,10 +194,10 @@ export default function BulkCreateRooms() {
                 <Icon as={FiLayers} boxSize={5} />
               </Flex>
               <Box>
-                <Heading size="lg" color={headerTextColor}>
+                <Heading size="2xl" fontWeight="black" color={headerTextColor}>
                   {t("room.bulk_create_title")}
                 </Heading>
-                <Text fontSize="sm" color={mutedText}>
+                <Text fontSize="md" fontWeight="bold" color={mutedText}>
                   {t("room.bulk_create_subtitle")}
                 </Text>
               </Box>
@@ -217,31 +217,32 @@ export default function BulkCreateRooms() {
           >
             <Flex align="center" gap={2} mb={1}>
               <Icon as={FiHash} color="blue.500" />
-              <Heading size="sm" color={headerTextColor}>
+              <Heading size="md" fontWeight="black" color={headerTextColor}>
                 {t("room.preview_names")}
               </Heading>
             </Flex>
-            <Text fontSize="sm" color={mutedText} mb={5}>
+            <Text fontSize="md" fontWeight="bold" color={mutedText} mb={6}>
               {t("room.bulk_create_subtitle")}
             </Text>
 
             <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} mb={5}>
               <Box>
-                <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>
+                <Text fontSize="md" fontWeight="black" color={textColor} mb={2}>
                   {t("room.prefix")} *
                 </Text>
                 <Input
                   value={prefix}
                   onChange={(e) => setPrefix(e.target.value)}
                   placeholder={t("room.prefix_placeholder")}
-                  size="md"
+                  size="lg"
+                  fontSize="md"
                   borderColor={borderColor}
                   _hover={{ borderColor: "blue.400" }}
                   _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
                 />
               </Box>
               <Box>
-                <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>
+                <Text fontSize="md" fontWeight="black" color={textColor} mb={2}>
                   {t("room.start_number")}
                 </Text>
                 <NumberInput
@@ -249,7 +250,8 @@ export default function BulkCreateRooms() {
                   max={9999}
                   value={startNumber}
                   onChange={(_, val) => setStartNumber(val || 1)}
-                  size="md"
+                  size="lg"
+                  fontSize="md"
                 >
                   <NumberInputField
                     borderColor={borderColor}
@@ -263,7 +265,7 @@ export default function BulkCreateRooms() {
                 </NumberInput>
               </Box>
               <Box>
-                <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>
+                <Text fontSize="md" fontWeight="black" color={textColor} mb={2}>
                   {t("room.count")} *
                 </Text>
                 <NumberInput
@@ -271,7 +273,8 @@ export default function BulkCreateRooms() {
                   max={100}
                   value={count}
                   onChange={(_, val) => setCount(val || 1)}
-                  size="md"
+                  size="lg"
+                  fontSize="md"
                 >
                   <NumberInputField
                     borderColor={borderColor}
@@ -309,7 +312,7 @@ export default function BulkCreateRooms() {
                     bg={previewBadgeBg}
                     color={previewBadgeColor}
                     fontWeight="semibold"
-                    fontSize="xs"
+                    fontSize="sm"
                   >
                     {name}
                   </Badge>
@@ -334,17 +337,17 @@ export default function BulkCreateRooms() {
           >
             <Flex align="center" gap={2} mb={1}>
               <Icon as={FiGrid} color="blue.500" />
-              <Heading size="sm" color={headerTextColor}>
+              <Heading size="md" fontWeight="black" color={headerTextColor}>
                 {t("room.shared_properties")}
               </Heading>
             </Flex>
-            <Text fontSize="sm" color={mutedText} mb={5}>
+            <Text fontSize="md" fontWeight="bold" color={mutedText} mb={6}>
               These settings will be applied to all {count || 0} rooms.
             </Text>
 
             <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} mb={4}>
               <Box>
-                <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>
+                <Text fontSize="md" fontWeight="black" color={textColor} mb={2}>
                   {t("room.base_rent_usd")} *
                 </Text>
                 <Input
@@ -352,34 +355,37 @@ export default function BulkCreateRooms() {
                   value={form.base_rent_price}
                   onChange={(e) => setForm({ ...form, base_rent_price: e.target.value })}
                   placeholder="120"
-                  size="md"
+                  size="lg"
+                  fontSize="md"
                   borderColor={borderColor}
                   _hover={{ borderColor: "blue.400" }}
                   _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
                 />
               </Box>
               <Box>
-                <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>
+                <Text fontSize="md" fontWeight="black" color={textColor} mb={2}>
                   {t("room.size_optional")}
                 </Text>
                 <Input
                   value={form.size}
                   onChange={(e) => setForm({ ...form, size: e.target.value })}
                   placeholder={t("room.size_placeholder")}
-                  size="md"
+                  size="lg"
+                  fontSize="md"
                   borderColor={borderColor}
                   _hover={{ borderColor: "blue.400" }}
                   _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
                 />
               </Box>
               <Box>
-                <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>
+                <Text fontSize="md" fontWeight="black" color={textColor} mb={2}>
                   {t("room.status")}
                 </Text>
                 <Select
                   value={form.status}
                   onChange={(e) => setForm({ ...form, status: e.target.value })}
-                  size="md"
+                  size="lg"
+                  fontSize="md"
                   borderColor={borderColor}
                   _hover={{ borderColor: "blue.400" }}
                   _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
@@ -392,11 +398,12 @@ export default function BulkCreateRooms() {
             </SimpleGrid>
 
             <Box>
-              <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={1}>
+              <Text fontSize="md" fontWeight="black" color={textColor} mb={2}>
                 {t("room.description_optional")}
               </Text>
               <Textarea
-                rows={3}
+                rows={4}
+                fontSize="md"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 placeholder={t("room.description_placeholder")}
@@ -417,10 +424,10 @@ export default function BulkCreateRooms() {
             p={6}
             mb={6}
           >
-            <Heading size="sm" color={headerTextColor} mb={1}>
+            <Heading size="md" fontWeight="black" color={headerTextColor} mb={2}>
               {t("room.assign_furniture")}
             </Heading>
-            <Text fontSize="sm" color={mutedText} mb={4}>
+            <Text fontSize="md" fontWeight="bold" color={mutedText} mb={6}>
               {t("room.select_furniture")}
             </Text>
 
@@ -466,11 +473,11 @@ export default function BulkCreateRooms() {
                         colorScheme="blue"
                       />
                       <Box>
-                        <Text fontSize="sm" fontWeight="semibold" color={textColor}>
+                        <Text fontSize="md" fontWeight="black" color={textColor}>
                           {f.name}
                         </Text>
-                        <Text fontSize="xs" color={mutedText}>
-                          {f.type}
+                        <Text fontSize="xs" fontWeight="bold" color={mutedText}>
+                          {f.condition || f.type}
                         </Text>
                       </Box>
                     </Flex>
@@ -520,22 +527,27 @@ export default function BulkCreateRooms() {
           >
             <Button
               variant="outline"
+              size="lg"
               onClick={() => navigate("/dashboard/rooms")}
               color={textColor}
               borderColor={borderColor}
               isDisabled={isLoading}
+              px={8}
             >
               {t("common.cancel")}
             </Button>
             <Button
               type="submit"
+              size="lg"
+              fontSize="md"
               bgGradient={accentGradient}
               color="white"
               _hover={{ opacity: 0.9 }}
               isLoading={isLoading}
               loadingText={t("room.bulk_creating")}
-              px={8}
+              px={10}
               leftIcon={<FiLayers />}
+              shadow="xl"
             >
               {t("room.bulk_create_confirm", { count: count || 0 })}
             </Button>

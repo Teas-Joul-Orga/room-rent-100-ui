@@ -19,4 +19,10 @@ i18n
     }
   });
 
+// Sync <html lang="..."> so CSS :lang(km) selectors work
+document.documentElement.lang = i18n.language?.split('-')[0] || 'en';
+i18n.on('languageChanged', (lng) => {
+  document.documentElement.lang = lng.split('-')[0];
+});
+
 export default i18n;

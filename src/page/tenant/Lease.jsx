@@ -133,10 +133,11 @@ export default function TenantLease() {
         
         setLease(prev => {
           if (prev) {
-            const updated = allActive.find(l => l.id === prev.id);
-            return updated || allActive[0] || null;
+            const updatedActive = allActive.find(l => l.id === prev.id);
+            const updatedPast = (data.past_leases || []).find(l => l.id === prev.id);
+            return updatedActive || updatedPast || allActive[0] || (data.past_leases || [])[0] || null;
           }
-          return allActive[0] || null;
+          return allActive[0] || (data.past_leases || [])[0] || null;
         });
 
         setPastLeases(data.past_leases || []);
@@ -326,22 +327,25 @@ export default function TenantLease() {
         </Alert>
       )}
 
-      {activeLeases.length > 1 && (
+      {(activeLeases.length + pastLeases.length) > 1 && (
         <Flex mb={4} overflowX="auto" pb={2} gap={3}>
-          {activeLeases.map(l => (
-            <Button
-              key={l.id}
-              size="sm"
-              borderRadius="full"
-              colorScheme={lease?.id === l.id ? "blue" : "gray"}
-              variant={lease?.id === l.id ? "solid" : "outline"}
-              onClick={() => setLease(l)}
-              flexShrink={0}
-              leftIcon={<Icon as={FiFileText} />}
-            >
-              {l.room?.name || `Lease #${l.id}`}
-            </Button>
-          ))}
+          {[...activeLeases, ...pastLeases].map(l => {
+            const isExpired = l.status === "expired" || l.status === "terminated";
+            return (
+              <Button
+                key={l.id}
+                size="sm"
+                borderRadius="full"
+                colorScheme={lease?.id === l.id ? (isExpired ? "orange" : "blue") : "gray"}
+                variant={lease?.id === l.id ? "solid" : "outline"}
+                onClick={() => setLease(l)}
+                flexShrink={0}
+                leftIcon={<Icon as={isExpired ? FiArchive : FiFileText} />}
+              >
+                {l.room?.name || `Lease #${l.id}`} {isExpired && "(Expired)"}
+              </Button>
+            );
+          })}
         </Flex>
       )}
 
@@ -646,7 +650,7 @@ export default function TenantLease() {
               <Collapse in={isPastOpen} animateOpacity>
                 <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
                   {pastLeases.map(pl => (
-                    <Box key={pl.id} bg={bg} p={4} borderRadius="lg" border="1px solid" borderColor={borderColor} opacity={0.8} transition="all 0.2s" _hover={{ opacity: 1, borderColor: "blue.300", shadow: "sm" }}>
+                    <Box key={pl.id} bg={bg} p={4} borderRadius="lg" border="1px solid" borderColor={borderColor} opacity={0.8} transition="all 0.2s" _hover={{ opacity: 1, borderColor: "blue.300", shadow: "sm", cursor: "pointer" }} onClick={() => { setLease(pl); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
                       <Flex justify="space-between" align="flex-start" mb={2}>
                         <Box>
                           <Text fontWeight="bold" color={textColor}>{pl.room?.name || "Unknown Room"}</Text>
@@ -877,6 +881,9 @@ export default function TenantLease() {
                               imageSettings={{ src: BAKONG_LOGO_RED, height: 40, width: 40, excavate: true }}
                             />
                           </Center>
+                          <Text fontSize="xs" fontWeight="bold" color="gray.500" textAlign="center" mt={3} pb={2}>
+                            Exchange Rate: 1$ = 4000 Riel
+                          </Text>
                         </Box>
                         <Box p={3} bg="blue.50" rounded="xl" w="full">
                           <HStack justify="center" spacing={3}>

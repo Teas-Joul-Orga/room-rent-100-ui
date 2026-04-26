@@ -302,7 +302,7 @@ const Landing = () => {
   const displayedRooms = showAll ? filteredRooms : filteredRooms.slice(0, 6);
 
   const today = new Date().toISOString().split("T")[0];
-  const maxDate = (() => { const d = new Date(); d.setMonth(d.getMonth() + 2); return d.toISOString().split("T")[0]; })();
+  const maxDate = (() => { const d = new Date(); d.setDate(d.getDate() + 14); return d.toISOString().split("T")[0]; })();
 
   const handleDateChange = (e) => {
     const val = e.target.value;
@@ -312,7 +312,7 @@ const Landing = () => {
       return;
     }
     if (val > maxDate) {
-      toast.error("Move-in date must be within 2 months from today.");
+      toast.error("Move-in date must be within 14 days from today.");
       setDesiredDate("");
       return;
     }
@@ -968,7 +968,7 @@ const Landing = () => {
                         _hover={{ borderColor: "blue.300" }}
                         _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
                       />
-                      <Text fontSize="xs" color="gray.400" mt={1}>Select a date within the next 2 months</Text>
+                      <Text fontSize="xs" color="gray.400" mt={1}>Select a date within the next 14 days</Text>
                     </FormControl>
 
                     <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
@@ -1101,6 +1101,9 @@ const Landing = () => {
                                    />
                                  </Flex>
                                </Box>
+                               <Text fontSize="xs" fontWeight="bold" color="gray.500" textAlign="center" pb={2}>
+                                 Exchange Rate: 1$ = 4000 Riel
+                               </Text>
                              </Box>
                              <Flex justify="space-between" align="center" w="full" px={4}>
                                 <Text fontSize="xs" color="gray.500" fontWeight="bold">Scanning...</Text>

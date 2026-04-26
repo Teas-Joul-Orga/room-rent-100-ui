@@ -98,6 +98,19 @@ export default function useGlobalNotifications(currentUser) {
             </Flex>
           </Box>
         ), { duration: 5000, position: 'top-right' });
+      })
+      .listen('.App\\Events\\AccountDisabled', () => {
+        // Handle real-time logout
+        ['token', 'user', 'role', 'isLoggedIn', 'token_expires_at'].forEach(key => {
+          localStorage.removeItem(key);
+          sessionStorage.removeItem(key);
+        });
+        
+        toast.error('Your account has been disabled. You have been logged out.', { duration: 6000 });
+        
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
       });
 
     return () => {

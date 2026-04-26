@@ -20,7 +20,7 @@ import {
   InputGroup,
   InputLeftElement,
 } from "@chakra-ui/react";
-import { FiEdit2, FiTrash2, FiEye, FiPlus, FiUsers, FiClock, FiCheckCircle, FiSearch, FiDownload, FiUserPlus } from "react-icons/fi";
+import { FiEdit2, FiTrash2, FiEye, FiPlus, FiUsers, FiClock, FiCheckCircle, FiSearch, FiDownload, FiUserPlus, FiPrinter } from "react-icons/fi";
 import { exportToExcel } from "../../utils/exportExcel";
 import { useApi } from "../../hooks/useApi";
 import StatsCard from "../../components/common/StatsCard";
@@ -178,14 +178,29 @@ export default function AllTenants() {
 
         <HStack spacing={3}>
           <Button
+            leftIcon={<FiPrinter />}
+            colorScheme="teal"
+            variant="outline"
+            onClick={() => navigate("/dashboard/tenants/registration-form")}
+            px={4}
+            fontWeight="bold"
+            textTransform="uppercase"
+            fontSize="sm"
+            letterSpacing="wide"
+            borderRadius="xl"
+            shadow="sm"
+          >
+            Print Form
+          </Button>
+          <Button
             leftIcon={<FiPlus />}
             colorScheme="blue"
             onClick={() => navigate("/dashboard/tenants/addtenant")}
             px={6}
-            fontWeight="black"
+            fontWeight="bold"
             textTransform="uppercase"
-            fontSize="xs"
-            letterSpacing="widest"
+            fontSize="sm"
+            letterSpacing="wide"
             borderRadius="xl"
             shadow="lg"
           >

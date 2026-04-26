@@ -32,6 +32,7 @@ const LanguageSwitcher = () => {
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng);
+    document.documentElement.lang = lng;
   };
 
   const selectedLang = languages.find(lang => lang.code === currentLanguage.split('-')[0]) || languages[0];

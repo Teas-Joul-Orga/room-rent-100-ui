@@ -74,8 +74,8 @@ window.fetch = async (...args) => {
 
 const theme = extendTheme({
   fonts: {
-    heading: `'Figtree', 'Khmer OS Battambang', 'Battambang', sans-serif`,
-    body: `'Figtree', 'Khmer OS Battambang', 'Battambang', sans-serif`,
+    heading: `'Figtree', 'Kantumruy Pro', sans-serif`,
+    body: `'Figtree', 'Kantumruy Pro', sans-serif`,
   },
   config: {
     initialColorMode: "light",

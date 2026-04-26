@@ -38,11 +38,10 @@ const StatsCard = ({ title, value, icon, color, subValue, isLoading, onClick }) 
     >
       <Flex align="center" justify="space-between" mb={2}>
         <Text
-          fontSize="10px"
-          fontWeight="black"
+          fontSize="xs"
+          fontWeight="bold"
           color={mutedText}
-          textTransform="uppercase"
-          letterSpacing="widest"
+          letterSpacing="wide"
         >
           {title}
         </Text>

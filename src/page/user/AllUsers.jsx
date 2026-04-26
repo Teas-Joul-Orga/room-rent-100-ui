@@ -165,6 +165,11 @@ export default function AllUsers() {
     }
     setIsSubmitLoading(true);
     try {
+      // Clean payload
+      const payload = { ...formData };
+      if (!payload.username) delete payload.username;
+      if (!payload.tenant_id) delete payload.tenant_id;
+
       const res = await fetch("http://localhost:8000/api/v1/admin/users", {
         method: "POST",
         headers: {
@@ -172,7 +177,7 @@ export default function AllUsers() {
           Accept: "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
       const result = await res.json();
       if (res.ok) {
@@ -181,9 +186,11 @@ export default function AllUsers() {
         setFormData(initialForm);
         fetchUsers();
       } else {
-        
-        //TODO: check error
-        toast({ title: t("users.error"), description: result.errors.toString() || t("users.failed_create"), status: "error", duration: 3000 });
+        let errorMsg = result.message || t("users.failed_create");
+        if (result.errors) {
+          errorMsg = Object.values(result.errors).flat().join(" ");
+        }
+        toast({ title: t("users.error"), description: errorMsg, status: "error", duration: 5000 });
       }
     } catch(err) {
       toast({ title: t("users.network_error"), status: "error", duration: 3000 });
@@ -200,6 +207,17 @@ export default function AllUsers() {
     }
     setIsSubmitLoading(true);
     try {
+      const payload = {
+        name: formData.name,
+        email: formData.email,
+        role: formData.role
+      };
+      if (formData.username) payload.username = formData.username;
+      if (formData.password) {
+        payload.password = formData.password;
+        payload.password_confirmation = formData.password_confirmation;
+      }
+
       const res = await fetch(`http://localhost:8000/api/v1/admin/users/${selectedUser.uid}`, {
         method: "PUT",
         headers: {
@@ -207,14 +225,7 @@ export default function AllUsers() {
           Accept: "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({
-          name: formData.name,
-          username: formData.username || undefined,
-          email: formData.email,
-          role: formData.role,
-          password: formData.password || undefined,
-          password_confirmation: formData.password_confirmation || undefined
-        })
+        body: JSON.stringify(payload)
       });
       const result = await res.json();
       if (res.ok) {
@@ -222,7 +233,11 @@ export default function AllUsers() {
         onCloseEdit();
         fetchUsers();
       } else {
-        toast({ title: t("users.error"), description: result.message || t("users.failed_update"), status: "error", duration: 3000 });
+        let errorMsg = result.message || t("users.failed_update");
+        if (result.errors) {
+          errorMsg = Object.values(result.errors).flat().join(" ");
+        }
+        toast({ title: t("users.error"), description: errorMsg, status: "error", duration: 5000 });
       }
     } catch(err) {
       toast({ title: t("users.network_error"), status: "error", duration: 3000 });

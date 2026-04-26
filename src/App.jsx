@@ -24,6 +24,7 @@ import AdminViewTenant from "./page/Admin/ViewTenant";
 import AdminCreateAccount from "./page/Admin/CreateAccount";
 import AdminExpense from "./page/Admin/Expense";
 import AdminBookingManagement from "./page/Admin/BookingManagement";
+import TenantRegistrationForm from "./page/Admin/TenantRegistrationForm";
 
 // Tenant Pages
 import TenantDashboard from "./page/tenant/Dashboard";
@@ -129,6 +130,7 @@ function App() {
               <Route path="edit/:id" element={<ProtectedRoute allowedRoles={['admin']}><AdminAddNewTenant /></ProtectedRoute>} />
               <Route path="view/:id" element={<ProtectedRoute allowedRoles={['admin']}><AdminViewTenant /></ProtectedRoute>} />
               <Route path="createaccount/:id" element={<ProtectedRoute allowedRoles={['admin']}><AdminCreateAccount /></ProtectedRoute>} />
+              <Route path="registration-form" element={<ProtectedRoute allowedRoles={['admin']}><TenantRegistrationForm /></ProtectedRoute>} />
             </Route>
 
             <Route path="bookings" element={<ProtectedRoute allowedRoles={['admin']}><AdminBookingManagement /></ProtectedRoute>} />

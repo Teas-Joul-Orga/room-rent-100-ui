@@ -51,16 +51,27 @@ const DashboardLayout = () => {
   const appBg = useColorModeValue("gray.100", "#0d1117");
 
   return (
-    <Flex h="100vh" bg={appBg}>
+    <Flex 
+      h="100vh" 
+      bg={appBg}
+      sx={{
+        "@media print": {
+          h: "auto !important",
+          bg: "white !important",
+        }
+      }}
+    >
       {/* 
         Static Sidebar on Desktop, Hidden on Mobile 
         Matches: <aside class="hidden lg:flex lg:w-[280px] lg:flex-col lg:sticky lg:top-0 lg:h-screen..."
       */}
-      <Sidebar 
-        isOpen={sidebarOpen} 
-        onClose={() => setSidebarOpen(false)} 
-        isDesktopCollapsed={isDesktopCollapsed}
-      />
+      <Box sx={{ "@media print": { display: "none !important" } }}>
+        <Sidebar 
+          isOpen={sidebarOpen} 
+          onClose={() => setSidebarOpen(false)} 
+          isDesktopCollapsed={isDesktopCollapsed}
+        />
+      </Box>
 
       {/* Main Content Area */}
       <Flex 
@@ -70,15 +81,35 @@ const DashboardLayout = () => {
         overflow="hidden" 
         ml={{ lg: isDesktopCollapsed ? "80px" : "280px" }}
         transition="margin-left 0.2s"
+        sx={{
+          "@media print": {
+            ml: "0 !important",
+            overflow: "visible !important",
+          }
+        }}
       >
         {/* Sticky Top Bar over the main content area */}
-        <Topbar 
-          onOpenSidebar={() => setSidebarOpen(!sidebarOpen)} 
-          onToggleDesktop={() => setIsDesktopCollapsed(!isDesktopCollapsed)}
-        />
+        <Box sx={{ "@media print": { display: "none !important" } }}>
+          <Topbar 
+            onOpenSidebar={() => setSidebarOpen(!sidebarOpen)} 
+            onToggleDesktop={() => setIsDesktopCollapsed(!isDesktopCollapsed)}
+          />
+        </Box>
 
         {/* Page Content */}
-        <Box as="main" flex="1" p={{ base: 4, md: 6, lg: 8 }} pb={{ base: "80px", md: 8 }} overflowY="auto">
+        <Box 
+          as="main" 
+          flex="1" 
+          p={{ base: 4, md: 6, lg: 8 }} 
+          pb={{ base: "80px", md: 8 }} 
+          overflowY="auto"
+          sx={{
+            "@media print": {
+              p: "0 !important",
+              overflow: "visible !important",
+            }
+          }}
+        >
           <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>
@@ -86,7 +117,9 @@ const DashboardLayout = () => {
       </Flex>
       
       {/* Mobile Bottom Navigation Ribbon */}
-      <BottomNav onOpenSidebar={() => setSidebarOpen(true)} />
+      <Box sx={{ "@media print": { display: "none !important" } }}>
+        <BottomNav onOpenSidebar={() => setSidebarOpen(true)} />
+      </Box>
     </Flex>
   );
 };

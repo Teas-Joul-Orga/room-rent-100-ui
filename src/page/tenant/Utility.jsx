@@ -673,6 +673,9 @@ export default function TenantUtility() {
                                       }}
                                     />
                                   </Flex>
+                                  <Text fontSize="xs" fontWeight="bold" color="gray.500" textAlign="center" mt={2} pb={2}>
+                                    Exchange Rate: 1$ = 4000 Riel
+                                  </Text>
                                 </Box>
 
                                 {/* Merchant Info Footer */}

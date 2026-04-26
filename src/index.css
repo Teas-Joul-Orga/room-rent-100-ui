@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/* ── Khmer Unicode Fix ──────────────────────────────────────────────
+   Khmer script has NO uppercase/lowercase distinction.
+   CSS `text-transform: uppercase` corrupts Khmer Unicode rendering
+   by breaking ligatures and stacked vowels/consonants.
+   When the page language is Khmer, neutralize ALL uppercase transforms.
+   ──────────────────────────────────────────────────────────────────── */
+:lang(km) * {
+  text-transform: none !important;
+}
+
 /* Custom Date Picker Styles */
 ::-webkit-calendar-picker-indicator {
   background-color: transparent;

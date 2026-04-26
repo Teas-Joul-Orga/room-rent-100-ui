@@ -625,6 +625,9 @@ export default function AvailableRoomDetail() {
                                    />
                                  </Flex>
                                </Box>
+                               <Text fontSize="xs" fontWeight="bold" color="gray.500" textAlign="center" pb={2}>
+                                 Exchange Rate: 1$ = 4000 Riel
+                               </Text>
                              </Box>
                              <Flex justify="space-between" align="center" w="full" px={4}>
                                 <Text fontSize="xs" color={mutedText} fontWeight="bold">Scanning...</Text>

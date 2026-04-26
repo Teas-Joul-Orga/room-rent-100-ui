@@ -32,8 +32,11 @@ import {
   useDisclosure,
   FormControl,
   FormLabel,
+  Grid,
+  HStack,
+  Icon,
 } from "@chakra-ui/react";
-import { FiEdit2, FiEye, FiPlus } from "react-icons/fi";
+import { FiEdit2, FiEye, FiPlus, FiMinus, FiLayers } from "react-icons/fi";
 import { useTranslation } from "react-i18next";
 
 export default function Furniture() {
@@ -49,6 +52,11 @@ export default function Furniture() {
   const [isEdit, setIsEdit] = useState(false);
   const [formData, setFormData] = useState({ uid: null, name: "", condition: "Good" });
   const [isSaving, setIsSaving] = useState(false);
+
+  // Bulk Add Modal State
+  const { isOpen: isBulkOpen, onOpen: onBulkOpen, onClose: onBulkClose } = useDisclosure();
+  const [pendingFurniture, setPendingFurniture] = useState([]);
+  const [isSavingBulk, setIsSavingBulk] = useState(false);
 
   // View Modal State
   const { isOpen: isViewOpen, onOpen: onViewOpen, onClose: onViewClose } = useDisclosure();
@@ -210,6 +218,61 @@ export default function Furniture() {
     }
   };
 
+  // ── Bulk Add Handlers ──
+  const handleOpenBulkModal = () => {
+    setPendingFurniture([
+      { _id: Date.now(), name: "", condition: "Good" },
+    ]);
+    onBulkOpen();
+  };
+
+  const handleBulkRowChange = (_id, field, value) => {
+    setPendingFurniture(prev => prev.map(f => f._id === _id ? { ...f, [field]: value } : f));
+  };
+
+  const handleAddBulkRow = () => {
+    setPendingFurniture(prev => [...prev, { _id: Date.now(), name: "", condition: "Good" }]);
+  };
+
+  const handleRemoveBulkRow = (_id) => {
+    setPendingFurniture(prev => prev.filter(f => f._id !== _id));
+  };
+
+  const handleSaveBulk = async (e) => {
+    e.preventDefault();
+    if (pendingFurniture.length === 0) return toast.error(t("furniture.bulk_empty", "Please add at least one furniture item."));
+    for (const f of pendingFurniture) {
+      if (!f.name.trim()) return toast.error(t("furniture.name_required"));
+    }
+    setIsSavingBulk(true);
+    const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
+    try {
+      const requests = pendingFurniture.map(f =>
+        fetch("http://localhost:8000/api/v1/admin/furniture", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ name: f.name.trim(), condition: f.condition })
+        })
+      );
+      const results = await Promise.all(requests);
+      const failed = results.filter(r => !r.ok);
+      if (failed.length === 0) {
+        toast.success(t("furniture.bulk_success", `${pendingFurniture.length} furniture items added successfully!`));
+        onBulkClose();
+        fetchFurniture();
+      } else {
+        const errors = await Promise.all(failed.map(r => r.json()));
+        const msgs = errors.map(e => e.errors?.name?.[0] || e.message || "Unknown error").join(", ");
+        toast.error(msgs || t("furniture.save_failed"));
+        fetchFurniture();
+      }
+    } catch (err) {
+      toast.error(t("furniture.network_error"));
+    } finally {
+      setIsSavingBulk(false);
+    }
+  };
+
   const filtered = [...furniture]
     .filter((f) => (f?.name || "").toLowerCase().includes(search.trim().toLowerCase()));
 
@@ -262,17 +325,32 @@ export default function Furniture() {
     <Box p={6} bg={bg} h={{ base: "auto", lg: "calc(100vh - 140px)" }} overflow="hidden" display="flex" flexDirection="column">
       <Toaster position="top-right" />
       <Flex direction={{ base: "column", sm: "row" }} align={{ sm: "center" }} justify="space-between" gap={4} mb={6} flexShrink={0}>
-          <Heading size="lg" color={useColorModeValue("sky.900", "white")}>
+          <Heading size="xl" color={useColorModeValue("sky.900", "white")}>
             {t("furniture.title")}
           </Heading>
-          <Button
-            leftIcon={<FiPlus />}
-            colorScheme="blue"
-            onClick={() => handleOpenModal()}
-            shadow="sm"
-          >
-            {t("furniture.add")}
-          </Button>
+          <HStack spacing={3}>
+            <Button
+              leftIcon={<FiLayers />}
+              colorScheme="teal"
+              variant="outline"
+              onClick={handleOpenBulkModal}
+              shadow="md"
+              size="md"
+              fontSize="md"
+            >
+              {t("furniture.bulk_add", "Bulk Add")}
+            </Button>
+            <Button
+              leftIcon={<FiPlus />}
+              colorScheme="blue"
+              onClick={() => handleOpenModal()}
+              shadow="md"
+              size="md"
+              fontSize="md"
+            >
+              {t("furniture.add")}
+            </Button>
+          </HStack>
         </Flex>
 
         {/* ===== SEARCH ===== */}
@@ -284,6 +362,8 @@ export default function Furniture() {
               setSearch(e.target.value);
               setCurrentPage(1);
             }}
+            size="lg"
+            fontSize="md"
             borderColor={borderColor}
             _hover={{ borderColor: "blue.400" }}
             _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
@@ -296,17 +376,17 @@ export default function Furniture() {
             <Table variant="simple">
               <Thead bg={tableHeaderBg} position="sticky" top={0} zIndex={2}>
                 <Tr>
-                  <Th cursor="pointer" onClick={() => handleSort('name')}>
+                  <Th py={5} fontSize="sm" cursor="pointer" onClick={() => handleSort('name')}>
                     <Flex align="center" gap={1}>{t("furniture.name")} <Text as="span" color={sortField === 'name' ? "inherit" : "gray.400"}>{sortField === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</Text></Flex>
                   </Th>
-                  <Th cursor="pointer" onClick={() => handleSort('condition')}>
+                  <Th py={5} fontSize="sm" cursor="pointer" onClick={() => handleSort('condition')}>
                     <Flex align="center" gap={1}>{t("furniture.condition")} <Text as="span" color={sortField === 'condition' ? "inherit" : "gray.400"}>{sortField === 'condition' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</Text></Flex>
                   </Th>
-                  <Th cursor="pointer" onClick={() => handleSort('rooms_count')}>
+                  <Th py={5} fontSize="sm" cursor="pointer" onClick={() => handleSort('rooms_count')}>
                     <Flex align="center" gap={1}>{t("furniture.in_rooms")} <Text as="span" color={sortField === 'rooms_count' ? "inherit" : "gray.400"}>{sortField === 'rooms_count' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</Text></Flex>
                   </Th>
-                  <Th>{t("furniture.active")}</Th>
-                  <Th textAlign="center">{t("furniture.action")}</Th>
+                  <Th py={5} fontSize="sm">{t("furniture.active")}</Th>
+                  <Th py={5} fontSize="sm" textAlign="center">{t("furniture.action")}</Th>
                 </Tr>
               </Thead>
 
@@ -321,7 +401,7 @@ export default function Furniture() {
                 paginated.map((f) => (
                   <Tr key={f.uid} _hover={{ bg: hoverBg }} transition="all 0.2s">
                     {/* NAME */}
-                    <Td fontWeight="medium" color={textColor}>
+                    <Td py={5} fontWeight="bold" fontSize="md" color={textColor}>
                       {f.name}
                     </Td>
 
@@ -329,29 +409,30 @@ export default function Furniture() {
                     <Td>
                       <Badge
                         colorScheme={getConditionColor(f.condition)}
-                        px={3}
-                        py={1.5}
+                        px={4}
+                        py={2}
                         borderRadius="full"
-                        fontSize="xs"
-                        fontWeight="bold"
+                        fontSize="sm"
+                        fontWeight="black"
                         letterSpacing="wider"
-                        boxShadow="sm"
+                        boxShadow="md"
                       >
                         {conditionMap[f.condition] || f.condition}
                       </Badge>
                     </Td>
 
                     {/* IN ROOMS */}
-                    <Td color={mutedText} fontWeight="semibold">
+                    <Td py={5} color={mutedText} fontWeight="bold" fontSize="md">
                       {f.rooms_count > 0 ? t("furniture.rooms_count", { count: f.rooms_count }) : t("furniture.no_rooms")}
                     </Td>
 
                     {/* ACTIVE TOGGLE */}
                     <Td>
                       <Select
-                        size="xs"
-                        fontWeight="bold"
-                        w="110px"
+                        size="sm"
+                        fontSize="xs"
+                        fontWeight="black"
+                        w="130px"
                         bg={f.deleted_at ? "red.50" : "green.50"}
                         color={f.deleted_at ? "red.700" : "green.700"}
                         borderColor={f.deleted_at ? "red.200" : "green.200"}
@@ -447,27 +528,31 @@ export default function Furniture() {
         <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(5px)" />
         <ModalContent bg={cardBg} borderRadius="xl" shadow="2xl">
           <form onSubmit={handleSave}>
-            <ModalHeader color={textColor}>
+            <ModalHeader color={textColor} fontSize="2xl" fontWeight="black" py={6}>
               {isEdit ? t("furniture.edit_title") : t("furniture.add_title")}
             </ModalHeader>
             <ModalCloseButton />
             <ModalBody pb={6}>
-              <FormControl isRequired mb={4}>
-                <FormLabel color={mutedText} fontSize="sm" fontWeight="bold">{t("furniture.furniture_name")}</FormLabel>
+              <FormControl isRequired mb={6}>
+                <FormLabel color={mutedText} fontSize="md" fontWeight="black" mb={2}>{t("furniture.furniture_name")}</FormLabel>
                 <Input
                   autoFocus
                   placeholder={t("furniture.name_placeholder")}
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  size="lg"
+                  fontSize="md"
                   borderColor={borderColor}
                   _hover={{ borderColor: "blue.400" }}
                   _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
                 />
               </FormControl>
 
-              <FormControl mt={4} isRequired>
-                <FormLabel color={mutedText} fontSize="sm" fontWeight="bold">{t("furniture.condition")}</FormLabel>
+              <FormControl mt={6} isRequired>
+                <FormLabel color={mutedText} fontSize="md" fontWeight="black" mb={2}>{t("furniture.condition")}</FormLabel>
                 <Select
+                  size="lg"
+                  fontSize="md"
                   value={formData.condition}
                   onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
                   borderColor={borderColor}
@@ -483,10 +568,10 @@ export default function Furniture() {
             </ModalBody>
 
             <ModalFooter bg={useColorModeValue("gray.50", "whiteAlpha.100")} borderBottomRadius="xl">
-              <Button onClick={onClose} variant="ghost" mr={3}>
+              <Button onClick={onClose} variant="ghost" mr={3} size="lg">
                 {t("furniture.cancel")}
               </Button>
-              <Button colorScheme="blue" type="submit" isLoading={isSaving}>
+              <Button colorScheme="blue" type="submit" isLoading={isSaving} size="lg" fontSize="md" px={8}>
                 {isEdit ? t("furniture.update_furniture") : t("furniture.save_furniture")}
               </Button>
             </ModalFooter>
@@ -498,7 +583,7 @@ export default function Furniture() {
       <Modal isOpen={isViewOpen} onClose={onViewClose} isCentered motionPreset="scale" size="lg">
         <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(5px)" />
         <ModalContent bg={cardBg} borderRadius="xl" shadow="2xl">
-          <ModalHeader color={textColor} textAlign="center">
+          <ModalHeader color={textColor} textAlign="center" fontSize="2xl" fontWeight="black" py={6}>
             {t("furniture.details", "Furniture Details")}
           </ModalHeader>
           <ModalCloseButton />
@@ -601,6 +686,111 @@ export default function Furniture() {
             >
               {t("furniture.edit", "Edit Furniture")}
             </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* ===== BULK ADD MODAL ===== */}
+      <Modal isOpen={isBulkOpen} onClose={onBulkClose} isCentered size="4xl">
+        <ModalOverlay bg="blackAlpha.600" />
+        <ModalContent bg={cardBg} borderRadius="2xl" maxH="95vh" display="flex" flexDirection="column" shadow="2xl">
+          <ModalHeader color={textColor} borderBottom="1px solid" borderColor={borderColor} fontSize="2xl" fontWeight="black" py={6}>
+            <Flex align="center" gap={3}>
+              <Icon as={FiLayers} color="teal.500" />
+              <Text>{t("furniture.bulk_add_title", "Add Multiple Furniture")}</Text>
+            </Flex>
+          </ModalHeader>
+          <ModalCloseButton />
+
+          <ModalBody pb={8} pt={6} overflowY="auto" flex="1">
+            <Text fontSize="md" fontWeight="bold" color={mutedText} mb={6}>
+              {t("furniture.bulk_add_desc", "Add furniture items to the list, then save them all at once.")}
+            </Text>
+
+            {pendingFurniture.length === 0 && (
+              <Button size="lg" fontSize="md" py={8} onClick={handleAddBulkRow} colorScheme="blue" mb={8} variant="outline" borderStyle="dashed" w="full">
+                + {t("furniture.add", "Add Furniture")}
+              </Button>
+            )}
+
+            {pendingFurniture.map((item, index) => (
+              <Box key={item._id} bg={useColorModeValue("gray.50", "#1c2128")} p={6} borderRadius="2xl" border="1px solid" borderColor={borderColor} mb={5} shadow="sm">
+                <Grid templateColumns={{ base: "1fr", md: "2.5fr 1.5fr auto" }} gap={6} alignItems="end">
+                  <FormControl isRequired>
+                    <FormLabel fontSize="sm" fontWeight="black" color={mutedText} mb={2}>{t("furniture.furniture_name")}</FormLabel>
+                    <Input
+                      size="lg"
+                      fontSize="md"
+                      value={item.name}
+                      onChange={e => handleBulkRowChange(item._id, "name", e.target.value)}
+                      borderColor={borderColor}
+                      bg={useColorModeValue("white", "#0d1117")}
+                    />
+                  </FormControl>
+
+                  <FormControl isRequired>
+                    <FormLabel fontSize="sm" fontWeight="black" color={mutedText} mb={2}>{t("furniture.condition")}</FormLabel>
+                    <Select
+                      size="lg"
+                      fontSize="md"
+                      value={item.condition}
+                      onChange={e => handleBulkRowChange(item._id, "condition", e.target.value)}
+                      borderColor={borderColor}
+                      bg={useColorModeValue("white", "#0d1117")}
+                    >
+                      <option value="New">{t("furniture.condition_new")}</option>
+                      <option value="Good">{t("furniture.condition_good")}</option>
+                      <option value="Fair">{t("furniture.condition_fair")}</option>
+                      <option value="Broken">{t("furniture.condition_broken")}</option>
+                    </Select>
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel fontSize="xs" visibility="hidden">Actions</FormLabel>
+                    <Flex gap={2}>
+                      {index === 0 && (
+                        <Tooltip label={t("furniture.bulk_add_row", "Add Another Item")} hasArrow>
+                          <Button size="lg" colorScheme="blue" onClick={handleAddBulkRow} px={6}>
+                            <FiPlus />
+                          </Button>
+                        </Tooltip>
+                      )}
+                      {index > 0 && (
+                        <Tooltip label={t("furniture.bulk_remove_row", "Remove this Item")} hasArrow>
+                          <Button size="lg" colorScheme="red" variant="ghost" onClick={() => handleRemoveBulkRow(item._id)} px={6}>
+                            <FiMinus />
+                          </Button>
+                        </Tooltip>
+                      )}
+                    </Flex>
+                  </FormControl>
+                </Grid>
+              </Box>
+            ))}
+          </ModalBody>
+
+          <ModalFooter borderTop="1px solid" borderColor={borderColor} py={6} bg={useColorModeValue("gray.50", "whiteAlpha.50")} borderBottomRadius="2xl">
+            <Flex w="100%" justify="space-between" align="center">
+              <Text fontSize="md" fontWeight="black" color={textColor}>
+                {pendingFurniture.length} {t("furniture.bulk_items", "item(s)")}
+              </Text>
+              <Flex gap={4}>
+                <Button onClick={onBulkClose} variant="ghost" size="lg" fontSize="md">{t("furniture.cancel")}</Button>
+                <Button
+                  colorScheme="teal"
+                  size="lg"
+                  fontSize="md"
+                  px={10}
+                  onClick={handleSaveBulk}
+                  isLoading={isSavingBulk}
+                  isDisabled={pendingFurniture.length === 0}
+                  leftIcon={<FiLayers />}
+                  shadow="lg"
+                >
+                  {t("furniture.bulk_save", "Save All")}
+                </Button>
+              </Flex>
+            </Flex>
           </ModalFooter>
         </ModalContent>
       </Modal>

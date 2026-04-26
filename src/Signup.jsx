@@ -24,6 +24,8 @@ import {
 } from "@chakra-ui/react";
 import { toast } from "react-hot-toast";
 import { FiEye, FiEyeOff, FiArrowLeft, FiUser, FiMail, FiLock, FiPhone, FiBriefcase } from "react-icons/fi";
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "./components/LanguageSwitcher";
 import { FcGoogle } from "react-icons/fc";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useApi } from "./hooks/useApi";
@@ -34,6 +36,7 @@ import logoSvg from "./assets/Artboard 1.svg";
 import topologyBg from "./assets/topology_bg.png";
 
 export default function SignupForm() {
+  const { t } = useTranslation();
   const [show, setShow] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const navigate = useNavigate();
@@ -65,20 +68,20 @@ export default function SignupForm() {
 
   const validate = () => {
     const newErrors = {};
-    if (!form.name.trim()) newErrors.name = "Full Name is required";
-    if (!form.username.trim()) newErrors.username = "Username is required";
-    if (!form.email.trim()) newErrors.email = "Email is required";
-    if (!form.phone.trim()) newErrors.phone = "Phone number is required";
-    if (!form.job.trim()) newErrors.job = "Job is required";
-    if (!form.password) newErrors.password = "Password is required";
-    else if (form.password.length < 8) newErrors.password = "Password must be at least 8 characters";
+    if (!form.name.trim()) newErrors.name = t('signup.err_req_name');
+    if (!form.username.trim()) newErrors.username = t('signup.err_req_username');
+    if (!form.email.trim()) newErrors.email = t('signup.err_req_email');
+    if (!form.phone.trim()) newErrors.phone = t('signup.err_req_phone');
+    if (!form.job.trim()) newErrors.job = t('signup.err_req_job');
+    if (!form.password) newErrors.password = t('signup.err_req_password');
+    else if (form.password.length < 8) newErrors.password = t('signup.err_pass_length');
     
     if (form.password !== form.password_confirmation) {
-        newErrors.password_confirmation = "Passwords do not match";
+        newErrors.password_confirmation = t('common.password_mismatch');
     }
 
     if (!captchaValue) {
-        newErrors.captcha = "Please complete the CAPTCHA to register";
+        newErrors.captcha = t('signup.err_req_captcha');
     }
     
     setErrors(newErrors);
@@ -126,14 +129,14 @@ export default function SignupForm() {
       if (apiErr.response?.data?.errors) {
          setErrors(apiErr.response.data.errors);
       } else {
-         setErrors({ general: apiErr.response?.data?.message || "Registration failed." });
+         setErrors({ general: apiErr.response?.data?.message || t('signup.err_general_fail') });
       }
       return;
     }
 
     if (data && data.token) {
       storeSession(data);
-      toast.success(`Account created successfully! Welcome, ${data.user.name}!`);
+      toast.success(t('signup.welcome_msg', { name: data.user.name }));
       navigate("/dashboard");
     }
   };
@@ -161,13 +164,13 @@ export default function SignupForm() {
       }, { showToast: false });
 
       if (apiErr) {
-        setErrors({ general: apiErr.response?.data?.message || "Google sign-in failed on our server." });
+        setErrors({ general: apiErr.response?.data?.message || t('signup.err_google_fail') });
         setGoogleLoading(false);
         return;
       }
 
       if (data && data.action === 'signup_required') {
-        toast("Please complete your registration.", { duration: 4000, icon: 'ℹ️' });
+        toast(t('signup.req_complete_reg'), { duration: 4000, icon: 'ℹ️' });
         setForm(prev => ({ ...prev, name: data.name, email: data.email, from_google: true }));
         setGoogleLoading(false);
         return;
@@ -175,12 +178,12 @@ export default function SignupForm() {
 
       if (data && data.token) {
         storeSession(data);
-        toast.success(`Welcome, ${data.user.name}!`);
+        toast.success(t('signup.welcome_back', { name: data.user.name }));
         navigate("/dashboard");
       }
     } catch (error) {
       console.error(error);
-      setErrors({ general: "Google authentication failed or was cancelled." });
+      setErrors({ general: t('signup.err_google_cancel') });
     } finally {
       setGoogleLoading(false);
     }
