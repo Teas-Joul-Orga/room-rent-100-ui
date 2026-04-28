@@ -203,6 +203,10 @@ export default function SignupForm() {
       overflow="hidden"
       py={10}
     >
+      <Box position="absolute" top={4} right={4} zIndex={2}>
+        <LanguageSwitcher />
+      </Box>
+
       {/* Abstract Background Shapes */}
       <Box 
         position="absolute" top="-10%" right="-5%" w="400px" h="400px" 
@@ -227,12 +231,12 @@ export default function SignupForm() {
 
               <VStack align="flex-start" spacing={1} mb={2}>
                 <Heading size="md" color={textColor} fontWeight="extrabold">
-                  {form.from_google ? "Complete Registration" : "Create an Account"}
+                  {form.from_google ? t('signup.complete_registration') : t('signup.create_account')}
                 </Heading>
                 <Text color={mutedText} fontSize="sm">
                   {form.from_google 
-                    ? "Please provide the remaining details to complete your account setup." 
-                    : "Fill in the details below to register"}
+                    ? t('signup.remaining_details') 
+                    : t('signup.fill_details')}
                 </Text>
               </VStack>
 
@@ -247,7 +251,7 @@ export default function SignupForm() {
                   
                   <FormControl isInvalid={!!errors.name}>
                     <FormLabel fontSize="xs" fontWeight="black" textTransform="uppercase" color={mutedText} mb={1}>
-                      Full Name
+                      {t('signup.full_name')}
                     </FormLabel>
                     <InputGroup size="lg">
                       <InputRightElement pointerEvents="none" h="full" children={<Icon as={FiUser} color="gray.400" />} />
@@ -255,7 +259,7 @@ export default function SignupForm() {
                         type="text"
                         value={form.name}
                         onChange={(e) => setForm({ ...form, name: e.target.value })}
-                        placeholder="John Doe"
+                        placeholder={t('signup.name_placeholder')}
                         bg="gray.50"
                         color="gray.800"
                         border="none"
@@ -269,7 +273,7 @@ export default function SignupForm() {
 
                   <FormControl isInvalid={!!errors.username}>
                     <FormLabel fontSize="xs" fontWeight="black" textTransform="uppercase" color={mutedText} mb={1}>
-                      Username
+                      {t('signup.username')}
                     </FormLabel>
                     <InputGroup size="lg">
                       <InputRightElement pointerEvents="none" h="full" children={<Icon as={FiUser} color="gray.400" />} />
@@ -277,7 +281,7 @@ export default function SignupForm() {
                         type="text"
                         value={form.username}
                         onChange={(e) => setForm({ ...form, username: e.target.value })}
-                        placeholder="johndoe123"
+                        placeholder={t('signup.username_placeholder')}
                         bg="gray.50"
                         color="gray.800"
                         border="none"
@@ -291,7 +295,7 @@ export default function SignupForm() {
 
                   <FormControl isInvalid={!!errors.email}>
                     <FormLabel fontSize="xs" fontWeight="black" textTransform="uppercase" color={mutedText} mb={1}>
-                      Email Address
+                      {t('signup.email')}
                     </FormLabel>
                     <InputGroup size="lg">
                       <InputRightElement pointerEvents="none" h="full" children={<Icon as={FiMail} color="gray.400" />} />
@@ -299,7 +303,7 @@ export default function SignupForm() {
                         type="email"
                         value={form.email}
                         onChange={(e) => setForm({ ...form, email: e.target.value })}
-                        placeholder="user@example.com"
+                        placeholder={t('signup.email_placeholder')}
                         bg="gray.50"
                         color="gray.800"
                         border="none"
