@@ -6,6 +6,8 @@ import {
   Box, Text, Spinner, Flex
 } from "@chakra-ui/react";
 import toast from "react-hot-toast";
+import ChakraDatePicker from ".//ChakraDatePicker";
+
 
 const API = "http://localhost:8000/api/v1/admin";
 
@@ -234,7 +236,7 @@ export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initial
       <ModalContent bg={modalBg} borderRadius="2xl" overflow="hidden" shadow="2xl" border="1px solid" borderColor={borderColor}>
         <form onSubmit={handleSubmit}>
           <ModalHeader borderBottom="1px solid" borderColor={borderColor}>
-            <Text fontSize="lg" fontWeight="black" textTransform="uppercase">Record Payment</Text>
+            <Text fontSize="lg" fontWeight="black">Record Payment</Text>
           </ModalHeader>
           <ModalCloseButton />
           
@@ -274,7 +276,7 @@ export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initial
                 <Box bg="blue.50" p={4} borderRadius="xl" border="1px dashed" borderColor="blue.200">
                   <SimpleGrid columns={2} spacing={2}>
                     <Box>
-                      <Text fontSize="xs" fontWeight="black" color="blue.400" textTransform="uppercase">Outstanding Rent</Text>
+                      <Text fontSize="xs" fontWeight="black" color="blue.400">Outstanding Rent</Text>
                       <Text fontSize="md" fontWeight="black" color="blue.600">
                         {(() => {
                           const l = leases.find(item => item.id.toString() === formData.lease_id.toString());
@@ -286,7 +288,7 @@ export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initial
                       </Text>
                     </Box>
                     <Box>
-                      <Text fontSize="xs" fontWeight="black" color="green.400" textTransform="uppercase">Unpaid Utilities</Text>
+                      <Text fontSize="xs" fontWeight="black" color="green.400">Unpaid Utilities</Text>
                       <Text fontSize="md" fontWeight="black" color="green.600">
                         {(() => {
                           const l = leases.find(item => item.id.toString() === formData.lease_id.toString());
@@ -370,10 +372,8 @@ export default function RecordPaymentModal({ isOpen, onClose, onSuccess, initial
 
                 <FormControl isRequired>
                   <FormLabel fontSize="xs" fontWeight="bold">Payment Date</FormLabel>
-                  <Input 
-                    type="date"
-                    value={formData.payment_date}
-                    onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
+                  <ChakraDatePicker selectedDate={formData.payment_date}
+                    onChange={(val) => setFormData({ ...formData, payment_date: val })}
                   />
                 </FormControl>
               </SimpleGrid>

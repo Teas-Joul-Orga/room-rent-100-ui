@@ -250,7 +250,7 @@ export default function Profile() {
               <Heading size="md" color={textColor} mb={1}>{user.name}</Heading>
               <Text fontSize="sm" color={mutedText} mb={4}>{user.email}</Text>
               <Badge 
-                px={4} py={1} borderRadius="full" colorScheme="blue" variant="subtle" fontWeight="black" textTransform="uppercase"
+                px={4} py={1} borderRadius="full" colorScheme="blue" variant="subtle" fontWeight="black"
               >
                 {role}
               </Badge>
@@ -293,7 +293,7 @@ export default function Profile() {
             <Stack spacing={8}>
               <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8}>
                 <FormControl isDisabled={!isEditing}>
-                  <FormLabel fontWeight="black" fontSize="xs" color={mutedText} textTransform="uppercase">{t('profile_page.label_name')}</FormLabel>
+                  <FormLabel fontWeight="black" fontSize="xs" color={mutedText}>{t('profile_page.label_name')}</FormLabel>
                   <InputGroup size="lg">
                     <InputLeftAddon borderLeftRadius="xl"><FiUser /></InputLeftAddon>
                     <Input name="name" value={formData.name} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500" />
@@ -301,7 +301,7 @@ export default function Profile() {
                 </FormControl>
 
                 <FormControl isDisabled={!isEditing}>
-                  <FormLabel fontWeight="black" fontSize="xs" color={mutedText} textTransform="uppercase">{t('profile_page.label_email')}</FormLabel>
+                  <FormLabel fontWeight="black" fontSize="xs" color={mutedText}>{t('profile_page.label_email')}</FormLabel>
                   <InputGroup size="lg">
                     <InputLeftAddon borderLeftRadius="xl"><FiMail /></InputLeftAddon>
                     <Input name="email" value={formData.email} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500" />
@@ -309,7 +309,7 @@ export default function Profile() {
                 </FormControl>
 
                 <FormControl isDisabled={!isEditing}>
-                  <FormLabel fontWeight="black" fontSize="xs" color={mutedText} textTransform="uppercase">{t('profile_page.label_phone')}</FormLabel>
+                  <FormLabel fontWeight="black" fontSize="xs" color={mutedText}>{t('profile_page.label_phone')}</FormLabel>
                   <InputGroup size="lg">
                     <InputLeftAddon borderLeftRadius="xl"><FiPhone /></InputLeftAddon>
                     <Input name="phone" value={formData.phone} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500" />
@@ -317,7 +317,7 @@ export default function Profile() {
                 </FormControl>
 
                 <FormControl isDisabled={!isEditing}>
-                  <FormLabel fontWeight="black" fontSize="xs" color={mutedText} textTransform="uppercase">{t('profile_page.label_occupation')}</FormLabel>
+                  <FormLabel fontWeight="black" fontSize="xs" color={mutedText}>{t('profile_page.label_occupation')}</FormLabel>
                   <InputGroup size="lg">
                     <InputLeftAddon borderLeftRadius="xl"><FiBriefcase /></InputLeftAddon>
                     <Input name="occupation" value={formData.occupation} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500" />
@@ -326,7 +326,7 @@ export default function Profile() {
               </SimpleGrid>
 
               <FormControl isDisabled={!isEditing}>
-                <FormLabel fontWeight="black" fontSize="xs" color={mutedText} textTransform="uppercase">{t('profile_page.label_address')}</FormLabel>
+                <FormLabel fontWeight="black" fontSize="xs" color={mutedText}>{t('profile_page.label_address')}</FormLabel>
                 <InputGroup size="lg">
                   <InputLeftAddon borderLeftRadius="xl"><FiMapPin /></InputLeftAddon>
                   <Input name="address" value={formData.address} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500" />
@@ -340,11 +340,11 @@ export default function Profile() {
                 </HStack>
                 <SimpleGrid columns={2} spacing={4}>
                   <Box>
-                    <Text fontSize="10px" fontWeight="black" color={mutedText} textTransform="uppercase">{t('profile_page.member_since')}</Text>
+                    <Text fontSize="10px" fontWeight="black" color={mutedText}>{t('profile_page.member_since')}</Text>
                     <Text fontSize="sm" fontWeight="bold">{new Date(user.created_at).toLocaleDateString()}</Text>
                   </Box>
                   <Box>
-                    <Text fontSize="10px" fontWeight="black" color={mutedText} textTransform="uppercase">{t('profile_page.user_id')}</Text>
+                    <Text fontSize="10px" fontWeight="black" color={mutedText}>{t('profile_page.user_id')}</Text>
                     <Text fontSize="sm" fontWeight="bold">#{user.id}</Text>
                   </Box>
                 </SimpleGrid>

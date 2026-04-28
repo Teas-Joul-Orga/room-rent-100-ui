@@ -42,6 +42,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { FiArrowUp, FiArrowDown, FiPlus, FiEye, FiEdit2, FiTrash2, FiCalendar, FiLayout, FiBriefcase, FiStar, FiAward, FiUser, FiUserX, FiBellOff, FiDroplet } from "react-icons/fi";
 import { exportToExcel } from "../../utils/exportExcel";
+import ChakraDatePicker from "../../components/ChakraDatePicker";
 
 const fmt = (n) => {
   const c = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$";
@@ -482,23 +483,41 @@ export default function Leases() {
             </Select>
 
             <Flex align="center" gap={2} bg={useColorModeValue("gray.50", "whiteAlpha.100")} px={4} py={1} borderRadius="full">
-              <Input
-                type="date"
-                value={startsAfter}
+              <ChakraDatePicker selectedDate={startsAfter}
                 size="sm"
                 variant="unstyled"
-                onChange={(e) => setStartsAfter(e.target.value)}
+                onChange={setStartsAfter}
+                placeholder="Starts After"
+                w="120px"
               />
               <Text fontSize="xs" color="gray.400">→</Text>
-              <Input
-                type="date"
-                value={endsBefore}
+              <ChakraDatePicker selectedDate={endsBefore}
                 size="sm"
                 variant="unstyled"
-                onChange={(e) => setEndsBefore(e.target.value)}
+                onChange={setEndsBefore}
+                placeholder="Ends Before"
+                w="120px"
               />
             </Flex>
           </Flex>
+
+          {(search || statusFilter || startsAfter || endsBefore) && (
+            <Flex justify="flex-end" mb={2}>
+              <Button
+                size="sm"
+                variant="ghost"
+                colorScheme="red"
+                onClick={() => {
+                  setSearch("");
+                  setStatusFilter("");
+                  setStartsAfter("");
+                  setEndsBefore("");
+                }}
+              >
+                {t("lease.clear_filters", "Clear Filters")}
+              </Button>
+            </Flex>
+          )}
 
           <Flex gap={3} flexShrink={0} align="center" justify="flex-end" flex="1">
             {selectedIds.length > 0 && (
@@ -526,7 +545,7 @@ export default function Leases() {
 
         {/* Horizontal Scrollable Grid / Horizontal List */}
         <Box flexShrink={0}>
-          <Text fontSize="xs" fontWeight="black" color={textColor} mb={4} textTransform="uppercase" letterSpacing="widest" opacity={0.8}>
+          <Text fontSize="xs" fontWeight="black" color={textColor} mb={4} letterSpacing="widest" opacity={0.8}>
             {t("lease.active_grid") || "Active Grid Display"}
           </Text>
           {isLoading ? (
@@ -699,8 +718,8 @@ export default function Leases() {
 
                         {/* Right Info: Tenant */}
                         <Box textAlign="right">
-                          <Text fontWeight="black" fontSize="md" noOfLines={1} textTransform="uppercase">{l.tenant?.name || 'Unknown'}</Text>
-                          <Text fontSize="10px" opacity={0.8} textTransform="uppercase" letterSpacing="wider" mt={0.5}>SINCE {sinceDate}</Text>
+                          <Text fontWeight="black" fontSize="md" noOfLines={1}>{l.tenant?.name || 'Unknown'}</Text>
+                          <Text fontSize="10px" opacity={0.8} letterSpacing="wider" mt={0.5}>SINCE {sinceDate}</Text>
                         </Box>
                       </Flex>
                     </Box>
@@ -718,7 +737,7 @@ export default function Leases() {
         {/* Detailed Table View */}
         <Box flex="1" minH="400px" display="flex" flexDirection="column" gap={4}>
            <Flex justify="space-between" align="center">
-             <Text fontSize="xs" fontWeight="black" color={textColor} textTransform="uppercase" letterSpacing="widest" opacity={0.8}>
+             <Text fontSize="xs" fontWeight="black" color={textColor} letterSpacing="widest" opacity={0.8}>
                {t("lease.detailed_list") || "Detailed Lease Ledger"}
              </Text>
            </Flex>
@@ -747,14 +766,13 @@ export default function Leases() {
                        }}
                      />
                    </Th>
-                   <Th fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" color={mutedText} py={5} px={4}>ID</Th>
-                   <Th fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" color={mutedText} py={5} px={4}>{t("lease.tenant")}</Th>
-                   <Th fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" color={mutedText} py={5} px={4}>{t("lease.room")}</Th>
-                   <Th fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" color={mutedText} py={5} px={4} cursor="pointer" onClick={() => handleSort('rent')}>{t("lease.rent")} <SortIcon field="rent" /></Th>
-                   <Th fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" color={mutedText} py={5} px={4}>{t("lease.deposit") || "Deposit"}</Th>
-                   <Th fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" color={mutedText} py={5} px={4} cursor="pointer" onClick={() => handleSort('end_date')}>{t("lease.period")} <SortIcon field="end_date" /></Th>
-                   <Th fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" color={mutedText} py={5} px={4}>{t("lease.status")}</Th>
-                   <Th textAlign="right" fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" color={mutedText} py={5} px={6}>{t("lease.actions")}</Th>
+                   <Th fontSize="sm" fontWeight="black" letterSpacing="wider" color={mutedText} py={5} px={4}>{t("lease.tenant")}</Th>
+                   <Th fontSize="sm" fontWeight="black" letterSpacing="wider" color={mutedText} py={5} px={4}>{t("lease.room")}</Th>
+                   <Th fontSize="sm" fontWeight="black" letterSpacing="wider" color={mutedText} py={5} px={4} cursor="pointer" onClick={() => handleSort('rent')}>{t("lease.rent")} <SortIcon field="rent" /></Th>
+                   <Th fontSize="sm" fontWeight="black" letterSpacing="wider" color={mutedText} py={5} px={4}>{t("lease.deposit") || "Deposit"}</Th>
+                   <Th fontSize="sm" fontWeight="black" letterSpacing="wider" color={mutedText} py={5} px={4} cursor="pointer" onClick={() => handleSort('end_date')}>{t("lease.period")} <SortIcon field="end_date" /></Th>
+                   <Th fontSize="sm" fontWeight="black" letterSpacing="wider" color={mutedText} py={5} px={4}>{t("lease.status")}</Th>
+                   <Th textAlign="right" fontSize="sm" fontWeight="black" letterSpacing="wider" color={mutedText} py={5} px={6}>{t("lease.actions")}</Th>
                  </Tr>
                </Thead>
                <Tbody>
@@ -776,10 +794,7 @@ export default function Leases() {
                             }} 
                            />
                        </Td>
-                       <Td py={5} px={4}>
-                         <Text fontSize="xs" fontFamily="mono" color={mutedText} fontWeight="bold">#{String(l.uid).substring(0,8)}</Text>
-                       </Td>
-                       <Td py={5} px={4}>
+                        <Td py={5} px={4}>
                          <Text fontWeight="black" fontSize="md" color={textColor}>{l.tenant?.name || "Unknown"}</Text>
                        </Td>
                        <Td py={5} px={4}>
@@ -794,7 +809,7 @@ export default function Leases() {
                          </VStack>
                        </Td>
                        <Td py={5} px={4}>
-                          <Badge bg={badge.bg} color={badge.color} fontSize="xs" px={4} py={1} borderRadius="full" fontWeight="black" textTransform="uppercase">{badge.label}</Badge>
+                          <Badge bg={badge.bg} color={badge.color} fontSize="xs" px={4} py={1} borderRadius="full" fontWeight="black">{badge.label}</Badge>
                        </Td>
                        <Td textAlign="right" py={5} px={6}>
                          <HStack justify="flex-end" spacing={2}>
@@ -856,22 +871,18 @@ export default function Leases() {
                     <Flex gap={4} mt={3}>
                       <FormControl colSpan={1} isRequired>
                         <FormLabel fontSize="xs" color={textColor}>Start Date</FormLabel>
-                        <Input
-                          size="sm"
-                          type="date"
-                          value={bulkDates[id]?.startDate || ''}
+                        <ChakraDatePicker size="sm"
+                          selectedDate={bulkDates[id]?.startDate || ''}
                           borderColor={borderColor}
-                          onChange={(e) => setBulkDates({ ...bulkDates, [id]: { ...bulkDates[id], startDate: e.target.value } })}
+                          onChange={(val) => setBulkDates({ ...bulkDates, [id]: { ...bulkDates[id], startDate: val } })}
                         />
                       </FormControl>
                       <FormControl colSpan={1} isRequired>
                         <FormLabel fontSize="xs" color={textColor}>End Date</FormLabel>
-                        <Input
-                          size="sm"
-                          type="date"
-                          value={bulkDates[id]?.endDate || ''}
+                        <ChakraDatePicker size="sm"
+                          selectedDate={bulkDates[id]?.endDate || ''}
                           borderColor={borderColor}
-                          onChange={(e) => setBulkDates({ ...bulkDates, [id]: { ...bulkDates[id], endDate: e.target.value } })}
+                          onChange={(val) => setBulkDates({ ...bulkDates, [id]: { ...bulkDates[id], endDate: val } })}
                         />
                       </FormControl>
                     </Flex>

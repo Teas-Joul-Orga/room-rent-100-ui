@@ -42,6 +42,8 @@ import {
   FiActivity,
 } from "react-icons/fi";
 import { useTranslation } from "react-i18next";
+import ChakraDatePicker from "../../components/ChakraDatePicker";
+
 
 
 const fmt = (n) => {
@@ -337,7 +339,7 @@ export default function CreateNewLease() {
                     {isDone ? <Icon as={FiCheck} /> : <Icon as={step.icon} />}
                   </Flex>
                   <Box display={{ base: "none", md: "block" }}>
-                    <Text fontSize="xs" fontWeight="black" color={isActive ? "blue.600" : isDone ? "green.600" : mutedText} textTransform="uppercase" letterSpacing="wider">
+                    <Text fontSize="xs" fontWeight="black" color={isActive ? "blue.600" : isDone ? "green.600" : mutedText} letterSpacing="wider">
                       {t("lease_create.step_prefix")} {index + 1}
                     </Text>
                     <Text fontSize="sm" fontWeight="bold" color={isActive ? textColor : mutedText}>
@@ -510,7 +512,7 @@ export default function CreateNewLease() {
                                   <Text as="span" fontSize="xs" color={mutedText} fontWeight="normal"> {t("lease_create.per_month")}</Text>
                                 </Text>
                                 <Badge
-                                  mt={2} fontSize="9px" fontWeight="black" textTransform="uppercase"
+                                  mt={2} fontSize="9px" fontWeight="black"
                                   colorScheme={r.status?.toLowerCase() === "available" ? "green" : isSelected ? "blue" : "red"}
                                   borderRadius="full" px={2} py={1}
                                 >
@@ -540,7 +542,7 @@ export default function CreateNewLease() {
                         <Flex flex={1} align="center" gap={3} p={4} bg={useColorModeValue("gray.50", "#1c2333")} borderRadius="xl" border="1px solid" borderColor={borderColor}>
                           <Avatar size="sm" name={selectedTenant.name} />
                           <Box>
-                            <Text fontSize="10px" fontWeight="black" color={mutedText} textTransform="uppercase">{t("lease_create.tenant_label")}</Text>
+                            <Text fontSize="10px" fontWeight="black" color={mutedText}>{t("lease_create.tenant_label")}</Text>
                             <Text fontWeight="bold" fontSize="sm" color={textColor}>{selectedTenant.name}</Text>
                           </Box>
                         </Flex>
@@ -551,7 +553,7 @@ export default function CreateNewLease() {
                             <Icon as={FiHome} color="blue.600" />
                           </Flex>
                           <Box>
-                            <Text fontSize="10px" fontWeight="black" color={mutedText} textTransform="uppercase">{t("lease_create.room_label")}</Text>
+                            <Text fontSize="10px" fontWeight="black" color={mutedText}>{t("lease_create.room_label")}</Text>
                             <Text fontWeight="bold" fontSize="sm" color={textColor}>{selectedRoom.name}</Text>
                           </Box>
                         </Flex>
@@ -624,9 +626,9 @@ export default function CreateNewLease() {
                         <VStack spacing={4}>
                           <FormControl isInvalid={errors.start_date}>
                             <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>{t("lease_create.start_date")}</FormLabel>
-                            <Input size="md" type="date" bg={inputBg} value={formData.start_date}
-                              onChange={(e) => {
-                                const newStart = e.target.value;
+                            <ChakraDatePicker size="md"  bg={inputBg} selectedDate={formData.start_date}
+                              onChange={(val) => {
+                                const newStart = val;
                                 setFormData({ ...formData, start_date: newStart });
                                 if (duration) {
                                   const newEnd = dayjs(newStart).add(duration, 'month').subtract(1, 'day').format('YYYY-MM-DD');
@@ -682,7 +684,6 @@ export default function CreateNewLease() {
                                 variant={formData.status === s ? "solid" : "outline"}
                                 colorScheme={formData.status === s ? (s === "active" ? "green" : s === "expired" ? "orange" : "gray") : "gray"}
                                 onClick={() => setFormData({ ...formData, status: s })}
-                                textTransform="uppercase"
                                 fontWeight="black"
                                 fontSize="10px"
                                 letterSpacing="wider"

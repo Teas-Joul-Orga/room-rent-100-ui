@@ -249,7 +249,7 @@ export default function TenantUtility() {
         
         {unpaidTotal > 0 && (
           <Box bg="red.50" border="1px solid" borderColor="red.100" p={4} borderRadius="xl" textAlign="right">
-            <Text fontSize="xs" fontWeight="bold" color="red.400" textTransform="uppercase" letterSpacing="widest">
+            <Text fontSize="xs" fontWeight="bold" color="red.400" letterSpacing="widest">
               Total Outstanding
             </Text>
             <Heading size="lg" color="red.600" fontWeight="bold">
@@ -318,11 +318,11 @@ export default function TenantUtility() {
                     <Icon as={getBillIcon(bill.type)} boxSize={5} />
                   </Flex>
                   <Box>
-                    <Text fontSize="md" fontWeight="black" color={textColor} textTransform="uppercase">
+                    <Text fontSize="md" fontWeight="black" color={textColor}>
                       {t(`utility.${bill.type}`)}
                     </Text>
                     <HStack spacing={2}>
-                      <Text fontSize="xs" color="blue.500" fontWeight="black" textTransform="uppercase">
+                      <Text fontSize="xs" color="blue.500" fontWeight="black">
                         {bill.room_name}
                       </Text>
                       <Text fontSize="sm" color={mutedText} fontWeight="bold">
@@ -342,7 +342,7 @@ export default function TenantUtility() {
                     {isOverdue ? t("utility.past_due") : t(`utility.${bill.status}`)}
                   </Badge>
                   {isOverdue && (
-                    <Text fontSize="2xs" color="red.500" fontWeight="black" textTransform="uppercase">
+                    <Text fontSize="2xs" color="red.500" fontWeight="black">
                       {t("utility.days_overdue", { count: overdueDays })}
                     </Text>
                   )}
@@ -363,7 +363,7 @@ export default function TenantUtility() {
                   <Text fontWeight="bold" color={textColor}>{fmtDate(bill.due_date)}</Text>
                 </Flex>
                 <Flex justify="space-between" align="flex-end" pt={2}>
-                  <Text fontSize="sm" fontWeight="bold" textTransform="uppercase">Total Amount</Text>
+                  <Text fontSize="sm" fontWeight="bold">Total Amount</Text>
                   <Text fontSize="2xl" fontWeight="bold" color={bill.status === 'unpaid' ? "red.500" : "green.500"}>
                     {fmt(bill.amount)}
                   </Text>
@@ -387,7 +387,6 @@ export default function TenantUtility() {
                     leftIcon={<FiEye />}
                     onClick={() => handleOpenBill(bill)}
                     fontWeight="bold"
-                    textTransform="uppercase"
                     rounded="full"
                     fontSize="sm"
                   >
@@ -410,7 +409,7 @@ export default function TenantUtility() {
                 <Icon as={selectedBill ? getBillIcon(selectedBill.type) : FiFileText} />
               </Box>
               <Box>
-                <Text fontSize="md" fontWeight="bold" textTransform="uppercase" color={textColor}>
+                <Text fontSize="md" fontWeight="bold" color={textColor}>
                   {selectedBill ? t(`utility.${selectedBill.type}`) : t("utility.details")}
                 </Text>
                 <Text fontSize="xs" color={mutedText} fontWeight="bold">
@@ -427,13 +426,13 @@ export default function TenantUtility() {
                 {/* Status & Amount */}
                 <Flex justify="space-between" align="center" p={4} bg={useColorModeValue("gray.50", "whiteAlpha.50")} borderRadius="xl">
                   <Box>
-                    <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase" mb={1}>{t("utility.status")}</Text>
+                    <Text fontSize="xs" fontWeight="bold" color={mutedText} mb={1}>{t("utility.status")}</Text>
                     <Badge colorScheme={getStatusBadge(selectedBill.status)} variant="solid" px={3} py={1} borderRadius="full">
                       {t(`utility.${selectedBill.status}`)}
                     </Badge>
                   </Box>
                   <Box textAlign="right">
-                    <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase" mb={1}>{t("utility.amount")}</Text>
+                    <Text fontSize="xs" fontWeight="bold" color={mutedText} mb={1}>{t("utility.amount")}</Text>
                     <Heading size="lg" fontWeight="bold" color={selectedBill.status === 'unpaid' ? "red.500" : "green.500"}>
                       {fmt(selectedBill.amount)}
                     </Heading>
@@ -443,7 +442,7 @@ export default function TenantUtility() {
                 {/* Usage Detail */}
                 {(selectedBill.previous_reading !== null || selectedBill.usage) && (
                   <Box>
-                    <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase" mb={3} letterSpacing="wider">
+                    <Text fontSize="xs" fontWeight="bold" color={mutedText} mb={3} letterSpacing="wider">
                       {t("utility.consumption_details")}
                     </Text>
                     <SimpleGrid columns={2} spacing={4}>
@@ -473,7 +472,7 @@ export default function TenantUtility() {
 
                 {/* Dates */}
                 <Box>
-                  <Text fontSize="xs" fontWeight="black" color={mutedText} textTransform="uppercase" mb={3} letterSpacing="wider">
+                  <Text fontSize="xs" fontWeight="black" color={mutedText} mb={3} letterSpacing="wider">
                     {t("utility.timeline")}
                   </Text>
                   <SimpleGrid columns={2} spacing={4}>
@@ -497,7 +496,7 @@ export default function TenantUtility() {
                 {/* Notes */}
                 {selectedBill.description && (
                   <Box>
-                    <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase" mb={2} letterSpacing="wider">
+                    <Text fontSize="xs" fontWeight="bold" color={mutedText} mb={2} letterSpacing="wider">
                       {t("utility.remarks")}
                     </Text>
                     <Text fontSize="sm" color={textColor} fontStyle="italic" p={3} bg={useColorModeValue("gray.50", "whiteAlpha.50")} borderRadius="lg">
@@ -509,7 +508,7 @@ export default function TenantUtility() {
                 {/* Payment History */}
                 {selectedBill.payments && selectedBill.payments.length > 0 && (
                   <Box>
-                    <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase" mb={3} letterSpacing="wider">
+                    <Text fontSize="xs" fontWeight="bold" color={mutedText} mb={3} letterSpacing="wider">
                       {t("utility.payment_records")}
                     </Text>
                     <VStack align="stretch" spacing={2}>
@@ -597,7 +596,6 @@ export default function TenantUtility() {
                           borderRadius="full" 
                           fontSize="xs" 
                           fontWeight="bold"
-                          textTransform="uppercase"
                           letterSpacing="wider"
                         >
                           ✓ Transaction Confirmed
@@ -610,7 +608,7 @@ export default function TenantUtility() {
                           <Flex align="center" justify="space-between">
                             <HStack spacing={2}>
                               <Icon as={FiZap} color="white" />
-                              <Text fontSize="sm" fontWeight="bold" color="white" textTransform="uppercase" letterSpacing="wider">
+                              <Text fontSize="sm" fontWeight="bold" color="white" letterSpacing="wider">
                                 {qrString ? "Scan & Pay" : "Bakong KHQR"}
                               </Text>
                             </HStack>
@@ -651,7 +649,7 @@ export default function TenantUtility() {
                                 <Box bg="#005EAA" p={4}>
                                   <Flex align="center" justify="space-between">
                                     <Image src={KHQR_LOGO} h="24px" alt="KHQR" fallback={<Text color="white" fontWeight="black">KHQR</Text>} />
-                                    <Text fontSize="10px" fontWeight="black" color="whiteAlpha.800" textTransform="uppercase">Scan to Pay</Text>
+                                    <Text fontSize="10px" fontWeight="black" color="whiteAlpha.800">Scan to Pay</Text>
                                   </Flex>
                                 </Box>
 
@@ -687,7 +685,7 @@ export default function TenantUtility() {
                                     </Text>
                                   </VStack>
                                   <Divider my={3} />
-                                  <Text fontSize="9px" fontWeight="bold" color="gray.400" textTransform="uppercase" letterSpacing="widest">
+                                  <Text fontSize="9px" fontWeight="bold" color="gray.400" letterSpacing="widest">
                                     Powered by Bakong
                                   </Text>
                                 </Box>
@@ -703,19 +701,19 @@ export default function TenantUtility() {
                                     <Flex w={7} h={7} borderRadius="full" bg="blue.500" align="center" justify="center" shadow="sm">
                                       <Icon as={FiCheckCircle} color="white" boxSize={3.5} />
                                     </Flex>
-                                    <Text fontSize="9px" fontWeight="black" color="blue.600" textTransform="uppercase">Generated</Text>
+                                    <Text fontSize="9px" fontWeight="black" color="blue.600">Generated</Text>
                                   </VStack>
                                   <VStack spacing={1} zIndex={1}>
                                     <Flex w={7} h={7} borderRadius="full" bg="orange.400" align="center" justify="center" animation="stepPulse 2s ease-in-out infinite" shadow="0 0 12px rgba(237,137,54,0.5)">
                                       <Spinner size="xs" color="white" speed="1.2s" />
                                     </Flex>
-                                    <Text fontSize="9px" fontWeight="black" color="orange.500" textTransform="uppercase">Awaiting</Text>
+                                    <Text fontSize="9px" fontWeight="black" color="orange.500">Awaiting</Text>
                                   </VStack>
                                   <VStack spacing={1} zIndex={1}>
                                     <Flex w={7} h={7} borderRadius="full" bg={useColorModeValue("gray.200", "gray.600")} align="center" justify="center">
                                       <Icon as={FiCheckCircle} color={useColorModeValue("gray.400", "gray.500")} boxSize={3.5} />
                                     </Flex>
-                                    <Text fontSize="9px" fontWeight="bold" color={mutedText} textTransform="uppercase">Confirmed</Text>
+                                    <Text fontSize="9px" fontWeight="bold" color={mutedText}>Confirmed</Text>
                                   </VStack>
                                 </Flex>
                               </Box>
@@ -755,7 +753,7 @@ export default function TenantUtility() {
           </ModalBody>
           
           <ModalFooter py={6} borderTop="1px solid" borderColor={borderColor}>
-            <Button w="full" onClick={handleClose} fontWeight="black" textTransform="uppercase" letterSpacing="widest" fontSize="xs">
+            <Button w="full" onClick={handleClose} fontWeight="black" letterSpacing="widest" fontSize="xs">
               {t("utility.close")}
             </Button>
           </ModalFooter>

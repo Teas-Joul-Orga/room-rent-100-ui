@@ -299,7 +299,7 @@ export default function BulkCreateRooms() {
               maxH="160px"
               overflowY="auto"
             >
-              <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase" letterSpacing="wide" mb={2}>
+              <Text fontSize="xs" fontWeight="bold" color={mutedText} letterSpacing="wide" mb={2}>
                 {t("room.preview_names")} ({previewNames.length})
               </Text>
               <Flex wrap="wrap" gap={2}>

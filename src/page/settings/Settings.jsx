@@ -259,12 +259,12 @@ export default function Settings() {
                 <SectionHeader title={t('settings_page.general.header')} subtitle={t('settings_page.general.desc')} icon={FiGlobe} textColor={textColor} mutedText={mutedText} borderColor={borderColor} />
                 <Stack spacing={8}>
                   <FormControl>
-                    <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.general.label_app_name')}</FormLabel>
+                    <FormLabel fontWeight="black" fontSize="sm" color={mutedText}>{t('settings_page.general.label_app_name')}</FormLabel>
                     <Input name="app_name" value={settings.app_name || ''} onChange={handleChange} placeholder={t('settings_page.general.app_name_placeholder')} borderRadius="xl" focusBorderColor="blue.500" size="lg" />
                     <FormHelperText fontSize="xs">{t('settings_page.general.app_name_helper')}</FormHelperText>
                   </FormControl>
                   <FormControl>
-                    <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.general.label_company_name')}</FormLabel>
+                    <FormLabel fontWeight="black" fontSize="sm" color={mutedText}>{t('settings_page.general.label_company_name')}</FormLabel>
                     <Input size="lg" name="company_name" value={settings.company_name || ''} onChange={handleChange} placeholder={t('settings_page.general.company_name_placeholder')} borderRadius="xl" focusBorderColor="blue.500" />
                     <FormHelperText fontSize="xs">{t('settings_page.general.company_name_helper')}</FormHelperText>
                   </FormControl>
@@ -277,21 +277,21 @@ export default function Settings() {
                 <SectionHeader title={t('settings_page.contact.header')} subtitle={t('settings_page.contact.desc')} icon={FiBriefcase} textColor={textColor} mutedText={mutedText} borderColor={borderColor} />
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8}>
                   <FormControl gridColumn={{ md: "span 2" }}>
-                    <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.contact.label_address')}</FormLabel>
+                    <FormLabel fontWeight="black" fontSize="sm" color={mutedText}>{t('settings_page.contact.label_address')}</FormLabel>
                     <InputGroup size="lg">
                       <InputLeftAddon borderLeftRadius="xl"><FiMapPin /></InputLeftAddon>
                       <Input name="contact_address" value={settings.contact_address || ''} onChange={handleChange} placeholder="123 Main St, City" borderRadius="xl" focusBorderColor="blue.500" />
                     </InputGroup>
                   </FormControl>
                   <FormControl>
-                    <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.contact.label_phone')}</FormLabel>
+                    <FormLabel fontWeight="black" fontSize="sm" color={mutedText}>{t('settings_page.contact.label_phone')}</FormLabel>
                     <InputGroup size="lg">
                       <InputLeftAddon borderLeftRadius="xl"><FiPhone /></InputLeftAddon>
                       <Input name="contact_phone" value={settings.contact_phone || ''} onChange={handleChange} placeholder="+855 12 345 678" borderRadius="xl" focusBorderColor="blue.500" />
                     </InputGroup>
                   </FormControl>
                   <FormControl>
-                    <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.contact.label_email')}</FormLabel>
+                    <FormLabel fontWeight="black" fontSize="sm" color={mutedText}>{t('settings_page.contact.label_email')}</FormLabel>
                     <InputGroup size="lg">
                       <InputLeftAddon borderLeftRadius="xl"><FiMail /></InputLeftAddon>
                       <Input type="email" name="contact_email" value={settings.contact_email || ''} onChange={handleChange} placeholder="admin@domain.com" borderRadius="xl" focusBorderColor="blue.500" />
@@ -306,21 +306,21 @@ export default function Settings() {
                 <SectionHeader title={t('settings_page.finance.header')} subtitle={t('settings_page.finance.desc')} icon={FiDollarSign} textColor={textColor} mutedText={mutedText} borderColor={borderColor} />
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8} mb={10}>
                   <FormControl>
-                    <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.finance.label_currency')}</FormLabel>
+                    <FormLabel fontWeight="black" fontSize="sm" color={mutedText}>{t('settings_page.finance.label_currency')}</FormLabel>
                     <Select size="lg" name="finance_currency" value={settings.finance_currency || '$'} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500">
                       <option value="$">US Dollar ($)</option>
                       <option value="៛">Khmer Riel (៛)</option>
                     </Select>
                   </FormControl>
                   <FormControl>
-                    <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.finance.label_tax')}</FormLabel>
+                    <FormLabel fontWeight="black" fontSize="sm" color={mutedText}>{t('settings_page.finance.label_tax')}</FormLabel>
                     <InputGroup size="lg">
                       <Input type="number" step="0.01" name="finance_tax_rate" value={settings.finance_tax_rate || ''} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500" />
                       <InputLeftAddon borderRightRadius="xl"><FiPercent /></InputLeftAddon>
                     </InputGroup>
                   </FormControl>
                   <FormControl>
-                    <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.finance.label_exchange')}</FormLabel>
+                    <FormLabel fontWeight="black" fontSize="sm" color={mutedText}>{t('settings_page.finance.label_exchange')}</FormLabel>
                     <InputGroup size="lg">
                       <InputLeftAddon borderLeftRadius="xl">1 USD = </InputLeftAddon>
                       <Input type="number" step="1" name="finance_exchange_rate" value={settings.finance_exchange_rate || ''} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500" />
@@ -329,7 +329,7 @@ export default function Settings() {
                   </FormControl>
                 </SimpleGrid>
                 <Box bg={mainBg} p={8} borderRadius="2xl" border="1px dashed" borderColor={borderColor}>
-                   <HStack spacing={3} mb={6}><Icon as={FiCreditCard} boxSize={5} color="blue.500" /><Heading size="sm" color={textColor} textTransform="uppercase" letterSpacing="widest">{t('settings_page.finance.bank_header')}</Heading></HStack>
+                   <HStack spacing={3} mb={6}><Icon as={FiCreditCard} boxSize={5} color="blue.500" /><Heading size="sm" color={textColor} letterSpacing="widest">{t('settings_page.finance.bank_header')}</Heading></HStack>
                    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
                       <FormControl><FormLabel fontSize="xs" fontWeight="bold">{t('settings_page.finance.label_bank_name')}</FormLabel><Input size="md" name="bank_name" value={settings.bank_name || ''} onChange={handleChange} placeholder="e.g. ABA Bank" borderRadius="lg" bg={cardBg} /></FormControl>
                       <FormControl><FormLabel fontSize="xs" fontWeight="bold">{t('settings_page.finance.label_account_number')}</FormLabel><Input size="md" name="bank_account_number" value={settings.bank_account_number || ''} onChange={handleChange} borderRadius="lg" bg={cardBg} /></FormControl>
@@ -344,7 +344,7 @@ export default function Settings() {
                 <SectionHeader title={t('settings_page.utilities.header')} subtitle={t('settings_page.utilities.desc')} icon={FiZap} textColor={textColor} mutedText={mutedText} borderColor={borderColor} />
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8}>
                   <FormControl>
-                    <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.utilities.label_electricity')}</FormLabel>
+                    <FormLabel fontWeight="black" fontSize="sm" color={mutedText}>{t('settings_page.utilities.label_electricity')}</FormLabel>
                     <InputGroup size="lg">
                       <InputLeftAddon borderLeftRadius="xl"><Icon as={FiZap} color="orange.400" /></InputLeftAddon>
                       <Input type="number" step="0.001" name="utility_rate_electricity" value={settings.utility_rate_electricity || ''} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500" />
@@ -352,7 +352,7 @@ export default function Settings() {
                     </InputGroup>
                   </FormControl>
                   <FormControl>
-                    <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.utilities.label_water')}</FormLabel>
+                    <FormLabel fontWeight="black" fontSize="sm" color={mutedText}>{t('settings_page.utilities.label_water')}</FormLabel>
                     <InputGroup size="lg">
                       <InputLeftAddon borderLeftRadius="xl"><Icon as={FiDroplet} color="blue.400" /></InputLeftAddon>
                       <Input type="number" step="0.001" name="utility_rate_water" value={settings.utility_rate_water || ''} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500" />
@@ -365,7 +365,7 @@ export default function Settings() {
                   <SectionHeader title="Fixed Services" subtitle="Set standard monthly fees for extra services like trash and internet." icon={FiBriefcase} textColor={textColor} mutedText={mutedText} borderColor={borderColor} />
                   <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8}>
                     <FormControl>
-                      <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">Trash Collection Fee</FormLabel>
+                      <FormLabel fontWeight="black" fontSize="sm" color={mutedText}>Trash Collection Fee</FormLabel>
                       <InputGroup size="lg">
                         <InputLeftAddon borderLeftRadius="xl">$</InputLeftAddon>
                         <Input type="number" step="0.01" name="utility_fixed_trash" value={settings.utility_fixed_trash || ''} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500" />
@@ -373,7 +373,7 @@ export default function Settings() {
                       </InputGroup>
                     </FormControl>
                     <FormControl>
-                      <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">Internet Service Fee</FormLabel>
+                      <FormLabel fontWeight="black" fontSize="sm" color={mutedText}>Internet Service Fee</FormLabel>
                       <InputGroup size="lg">
                         <InputLeftAddon borderLeftRadius="xl">$</InputLeftAddon>
                         <Input type="number" step="0.01" name="utility_fixed_internet" value={settings.utility_fixed_internet || ''} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500" />
@@ -390,7 +390,7 @@ export default function Settings() {
                 <SectionHeader title={t('settings_page.booking.header')} subtitle={t('settings_page.booking.desc')} icon={FiCalendar} textColor={textColor} mutedText={mutedText} borderColor={borderColor} />
                 <Stack spacing={8}>
                   <FormControl>
-                    <FormLabel fontWeight="black" fontSize="sm" color={mutedText} textTransform="uppercase">{t('settings_page.booking.label_down_payment')}</FormLabel>
+                    <FormLabel fontWeight="black" fontSize="sm" color={mutedText}>{t('settings_page.booking.label_down_payment')}</FormLabel>
                     <InputGroup size="lg">
                       <Input type="number" step="1" min="0" max="100" name="booking_down_payment_percent" value={settings.booking_down_payment_percent !== undefined ? settings.booking_down_payment_percent : '20'} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500" />
                       <InputLeftAddon borderRightRadius="xl"><FiPercent /></InputLeftAddon>

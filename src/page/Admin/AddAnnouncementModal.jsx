@@ -5,6 +5,8 @@ import {
   FormHelperText, Box
 } from '@chakra-ui/react';
 import dayjs from "dayjs";
+import ChakraDatePicker from "../../components/ChakraDatePicker";
+
 
 const API = "http://localhost:8000/api/v1";
 
@@ -107,7 +109,7 @@ export default function AddAnnouncementModal({ isOpen, onClose, onSuccess }) {
                   <option value="later">Schedule for Later</option>
                 </Select>
                 {data.schedule_option === 'later' && (
-                  <Input mt={2} type="datetime-local" value={data.scheduled_at} onChange={e => setData({...data, scheduled_at: e.target.value})} required />
+                  <ChakraDatePicker mt={2} selectedDate={data.scheduled_at} onChange={(val) => setData({...data, scheduled_at: val})} showTimeSelect required />
                 )}
                 {data.schedule_option === 'now' && (
                   <FormHelperText>Push notifications will trigger immediately for all active tenants.</FormHelperText>

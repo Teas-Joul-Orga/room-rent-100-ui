@@ -43,12 +43,15 @@ import {
   AlertIcon,
   AlertDescription,
   Progress,
+  Select,
 } from "@chakra-ui/react";
-import { FiCalendar, FiHome, FiUser, FiInfo, FiCheckCircle, FiXCircle, FiClock, FiDollarSign, FiDownload, FiAlertTriangle, FiUserX } from "react-icons/fi";
+import { FiCalendar, FiHome, FiUser, FiInfo, FiCheckCircle, FiXCircle, FiClock, FiDollarSign, FiDownload, FiAlertTriangle, FiUserX, FiSearch, FiEye } from "react-icons/fi";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import api from "../../api/axios";
 import echo from "../../utils/echo";
+import ChakraDatePicker from "../../components/ChakraDatePicker";
+
 
 const StatCard = ({ title, value, icon, color }) => (
   <Box px={5} py={4} bg={useColorModeValue("white", "gray.800")} borderRadius="xl" shadow="sm" border="1px" borderColor={useColorModeValue("gray.100", "gray.700")}>
@@ -71,9 +74,15 @@ export default function AdminBookingManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [isLive, setIsLive] = useState(false);
+  
+  const [searchQuery, setSearchQuery] = useSessionState("bookingSearch", "");
+  const [sortOrder, setSortOrder] = useSessionState("bookingSort", "newest");
+  const [filterStartDate, setFilterStartDate] = useSessionState("bookingStart", "");
+  const [filterEndDate, setFilterEndDate] = useSessionState("bookingEnd", "");
 
   // Create Lease Modal
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isViewOpen, onOpen: onViewOpen, onClose: onViewClose } = useDisclosure();
   const [rentAmount, setRentAmount] = useState("");
   const [securityDeposit, setSecurityDeposit] = useState("");
   const [leaseDuration, setLeaseDuration] = useState("6");
@@ -260,7 +269,10 @@ export default function AdminBookingManagement() {
 
   const formatCurrency = (amount) => {
     const num = Number(amount || 0);
-    return `$${num.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+    const usd = `$${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const exchangeRate = Number(localStorage.getItem('exchange_rate')) || 4000;
+    const khr = `៛ ${(num * exchangeRate).toLocaleString("km-KH", { maximumFractionDigits: 0 })}`;
+    return `${usd} (${khr})`;
   };
 
   const stats = {
@@ -269,6 +281,51 @@ export default function AdminBookingManagement() {
     pending: bookings.filter(b => b.status === 'pending').length,
     noShows: noShows.length,
   };
+
+  const processData = (data) => {
+    let result = [...data];
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((b) => {
+        const tenantName = b.tenant?.name?.toLowerCase() || "";
+        const tenantEmail = b.tenant?.email?.toLowerCase() || "";
+        const tenantPhone = b.tenant?.phone?.toLowerCase() || "";
+        const roomName = b.room?.name?.toLowerCase() || "";
+        return tenantName.includes(q) || tenantEmail.includes(q) || tenantPhone.includes(q) || roomName.includes(q);
+      });
+    }
+
+    if (filterStartDate) {
+      const start = new Date(filterStartDate).getTime();
+      result = result.filter(b => new Date(b.created_at).getTime() >= start);
+    }
+    if (filterEndDate) {
+      const end = new Date(filterEndDate);
+      end.setHours(23, 59, 59, 999);
+      result = result.filter(b => new Date(b.created_at).getTime() <= end.getTime());
+    }
+
+    result.sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      if (sortOrder === "newest") return dateB - dateA;
+      if (sortOrder === "oldest") return dateA - dateB;
+      
+      const deadlineA = a.move_in_deadline ? new Date(a.move_in_deadline).getTime() : 0;
+      const deadlineB = b.move_in_deadline ? new Date(b.move_in_deadline).getTime() : 0;
+      
+      if (sortOrder === "deadline_asc") return deadlineA - deadlineB;
+      if (sortOrder === "deadline_desc") return deadlineB - deadlineA;
+      
+      return 0;
+    });
+
+    return result;
+  };
+
+  const processedBookings = processData(bookings);
+  const processedNoShows = processData(noShows);
 
   if (isLoading) return (
     <Flex h="60vh" align="center" justify="center">
@@ -360,6 +417,20 @@ export default function AdminBookingManagement() {
                   {showActions && (
                     <Td textAlign="right">
                       <HStack spacing={2} justify="flex-end" flexWrap="wrap">
+                        <Button
+                          size="xs"
+                          colorScheme="blue"
+                          variant="outline"
+                          leftIcon={<FiEye />}
+                          onClick={() => {
+                            setSelectedBooking(b);
+                            onViewOpen();
+                          }}
+                          borderRadius="full"
+                        >
+                          {t('common.view', 'View')}
+                        </Button>
+
                         {/* Confirmed: Create Lease + Download Contract + Cancel */}
                         {b.status === "confirmed" && (
                           <>
@@ -431,7 +502,7 @@ export default function AdminBookingManagement() {
               bg={isLive ? "green.500" : "red.500"}
               boxShadow={isLive ? "0 0 10px #48BB78" : "none"}
             />
-            <Text fontSize="xs" fontWeight="bold" letterSpacing="wider" textTransform="uppercase" color={isLive ? "green.600" : "red.600"}>
+            <Text fontSize="xs" fontWeight="bold" letterSpacing="wider" color={isLive ? "green.600" : "red.600"}>
               {isLive ? t('booking_management.live_sync_active') : t('booking_management.disconnected')}
             </Text>
           </HStack>
@@ -443,6 +514,61 @@ export default function AdminBookingManagement() {
           <StatCard title={t('booking_management.pending')} value={stats.pending} icon={FiClock} color="yellow" />
           <StatCard title={t('booking_management.no_shows')} value={stats.noShows} icon={FiUserX} color="red" />
         </SimpleGrid>
+
+        {/* Filters and Sort */}
+        <Flex gap={3} flexWrap="wrap" align="center">
+          <Box position="relative" maxW="300px" flex="1">
+             <Input
+                placeholder={t("booking_management.search_placeholder", "Search tenants or rooms...")}
+                size="md" bg={cardBg} borderColor={borderColor}
+                value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                pl={8}
+                _hover={{ borderColor: "blue.400" }}
+              />
+              <Box position="absolute" left={3} top="50%" transform="translateY(-50%)" color={mutedText}>
+                <FiSearch size={14} />
+              </Box>
+          </Box>
+          <Flex align="center" gap={2} bg={cardBg} px={4} h="40px" borderRadius="md" border="1px solid" borderColor={borderColor}>
+            <ChakraDatePicker selectedDate={filterStartDate}
+              size="sm"
+              variant="unstyled"
+              onChange={setFilterStartDate}
+              placeholder="From"
+              w="120px"
+            />
+            <Text fontSize="xs" color="gray.400">→</Text>
+            <ChakraDatePicker selectedDate={filterEndDate}
+              size="sm"
+              variant="unstyled"
+              onChange={setFilterEndDate}
+              placeholder="To"
+              w="120px"
+            />
+          </Flex>
+          <Select size="md" bg={cardBg} borderColor={borderColor} maxW="200px" value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
+            <option value="newest">{t('booking_management.newest_first', 'Newest First')}</option>
+            <option value="oldest">{t('booking_management.oldest_first', 'Oldest First')}</option>
+            <option value="deadline_asc">{t('booking_management.deadline_asc', 'Deadline (Closest)')}</option>
+            <option value="deadline_desc">{t('booking_management.deadline_desc', 'Deadline (Furthest)')}</option>
+          </Select>
+          
+          {(searchQuery || filterStartDate || filterEndDate || sortOrder !== "newest") && (
+            <Button
+              size="md"
+              variant="ghost"
+              colorScheme="red"
+              onClick={() => {
+                setSearchQuery("");
+                setFilterStartDate("");
+                setFilterEndDate("");
+                setSortOrder("newest");
+              }}
+            >
+              Clear Filters
+            </Button>
+          )}
+        </Flex>
 
         {/* Tabs: Active Bookings | No-Shows */}
         <Tabs colorScheme="blue" variant="enclosed-colored" borderRadius="xl">
@@ -457,7 +583,7 @@ export default function AdminBookingManagement() {
           </TabList>
           <TabPanels>
             <TabPanel px={0} pt={6}>
-              {renderBookingTable(bookings, true)}
+              {renderBookingTable(processedBookings, true)}
             </TabPanel>
             <TabPanel px={0} pt={6}>
               <Alert status="warning" borderRadius="xl" mb={4} variant="left-accent">
@@ -466,7 +592,7 @@ export default function AdminBookingManagement() {
                   {t('booking_management.no_show_alert')}
                 </AlertDescription>
               </Alert>
-              {renderBookingTable(noShows, false)}
+              {renderBookingTable(processedNoShows, false)}
             </TabPanel>
           </TabPanels>
         </Tabs>
@@ -486,7 +612,7 @@ export default function AdminBookingManagement() {
                 <HStack>
                   <Avatar size="sm" name={selectedBooking?.tenant?.name} />
                   <VStack align="flex-start" spacing={0}>
-                    <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase">{t('booking_management.tenant_uc')}</Text>
+                    <Text fontSize="xs" fontWeight="bold" color={mutedText}>{t('booking_management.tenant_uc')}</Text>
                     <Text fontWeight="semibold">{selectedBooking?.tenant?.name}</Text>
                   </VStack>
                 </HStack>
@@ -496,7 +622,7 @@ export default function AdminBookingManagement() {
                     <Icon as={FiHome} />
                   </Flex>
                   <VStack align="flex-start" spacing={0}>
-                    <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase">{t('booking_management.room_uc')}</Text>
+                    <Text fontSize="xs" fontWeight="bold" color={mutedText}>{t('booking_management.room_uc')}</Text>
                     <Text fontWeight="semibold">{selectedBooking?.room?.name}</Text>
                   </VStack>
                 </HStack>
@@ -506,7 +632,7 @@ export default function AdminBookingManagement() {
                     <Icon as={FiCalendar} />
                   </Flex>
                   <VStack align="flex-start" spacing={0}>
-                    <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase">{t('booking_management.move_in_deadline_uc')}</Text>
+                    <Text fontSize="xs" fontWeight="bold" color={mutedText}>{t('booking_management.move_in_deadline_uc')}</Text>
                     <Text fontWeight="semibold">{selectedBooking?.move_in_deadline ? new Date(selectedBooking.move_in_deadline).toLocaleDateString() : t('booking_management.n_a')}</Text>
                   </VStack>
                 </HStack>
@@ -515,7 +641,7 @@ export default function AdminBookingManagement() {
                   <HStack gridColumn="span 2" align="flex-start" mt={2}>
                     <Icon as={FiInfo} color="yellow.500" mt={1} />
                     <Box>
-                      <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase">{t('booking_management.booking_notes_uc')}</Text>
+                      <Text fontSize="xs" fontWeight="bold" color={mutedText}>{t('booking_management.booking_notes_uc')}</Text>
                       <Text fontSize="sm" fontStyle="italic">{selectedBooking.notes}</Text>
                     </Box>
                   </HStack>
@@ -529,10 +655,8 @@ export default function AdminBookingManagement() {
               <SimpleGrid columns={2} spacing={4}>
                 <FormControl isRequired>
                   <FormLabel fontWeight="bold" color={textColor}>{t('booking_management.lease_start_date')}</FormLabel>
-                  <Input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                  <ChakraDatePicker selectedDate={startDate}
+                    onChange={(val) => setStartDate(val)}
                     borderRadius="md"
                     bg={bg}
                   />
@@ -626,6 +750,77 @@ export default function AdminBookingManagement() {
           </ModalFooter>
         </ModalContent>
       </Modal>
+
+      {/* View Booking Details Modal */}
+      <Modal isOpen={isViewOpen} onClose={onViewClose} isCentered size="xl">
+        <ModalOverlay backdropFilter="blur(4px)" />
+        <ModalContent borderRadius="xl" overflow="hidden">
+          <ModalHeader bg="blue.600" color="white" py={5}>Booking Details</ModalHeader>
+          <ModalCloseButton color="white" mt={2} />
+          <ModalBody pb={6} pt={6}>
+            {selectedBooking && (
+              <VStack spacing={6} align="stretch">
+                <Box bg={cardBg} p={5} borderRadius="xl" border="1px" borderColor={borderColor}>
+                  <Text fontWeight="bold" color="blue.500" mb={3} fontSize="xs">Tenant Information</Text>
+                  <HStack spacing={4}>
+                    <Avatar size="md" name={selectedBooking.tenant?.name} src={selectedBooking.tenant?.photo} />
+                    <VStack align="flex-start" spacing={1}>
+                      <Text fontWeight="bold" fontSize="md">{selectedBooking.tenant?.name}</Text>
+                      <Text fontSize="sm" color={mutedText}>{selectedBooking.tenant?.email || "No Email"}</Text>
+                      <Text fontSize="sm" color={mutedText}>{selectedBooking.tenant?.phone || "No Phone"}</Text>
+                    </VStack>
+                  </HStack>
+                </Box>
+
+                <SimpleGrid columns={2} spacing={4}>
+                  <Box bg={cardBg} p={4} borderRadius="lg" border="1px" borderColor={borderColor}>
+                    <HStack mb={2}>
+                      <Icon as={FiHome} color="blue.500" />
+                      <Text fontWeight="bold" fontSize="sm">Room</Text>
+                    </HStack>
+                    <Text>{selectedBooking.room?.name}</Text>
+                  </Box>
+                  <Box bg={cardBg} p={4} borderRadius="lg" border="1px" borderColor={borderColor}>
+                    <HStack mb={2}>
+                      <Icon as={FiCalendar} color="orange.500" />
+                      <Text fontWeight="bold" fontSize="sm">Move In Date</Text>
+                    </HStack>
+                    <Text>{selectedBooking.desired_move_in_date ? new Date(selectedBooking.desired_move_in_date).toLocaleDateString() : t('booking_management.not_specified')}</Text>
+                  </Box>
+                  <Box bg={cardBg} p={4} borderRadius="lg" border="1px" borderColor={borderColor}>
+                    <HStack mb={2}>
+                      <Icon as={FiDollarSign} color="green.500" />
+                      <Text fontWeight="bold" fontSize="sm">Down Payment</Text>
+                    </HStack>
+                    <Text fontWeight="bold">{formatCurrency(selectedBooking.down_payment_amount)}</Text>
+                    <Badge mt={1} colorScheme={selectedBooking.down_payment_status === "paid" ? "green" : "red"}>
+                      {selectedBooking.down_payment_status}
+                    </Badge>
+                  </Box>
+                  <Box bg={cardBg} p={4} borderRadius="lg" border="1px" borderColor={borderColor}>
+                    <HStack mb={2}>
+                      <Icon as={FiInfo} color="purple.500" />
+                      <Text fontWeight="bold" fontSize="sm">Status</Text>
+                    </HStack>
+                    {getStatusBadge(selectedBooking.status)}
+                  </Box>
+                </SimpleGrid>
+
+                {selectedBooking.notes && (
+                  <Box bg={cardBg} p={4} borderRadius="lg" border="1px" borderColor={borderColor}>
+                    <Text fontWeight="bold" fontSize="sm" mb={2}>Notes</Text>
+                    <Text fontSize="sm" fontStyle="italic">{selectedBooking.notes}</Text>
+                  </Box>
+                )}
+              </VStack>
+            )}
+          </ModalBody>
+          <ModalFooter borderTop="1px" borderColor={borderColor}>
+            <Button onClick={onViewClose}>Close</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
     </Box>
   );
 }

@@ -142,7 +142,6 @@ export default function AllTenants() {
           borderRadius="full"
           fontSize="9px"
           fontWeight="black"
-          textTransform="uppercase"
         >
           {!item.user_id ? t("tenant.pending_badge") : t("tenant.linked_badge")}
         </Badge>
@@ -171,7 +170,7 @@ export default function AllTenants() {
           <Heading size="lg" fontWeight="900" letterSpacing="tight" color={textColor}>
             {t("sidebar.tenant_mgmt")}
           </Heading>
-          <Text fontSize="xs" color="gray.500" fontWeight="bold" textTransform="uppercase" mt={1}>
+          <Text fontSize="xs" color="gray.500" fontWeight="bold" mt={1}>
             Directory of all registered residents
           </Text>
         </Box>
@@ -184,7 +183,6 @@ export default function AllTenants() {
             onClick={() => navigate("/dashboard/tenants/registration-form")}
             px={4}
             fontWeight="bold"
-            textTransform="uppercase"
             fontSize="sm"
             letterSpacing="wide"
             borderRadius="xl"
@@ -198,7 +196,6 @@ export default function AllTenants() {
             onClick={() => navigate("/dashboard/tenants/addtenant")}
             px={6}
             fontWeight="bold"
-            textTransform="uppercase"
             fontSize="sm"
             letterSpacing="wide"
             borderRadius="xl"

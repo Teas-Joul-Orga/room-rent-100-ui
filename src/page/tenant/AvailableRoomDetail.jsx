@@ -56,6 +56,8 @@ import roomPlaceholder from "../../assets/room-placeholder.png";
 import api from "../../api/axios";
 import { QRCodeCanvas } from "qrcode.react";
 import echo from "../../lib/echo";
+import ChakraDatePicker from "../../components/ChakraDatePicker";
+
 
 const BAKONG_LOGO_RED = "https://raw.githubusercontent.com/sokeng/khqr-gateway/main/assets/khqr.png";
 
@@ -402,7 +404,7 @@ export default function AvailableRoomDetail() {
               </VStack>
 
               <Box w="full">
-                <Text fontSize="xs" fontWeight="black" color="blue.500" textTransform="uppercase" letterSpacing="widest" mb={1}>
+                <Text fontSize="xs" fontWeight="black" color="blue.500" letterSpacing="widest" mb={1}>
                   {t("room.price")}
                 </Text>
                 <Heading size="xl" color="blue.600">
@@ -452,7 +454,7 @@ export default function AvailableRoomDetail() {
               <Divider borderColor={borderColor} />
 
               <VStack align="flex-start" spacing={4} w="full">
-                <Text fontSize="sm" fontWeight="black" color={textColor} textTransform="uppercase" letterSpacing="widest">
+                <Text fontSize="sm" fontWeight="black" color={textColor} letterSpacing="widest">
                   {t("room.amenities")}
                 </Text>
                 {room.furniture && room.furniture.length > 0 ? (
@@ -476,13 +478,11 @@ export default function AvailableRoomDetail() {
                 {isAvailable ? (
                   <VStack w="full" align="stretch" spacing={3}>
                     <FormControl isRequired>
-                      <FormLabel fontSize="xs" fontWeight="black" color="blue.500" textTransform="uppercase" letterSpacing="widest" mb={1}>
+                      <FormLabel fontSize="xs" fontWeight="black" color="blue.500" letterSpacing="widest" mb={1}>
                         Desired Move-in Date
                       </FormLabel>
-                      <Input
-                        type="date"
-                        value={desiredDate}
-                        onChange={(e) => setDesiredDate(e.target.value)}
+                      <ChakraDatePicker selectedDate={desiredDate}
+                        onChange={(val) => setDesiredDate(val)}
                         min={new Date().toISOString().split("T")[0]}
                         max={(() => { const d = new Date(); d.setMonth(d.getMonth() + 2); return d.toISOString().split("T")[0]; })()}
                         bg={bg}
@@ -555,10 +555,8 @@ export default function AvailableRoomDetail() {
 
                 <FormControl isRequired>
                   <FormLabel color={textColor}>Desired Move-in Date</FormLabel>
-                  <Input
-                    type="date"
-                    value={desiredDate}
-                    onChange={(e) => setDesiredDate(e.target.value)}
+                  <ChakraDatePicker selectedDate={desiredDate}
+                    onChange={(val) => setDesiredDate(val)}
                     min={new Date().toISOString().split("T")[0]}
                     max={(() => { const d = new Date(); d.setMonth(d.getMonth() + 2); return d.toISOString().split("T")[0]; })()}
                     bg={bg}

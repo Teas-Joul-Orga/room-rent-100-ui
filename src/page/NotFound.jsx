@@ -188,7 +188,7 @@ export default function NotFound() {
           </SimpleGrid>
 
           {/* Helpful Links/Footer */}
-          <Text fontSize="xs" color={mutedText} fontWeight="bold" textTransform="uppercase" letterSpacing="widest">
+          <Text fontSize="xs" color={mutedText} fontWeight="bold" letterSpacing="widest">
             Property Management System v1.0
           </Text>
         </VStack>

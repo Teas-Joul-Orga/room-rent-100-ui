@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
+import ChakraDatePicker from "../../components/ChakraDatePicker";
+
 import {
   Box,
   Button,
@@ -316,7 +318,7 @@ export default function AddBill() {
                             )}
                             <Icon as={FiHome} color={isSelected ? "blue.500" : mutedText} boxSize={5} mb={2} />
                             <Text fontWeight="black" fontSize="sm" color={textColor}>{room.name}</Text>
-                            <Text fontSize="9px" fontWeight="bold" color={isOccupied ? "green.500" : "gray.400"} mt={1} textTransform="uppercase">
+                            <Text fontSize="9px" fontWeight="bold" color={isOccupied ? "green.500" : "gray.400"} mt={1}>
                               {isOccupied ? "Occupied" : room.status || "Available"}
                             </Text>
                             {getTenantForRoom(room.id) ? (
@@ -467,8 +469,8 @@ export default function AddBill() {
                       </FormControl>
                       <FormControl isRequired>
                         <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Due Date</FormLabel>
-                        <Input size="md" type="date" bg={inputBg} value={formData.due_date}
-                          onChange={(e) => setFormData({ ...formData, due_date: e.target.value })} />
+                        <ChakraDatePicker size="md"  bg={inputBg} selectedDate={formData.due_date}
+                          onChange={(val) => setFormData({ ...formData, due_date: val })} />
                       </FormControl>
                     </SimpleGrid>
                   </Box>
@@ -485,8 +487,7 @@ export default function AddBill() {
                           key={s} size="md"
                           variant={formData.status === s ? "solid" : "outline"}
                           colorScheme={formData.status === s ? (s === "paid" ? "green" : "red") : "gray"}
-                          onClick={() => setFormData({ ...formData, status: s })}
-                          textTransform="uppercase" fontWeight="black" fontSize="11px" letterSpacing="wider"
+                          onClick={() => setFormData({ ...formData, status: s })} fontWeight="black" fontSize="11px" letterSpacing="wider"
                           py={6}
                         >
                           {s}

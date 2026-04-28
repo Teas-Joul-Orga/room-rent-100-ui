@@ -14,9 +14,12 @@ import {
 } from "@chakra-ui/react";
 import { FiPrinter, FiArrowLeft } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "../../components/LanguageSwitcher";
 import Logo from "../../assets/Arun_MuyKea.png";
 
 export default function TenantRegistrationForm() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const printRef = useRef(null);
 
@@ -39,11 +42,16 @@ export default function TenantRegistrationForm() {
         sx={{ "@media print": { display: "none" } }}
       >
         <Button leftIcon={<FiArrowLeft />} onClick={() => navigate(-1)} variant="ghost">
-          Back
+          {t('tenant_registration_form.back')}
         </Button>
-        <Button leftIcon={<FiPrinter />} colorScheme="blue" onClick={handlePrint} shadow="md">
-          Print Form
-        </Button>
+        <HStack spacing={4}>
+          <Box bg="white" rounded="md" shadow="sm">
+            <LanguageSwitcher />
+          </Box>
+          <Button leftIcon={<FiPrinter />} colorScheme="blue" onClick={handlePrint} shadow="md">
+            {t('tenant_registration_form.print_form')}
+          </Button>
+        </HStack>
       </Flex>
 
       {/* Printable Area */}
@@ -71,38 +79,38 @@ export default function TenantRegistrationForm() {
           <HStack spacing={3}>
             <Image src={Logo} alt="Logo" boxSize="50px" objectFit="contain" />
             <VStack align="flex-start" spacing={0}>
-              <Heading size="sm" fontWeight="black" textTransform="uppercase">Arun Muy Kea</Heading>
-              <Text fontSize="2xs" fontWeight="bold">Room Rental Management</Text>
+              <Heading size="md" fontWeight="black">{t('tenant_registration_form.brand_name')}</Heading>
+              <Text fontSize="xs" fontWeight="bold">{t('tenant_registration_form.brand_subtitle')}</Text>
             </VStack>
           </HStack>
           <VStack align="flex-end" spacing={0}>
-            <Heading size="md" fontWeight="black" textTransform="uppercase">Tenant Registration Form</Heading>
-            <Text fontSize="xs" fontStyle="italic">Please fill out this form clearly in BLOCK LETTERS.</Text>
+            <Heading size="lg" fontWeight="black">{t('tenant_registration_form.form_title')}</Heading>
+            <Text fontSize="sm" fontStyle="italic">{t('tenant_registration_form.form_subtitle')}</Text>
           </VStack>
         </Flex>
 
         {/* Section 1: Personal Information */}
         <Box mb={4}>
-          <Heading size="xs" bg="gray.100" p={1.5} mb={2} textTransform="uppercase" border="1px solid" borderColor={borderColor}>
-            1. Personal Information
+          <Heading size="sm" bg="gray.100" p={1.5} mb={2} border="1px solid" borderColor={borderColor}>
+            {t('tenant_registration_form.section1')}
           </Heading>
           <SimpleGrid columns={2} spacing={4} mb={2}>
             <Box borderBottom="1px solid" borderColor={borderColor} pb={1}>
-              <Text fontSize="xs" fontWeight="bold" color="gray.600">Full Name</Text>
+              <Text fontSize="sm" fontWeight="bold" color="gray.600">{t('tenant_registration_form.full_name')}</Text>
               <Box h="12px"></Box>
             </Box>
             <Box borderBottom="1px solid" borderColor={borderColor} pb={1}>
-              <Text fontSize="xs" fontWeight="bold" color="gray.600">Date of Birth (DD/MM/YYYY)</Text>
+              <Text fontSize="sm" fontWeight="bold" color="gray.600">{t('tenant_registration_form.dob')}</Text>
               <Box h="12px"></Box>
             </Box>
           </SimpleGrid>
           <SimpleGrid columns={2} spacing={4} mb={2}>
             <Box borderBottom="1px solid" borderColor={borderColor} pb={1}>
-              <Text fontSize="xs" fontWeight="bold" color="gray.600">Gender</Text>
+              <Text fontSize="sm" fontWeight="bold" color="gray.600">{t('tenant_registration_form.gender')}</Text>
               <Box h="12px"></Box>
             </Box>
             <Box borderBottom="1px solid" borderColor={borderColor} pb={1}>
-              <Text fontSize="xs" fontWeight="bold" color="gray.600">National ID / Passport Number</Text>
+              <Text fontSize="sm" fontWeight="bold" color="gray.600">{t('tenant_registration_form.national_id')}</Text>
               <Box h="12px"></Box>
             </Box>
           </SimpleGrid>
@@ -110,37 +118,37 @@ export default function TenantRegistrationForm() {
 
         {/* Section 2: Contact Details */}
         <Box mb={4}>
-          <Heading size="xs" bg="gray.100" p={1.5} mb={2} textTransform="uppercase" border="1px solid" borderColor={borderColor}>
-            2. Contact Details
+          <Heading size="sm" bg="gray.100" p={1.5} mb={2} border="1px solid" borderColor={borderColor}>
+            {t('tenant_registration_form.section2')}
           </Heading>
           <SimpleGrid columns={2} spacing={4} mb={2}>
             <Box borderBottom="1px solid" borderColor={borderColor} pb={1}>
-              <Text fontSize="xs" fontWeight="bold" color="gray.600">Phone Number</Text>
+              <Text fontSize="sm" fontWeight="bold" color="gray.600">{t('tenant_registration_form.phone')}</Text>
               <Box h="12px"></Box>
             </Box>
             <Box borderBottom="1px solid" borderColor={borderColor} pb={1}>
-              <Text fontSize="xs" fontWeight="bold" color="gray.600">Email Address</Text>
+              <Text fontSize="sm" fontWeight="bold" color="gray.600">{t('tenant_registration_form.email')}</Text>
               <Box h="12px"></Box>
             </Box>
           </SimpleGrid>
           <Box borderBottom="1px solid" borderColor={borderColor} pb={1} mb={2}>
-            <Text fontSize="xs" fontWeight="bold" color="gray.600">Current Address</Text>
+            <Text fontSize="sm" fontWeight="bold" color="gray.600">{t('tenant_registration_form.address')}</Text>
             <Box h="12px"></Box>
           </Box>
         </Box>
 
         {/* Section 3: Employment Information */}
         <Box mb={4}>
-          <Heading size="xs" bg="gray.100" p={1.5} mb={2} textTransform="uppercase" border="1px solid" borderColor={borderColor}>
-            3. Employment Information
+          <Heading size="sm" bg="gray.100" p={1.5} mb={2} border="1px solid" borderColor={borderColor}>
+            {t('tenant_registration_form.section3')}
           </Heading>
           <SimpleGrid columns={2} spacing={4} mb={2}>
             <Box borderBottom="1px solid" borderColor={borderColor} pb={1}>
-              <Text fontSize="xs" fontWeight="bold" color="gray.600">Occupation / Job Title</Text>
+              <Text fontSize="sm" fontWeight="bold" color="gray.600">{t('tenant_registration_form.occupation')}</Text>
               <Box h="12px"></Box>
             </Box>
             <Box borderBottom="1px solid" borderColor={borderColor} pb={1}>
-              <Text fontSize="xs" fontWeight="bold" color="gray.600">Company Name / School</Text>
+              <Text fontSize="sm" fontWeight="bold" color="gray.600">{t('tenant_registration_form.company')}</Text>
               <Box h="12px"></Box>
             </Box>
           </SimpleGrid>
@@ -148,20 +156,20 @@ export default function TenantRegistrationForm() {
 
         {/* Section 4: Emergency Contact */}
         <Box mb={4}>
-          <Heading size="xs" bg="gray.100" p={1.5} mb={2} textTransform="uppercase" border="1px solid" borderColor={borderColor}>
-            4. Emergency Contact
+          <Heading size="sm" bg="gray.100" p={1.5} mb={2} border="1px solid" borderColor={borderColor}>
+            {t('tenant_registration_form.section4')}
           </Heading>
           <SimpleGrid columns={3} spacing={4} mb={2}>
             <Box borderBottom="1px solid" borderColor={borderColor} pb={1}>
-              <Text fontSize="xs" fontWeight="bold" color="gray.600">Contact Name</Text>
+              <Text fontSize="sm" fontWeight="bold" color="gray.600">{t('tenant_registration_form.contact_name')}</Text>
               <Box h="12px"></Box>
             </Box>
             <Box borderBottom="1px solid" borderColor={borderColor} pb={1}>
-              <Text fontSize="xs" fontWeight="bold" color="gray.600">Relationship</Text>
+              <Text fontSize="sm" fontWeight="bold" color="gray.600">{t('tenant_registration_form.relationship')}</Text>
               <Box h="12px"></Box>
             </Box>
             <Box borderBottom="1px solid" borderColor={borderColor} pb={1}>
-              <Text fontSize="xs" fontWeight="bold" color="gray.600">Phone Number</Text>
+              <Text fontSize="sm" fontWeight="bold" color="gray.600">{t('tenant_registration_form.phone')}</Text>
               <Box h="12px"></Box>
             </Box>
           </SimpleGrid>
@@ -169,16 +177,16 @@ export default function TenantRegistrationForm() {
 
         {/* Section 5: Room Details */}
         <Box mb={6}>
-          <Heading size="xs" bg="gray.100" p={1.5} mb={2} textTransform="uppercase" border="1px solid" borderColor={borderColor}>
-            5. Room Preferences (Office Use)
+          <Heading size="sm" bg="gray.100" p={1.5} mb={2} border="1px solid" borderColor={borderColor}>
+            {t('tenant_registration_form.section5')}
           </Heading>
           <SimpleGrid columns={2} spacing={4} mb={2}>
             <Box borderBottom="1px solid" borderColor={borderColor} pb={1}>
-              <Text fontSize="xs" fontWeight="bold" color="gray.600">Target Move-in Date</Text>
+              <Text fontSize="sm" fontWeight="bold" color="gray.600">{t('tenant_registration_form.move_in_date')}</Text>
               <Box h="12px"></Box>
             </Box>
             <Box borderBottom="1px solid" borderColor={borderColor} pb={1}>
-              <Text fontSize="xs" fontWeight="bold" color="gray.600">Preferred Room Type / Number</Text>
+              <Text fontSize="sm" fontWeight="bold" color="gray.600">{t('tenant_registration_form.room_type')}</Text>
               <Box h="12px"></Box>
             </Box>
           </SimpleGrid>
@@ -186,17 +194,17 @@ export default function TenantRegistrationForm() {
 
         {/* Declaration & Signature */}
         <Box border="1px solid" borderColor={borderColor} p={3}>
-          <Text fontSize="xs" mb={6} textAlign="justify">
-            I hereby declare that the information provided above is true and accurate to the best of my knowledge. I understand that any false information may result in the rejection of my application or termination of the lease agreement.
+          <Text fontSize="sm" mb={6} textAlign="justify">
+            {t('tenant_registration_form.declaration')}
           </Text>
           <SimpleGrid columns={2} spacing={10}>
             <Box borderTop="1px solid" borderColor={textColor} pt={1} textAlign="center">
-              <Text fontSize="sm" fontWeight="bold">Applicant's Signature</Text>
-              <Text fontSize="xs" color="gray.500">Date: ______ / ______ / ________</Text>
+              <Text fontSize="md" fontWeight="bold">{t('tenant_registration_form.applicant_sig')}</Text>
+              <Text fontSize="sm" color="gray.500">{t('tenant_registration_form.date_line')}</Text>
             </Box>
             <Box borderTop="1px solid" borderColor={textColor} pt={1} textAlign="center">
-              <Text fontSize="sm" fontWeight="bold">Landlord / Management Signature</Text>
-              <Text fontSize="xs" color="gray.500">Date: ______ / ______ / ________</Text>
+              <Text fontSize="md" fontWeight="bold">{t('tenant_registration_form.landlord_sig')}</Text>
+              <Text fontSize="sm" color="gray.500">{t('tenant_registration_form.date_line')}</Text>
             </Box>
           </SimpleGrid>
         </Box>

@@ -36,6 +36,9 @@ const LanguageSwitcher = () => {
   };
 
   const selectedLang = languages.find(lang => lang.code === currentLanguage.split('-')[0]) || languages[0];
+  
+  const hoverBg = useColorModeValue('gray.100', 'gray.700');
+  const activeBg = useColorModeValue('gray.100', 'gray.700');
 
   return (
     <Menu>
@@ -44,7 +47,7 @@ const LanguageSwitcher = () => {
         rightIcon={<ChevronDownIcon />} 
         variant="ghost" 
         size="sm"
-        _hover={{ bg: useColorModeValue('gray.100', 'gray.700') }}
+        _hover={{ bg: hoverBg }}
       >
         <Flex align="center" gap={2}>
           <Image src={selectedLang.flag} alt={selectedLang.label} w="20px" h="14px" />
@@ -56,7 +59,7 @@ const LanguageSwitcher = () => {
           <MenuItem 
             key={lang.code} 
             onClick={() => changeLanguage(lang.code)}
-            bg={currentLanguage.startsWith(lang.code) ? useColorModeValue('gray.100', 'gray.700') : 'transparent'}
+            bg={currentLanguage.startsWith(lang.code) ? activeBg : 'transparent'}
           >
             <Flex align="center" gap={2}>
               <Image src={lang.flag} alt={lang.label} w="20px" h="14px" />

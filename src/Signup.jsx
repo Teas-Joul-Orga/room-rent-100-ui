@@ -250,7 +250,7 @@ export default function SignupForm() {
                   )}
                   
                   <FormControl isInvalid={!!errors.name}>
-                    <FormLabel fontSize="xs" fontWeight="black" textTransform="uppercase" color={mutedText} mb={1}>
+                    <FormLabel fontSize="xs" fontWeight="black" color={mutedText} mb={1}>
                       {t('signup.full_name')}
                     </FormLabel>
                     <InputGroup size="lg">
@@ -272,7 +272,7 @@ export default function SignupForm() {
                   </FormControl>
 
                   <FormControl isInvalid={!!errors.username}>
-                    <FormLabel fontSize="xs" fontWeight="black" textTransform="uppercase" color={mutedText} mb={1}>
+                    <FormLabel fontSize="xs" fontWeight="black" color={mutedText} mb={1}>
                       {t('signup.username')}
                     </FormLabel>
                     <InputGroup size="lg">
@@ -294,7 +294,7 @@ export default function SignupForm() {
                   </FormControl>
 
                   <FormControl isInvalid={!!errors.email}>
-                    <FormLabel fontSize="xs" fontWeight="black" textTransform="uppercase" color={mutedText} mb={1}>
+                    <FormLabel fontSize="xs" fontWeight="black" color={mutedText} mb={1}>
                       {t('signup.email')}
                     </FormLabel>
                     <InputGroup size="lg">
@@ -317,7 +317,7 @@ export default function SignupForm() {
                   </FormControl>
 
                   <FormControl isInvalid={!!errors.phone}>
-                    <FormLabel fontSize="xs" fontWeight="black" textTransform="uppercase" color={mutedText} mb={1}>
+                    <FormLabel fontSize="xs" fontWeight="black" color={mutedText} mb={1}>
                       Phone Number
                     </FormLabel>
                     <InputGroup size="lg">
@@ -339,8 +339,8 @@ export default function SignupForm() {
                   </FormControl>
 
                   <FormControl isInvalid={!!errors.job}>
-                    <FormLabel fontSize="xs" fontWeight="black" textTransform="uppercase" color={mutedText} mb={1}>
-                      Job / Occupation
+                    <FormLabel fontSize="xs" fontWeight="black" color={mutedText} mb={1}>
+                      {t('signup.job')}
                     </FormLabel>
                     <InputGroup size="lg">
                       <InputRightElement pointerEvents="none" h="full" children={<Icon as={FiBriefcase} color="gray.400" />} />
@@ -348,7 +348,7 @@ export default function SignupForm() {
                         type="text"
                         value={form.job}
                         onChange={(e) => setForm({ ...form, job: e.target.value })}
-                        placeholder="Software Engineer"
+                        placeholder={t('signup.job_placeholder')}
                         bg="gray.50"
                         color="gray.800"
                         border="none"
@@ -361,8 +361,8 @@ export default function SignupForm() {
                   </FormControl>
 
                   <FormControl isInvalid={!!errors.password}>
-                    <FormLabel fontSize="xs" fontWeight="black" textTransform="uppercase" color={mutedText} mb={1}>
-                      Password
+                    <FormLabel fontSize="xs" fontWeight="black" color={mutedText} mb={1}>
+                      {t('common.password')}
                     </FormLabel>
                     <InputGroup size="lg">
                       <Input
@@ -392,8 +392,8 @@ export default function SignupForm() {
                   </FormControl>
 
                   <FormControl isInvalid={!!errors.password_confirmation}>
-                    <FormLabel fontSize="xs" fontWeight="black" textTransform="uppercase" color={mutedText} mb={1}>
-                      Confirm Password
+                    <FormLabel fontSize="xs" fontWeight="black" color={mutedText} mb={1}>
+                      {t('common.confirm_password')}
                     </FormLabel>
                     <InputGroup size="lg">
                       <Input
@@ -444,19 +444,18 @@ export default function SignupForm() {
                     w="full"
                     h="14"
                     isLoading={loading}
-                    loadingText="CREATING ACCOUNT..."
+                    loadingText={t('signup.creating_account')}
                     borderRadius="xl"
                     shadow="lg"
                     fontSize="xs"
                     fontWeight="black"
-                    textTransform="uppercase"
                     letterSpacing="widest"
                     mt={4}
                     _hover={{ transform: "translateY(-2px)", shadow: "xl" }}
                     _active={{ transform: "translateY(0)" }}
                     transition="all 0.2s"
                   >
-                    Sign Up
+                    {t('signup.sign_up')}
                   </Button>
                   
                   
@@ -464,7 +463,7 @@ export default function SignupForm() {
                     <>
                       <HStack w="full" align="center" my={2}>
                         <Divider borderColor="gray.300" />
-                        <Text fontSize="xs" fontWeight="bold" color="gray.400" px={2}>OR</Text>
+                        <Text fontSize="xs" fontWeight="bold" color="gray.400" px={2}>{t('signup.or')}</Text>
                         <Divider borderColor="gray.300" />
                       </HStack>
                       
@@ -476,16 +475,15 @@ export default function SignupForm() {
                         w="full"
                         h="14"
                         isLoading={googleLoading}
-                        loadingText="SIGNING UP WITH GOOGLE..."
+                        loadingText={t('signup.signing_google')}
                         borderRadius="xl"
                         fontSize="xs"
                         fontWeight="black"
-                        textTransform="uppercase"
                         letterSpacing="widest"
                         leftIcon={<Icon as={FcGoogle} boxSize={5} />}
                         _hover={{ bg: "gray.50" }}
                       >
-                        Sign up with Google
+                        {t('signup.signup_google')}
                       </Button>
                     </>
                   )}
@@ -494,10 +492,10 @@ export default function SignupForm() {
               </form>
               <HStack justify="center" mt={2}>
                 <Text fontSize="sm" color={mutedText}>
-                  Already have an account?
+                  {t('signup.already_have_account')}
                 </Text>
                 <ChakraLink fontSize="sm" fontWeight="bold" color="blue.500" onClick={() => navigate("/login")}>
-                  Sign in
+                  {t('signup.sign_in')}
                 </ChakraLink>
               </HStack>
             </VStack>
@@ -514,7 +512,7 @@ export default function SignupForm() {
               _hover={{ color: "blue.500", bg: "transparent" }}
               fontWeight="bold"
             >
-              Back to Home
+              {t('signup.back_to_home')}
             </Button>
           </HStack>
         </VStack>

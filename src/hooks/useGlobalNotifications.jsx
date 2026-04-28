@@ -88,7 +88,7 @@ export default function useGlobalNotifications(currentUser) {
             <Flex align="center" gap={3}>
               <Icon as={getIcon()} boxSize={5} color={getColor()} />
               <VStack align="flex-start" spacing={0}>
-                <Text fontWeight="black" fontSize="sm" color="gray.800" textTransform="uppercase" letterSpacing="tight">
+                <Text fontWeight="black" fontSize="sm" color="gray.800" letterSpacing="tight">
                   {title}
                 </Text>
                 <Text fontSize="xs" color="gray.600" noOfLines={2}>

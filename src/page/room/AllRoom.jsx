@@ -459,7 +459,7 @@ export default function AllRoom() {
                         <>
                           <Text fontWeight="bold" fontSize="md" noOfLines={1} align="right">{tenantName}</Text>
                           {dateSubtitle && (
-                            <Text fontSize="10px" opacity={0.9} textTransform="uppercase" letterSpacing="wide" align="right" mt={0.5}>
+                            <Text fontSize="10px" opacity={0.9} letterSpacing="wide" align="right" mt={0.5}>
                               {dateLabel} {dateSubtitle}
                             </Text>
                           )}

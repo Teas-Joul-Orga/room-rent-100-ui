@@ -129,7 +129,6 @@ export default function LeaseHistory() {
                           lease.status === 'ended' ? 'gray' : 
                           lease.status === 'terminated' ? 'red' : 'orange'
                         }
-                        textTransform="uppercase"
                         fontSize="10px"
                         px={2}
                         borderRadius="full"
@@ -176,7 +175,6 @@ export default function LeaseHistory() {
                     lease.status === 'ended' ? 'gray' : 
                     lease.status === 'terminated' ? 'red' : 'orange'
                   }
-                  textTransform="uppercase"
                   fontSize="10px"
                   px={2}
                   py={0.5}
@@ -188,11 +186,11 @@ export default function LeaseHistory() {
               
               <Flex justify="space-between" align="center" mt={2} pt={3} borderTop="1px solid" borderColor={borderColor}>
                 <Box>
-                  <Text fontSize="xs" color={mutedText} fontWeight="bold" textTransform="uppercase">Start Date</Text>
+                  <Text fontSize="xs" color={mutedText} fontWeight="bold">Start Date</Text>
                   <Text fontSize="sm" color={textColor}>{fmtDate(lease.start_date)}</Text>
                 </Box>
                 <Box textAlign="right">
-                  <Text fontSize="xs" color={mutedText} fontWeight="bold" textTransform="uppercase">End Date</Text>
+                  <Text fontSize="xs" color={mutedText} fontWeight="bold">End Date</Text>
                   <Text fontSize="sm" color={textColor}>{fmtDate(lease.end_date)}</Text>
                 </Box>
               </Flex>

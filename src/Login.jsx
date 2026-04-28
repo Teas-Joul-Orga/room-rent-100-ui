@@ -246,7 +246,7 @@ export default function LoginForm() {
                     </Alert>
                   )}
                   <FormControl isInvalid={!!errors.email}>
-                    <FormLabel fontSize="xs" fontWeight="black" textTransform="uppercase" color={mutedText} mb={2}>
+                    <FormLabel fontSize="xs" fontWeight="black" color={mutedText} mb={2}>
                       Username or Email
                     </FormLabel>
                     <InputGroup size="lg">
@@ -268,7 +268,7 @@ export default function LoginForm() {
                   </FormControl>
 
                   <FormControl isInvalid={!!errors.password}>
-                    <FormLabel fontSize="xs" fontWeight="black" textTransform="uppercase" color={mutedText} mb={2}>
+                    <FormLabel fontSize="xs" fontWeight="black" color={mutedText} mb={2}>
                       Password
                     </FormLabel>
                     <InputGroup size="lg">
@@ -324,7 +324,6 @@ export default function LoginForm() {
                     shadow="lg"
                     fontSize="xs"
                     fontWeight="black"
-                    textTransform="uppercase"
                     letterSpacing="widest"
                     mt={2}
                     _hover={{ transform: "translateY(-2px)", shadow: "xl" }}
@@ -352,7 +351,6 @@ export default function LoginForm() {
                     borderRadius="xl"
                     fontSize="xs"
                     fontWeight="black"
-                    textTransform="uppercase"
                     letterSpacing="widest"
                     leftIcon={<Icon as={FcGoogle} boxSize={5} />}
                     _hover={{ bg: "gray.50" }}

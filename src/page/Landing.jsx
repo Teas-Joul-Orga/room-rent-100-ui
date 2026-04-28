@@ -64,6 +64,8 @@ import { QRCodeCanvas } from "qrcode.react";
 import echo from "../lib/echo";
 import ChangePasswordModal from "../components/ChangePasswordModal";
 import LanguageSwitcher from "../components/LanguageSwitcher";
+import ChakraDatePicker from "../components/ChakraDatePicker";
+
 
 const BAKONG_LOGO_RED = "https://raw.githubusercontent.com/sokeng/khqr-gateway/main/assets/khqr.png";
 
@@ -304,8 +306,8 @@ const Landing = () => {
   const today = new Date().toISOString().split("T")[0];
   const maxDate = (() => { const d = new Date(); d.setDate(d.getDate() + 14); return d.toISOString().split("T")[0]; })();
 
-  const handleDateChange = (e) => {
-    const val = e.target.value;
+  const handleDateChange = (val) => {
+    if (!val) { setDesiredDate(""); return; }
     if (val < today) {
       toast.error("Move-in date cannot be in the past.");
       setDesiredDate("");
@@ -323,7 +325,7 @@ const Landing = () => {
     <Box bg={bg} color="gray.800" minH="100vh">
       <Toaster position="top-right" />
       {/* Navbar */}
-      <Box bg={cardBg} px={4} shadow="sm" position="sticky" top="0" zIndex="1000">
+      <Box bg={cardBg} px={4} shadow="sm" position="sticky" top="0" zIndex="2000">
         <Container maxW="container.xl">
           <Flex h={16} alignItems="center" justifyContent="space-between">
             <HStack spacing={4} align="center">
@@ -448,11 +450,11 @@ const Landing = () => {
         }}
       >
         {/* Floating Pill Navbar */}
-        <Flex position="absolute" top="40px" w="full" justify="center" zIndex={10}>
+        <Flex position="fixed" top="85px" w="full" justify="center" zIndex={1100}>
           <Flex bg="whiteAlpha.900" backdropFilter="blur(10px)" borderRadius="full" shadow="xl" p={1.5} align="center" border="1px solid" borderColor="whiteAlpha.500">
-            <Button leftIcon={<FiHome />} colorScheme="blue" bg="blue.500" color="white" borderRadius="full" px={6} py={6} fontSize="15px" fontWeight="bold" _hover={{ bg: "blue.600" }} onClick={() => navigate('/')}>Home</Button>
-            <Button leftIcon={<FiSpeaker />} variant="ghost" color="gray.700" borderRadius="full" px={6} py={6} fontSize="15px" fontWeight="bold" _hover={{ bg: "blackAlpha.100" }} onClick={() => navigate('/announcements')}>Announcement</Button>
-            <Button leftIcon={<FiUsers />} variant="ghost" color="gray.700" borderRadius="full" px={6} py={6} fontSize="15px" fontWeight="bold" _hover={{ bg: "blackAlpha.100" }}>About Us</Button>
+            <Button leftIcon={<FiHome />} colorScheme="blue" bg="blue.500" color="white" borderRadius="full" px={6} py={6} fontSize="15px" fontWeight="bold" _hover={{ bg: "blue.600" }} onClick={() => navigate('/')}>{t('nav.home')}</Button>
+            <Button leftIcon={<FiSpeaker />} variant="ghost" color="gray.700" borderRadius="full" px={6} py={6} fontSize="15px" fontWeight="bold" _hover={{ bg: "blackAlpha.100" }} onClick={() => navigate('/announcements')}>{t('nav.announcement')}</Button>
+            <Button leftIcon={<FiUsers />} variant="ghost" color="gray.700" borderRadius="full" px={6} py={6} fontSize="15px" fontWeight="bold" _hover={{ bg: "blackAlpha.100" }} onClick={() => navigate('/about')}>{t('nav.about_us')}</Button>
           </Flex>
         </Flex>
 
@@ -460,16 +462,12 @@ const Landing = () => {
           <Stack direction={{ base: "column", lg: "row" }} spacing={10} align="center" justify="flex-end" w="full">
             
             <VStack align={{ base: "center", lg: "flex-end" }} spacing={6} maxW="2xl" textAlign={{ base: "center", lg: "right" }} w="full">
-              <Text fontSize="2xl" color="white" fontWeight="medium" letterSpacing="wide">
-                Exploring the
-              </Text>
-              <Heading as="h1" size="3xl" color="white" lineHeight="1.1" textTransform="uppercase" letterSpacing="tight">
-                Rental <Text as="span" color="red.400">Community</Text>
+              <Text fontSize="2xl" color="white" fontWeight="medium" letterSpacing="wide">{t('landing.hero_pre')}</Text>
+              <Heading as="h1" size="3xl" color="white" lineHeight="1.1" letterSpacing="tight">
+                {t('landing.hero_main')} <Text as="span" color="red.400">{t('landing.hero_highlight')}</Text>
               </Heading>
               
-              <Text fontSize="lg" color="whiteAlpha.900" maxW="xl">
-                "More than just listings — we're building neighborhoods. Discover your next home and connect with a community that fits your lifestyle."
-              </Text>
+              <Text fontSize="lg" color="whiteAlpha.900" maxW="xl">{t('landing.hero_desc')}</Text>
               
               <HStack w="full" maxW="md" mt={4} justify={{ base: "center", lg: "flex-end" }}>
                 <Button 
@@ -484,9 +482,7 @@ const Landing = () => {
                     const el = document.getElementById("available-rooms");
                     if (el) el.scrollIntoView({ behavior: 'smooth' });
                   }}
-                >
-                  Find House
-                </Button>
+                >{t('landing.find_house')}</Button>
                 <Button 
                   size="lg"
                   rightIcon={<FiArrowRight />}
@@ -496,9 +492,7 @@ const Landing = () => {
                   px={8}
                   _hover={{ bg: "blue.600" }}
                   onClick={() => navigate('/announcements')}
-                >
-                  Explore More
-                </Button>
+                >{t('landing.explore_more')}</Button>
               </HStack>
             </VStack>
 
@@ -510,12 +504,8 @@ const Landing = () => {
       <Container maxW="container.xl" py={16} id="available-rooms">
         <Flex direction={{ base: "column", md: "row" }} justify="space-between" align={{ base: "flex-start", md: "center" }} mb={12} gap={6}>
           <VStack spacing={2} align="flex-start">
-            <Heading size="lg" borderBottom="4px solid" borderColor="blue.500" pb={2}>
-              Available Rooms
-            </Heading>
-            <Text color={textColor}>
-              Browse our current vacancies and find a space that fits your lifestyle.
-            </Text>
+            <Heading size="lg" borderBottom="4px solid" borderColor="blue.500" pb={2}>{t('landing.avail_title')}</Heading>
+            <Text color={textColor}>{t('landing.avail_desc')}</Text>
           </VStack>
           
           <Box w={{ base: "full", md: "400px" }}>
@@ -526,7 +516,7 @@ const Landing = () => {
               <Input 
                 bg="white" 
                 color="gray.800" 
-                placeholder="Search by room name or details..." 
+                placeholder={t("landing.search_placeholder")} 
                 _placeholder={{ color: "gray.400" }}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -595,9 +585,7 @@ const Landing = () => {
                       py={1} 
                       borderRadius="full"
                       fontSize="sm"
-                    >
-                      Available
-                    </Badge>
+                    >{t('landing.available_badge')}</Badge>
                   </Box>
                   
                   <VStack p={6} align="flex-start" spacing={4}>
@@ -609,7 +597,7 @@ const Landing = () => {
                     <HStack spacing={4} color="gray.500" fontSize="sm">
                       <Flex align="center">
                         <Icon as={FiMapPin} mr={1} />
-                        <Text>Floor {room.floor || 0}</Text>
+                        <Text>{t('landing.floor')} {room.floor || 0}</Text>
                       </Flex>
                       <Flex align="center">
                         <Icon as={FiMaximize} mr={1} />
@@ -624,9 +612,7 @@ const Landing = () => {
                     <Divider />
 
                     <HStack w="full">
-                      <Button flex="1" colorScheme="blue" variant="outline" onClick={() => { setSelectedRoom(room); setIsBookingMode(false); setBookingStep("details"); }} rounded="full" fontWeight="bold" textTransform="uppercase" fontSize="xs">
-                        View Details
-                      </Button>
+                      <Button flex="1" colorScheme="blue" variant="outline" onClick={() => { setSelectedRoom(room); setIsBookingMode(false); setBookingStep("details"); }} rounded="full" fontWeight="bold" fontSize="xs">{t('landing.view_details')}</Button>
                       <Button 
                         onClick={() => {
                           if (isLoggedIn) {
@@ -642,7 +628,7 @@ const Landing = () => {
                         leftIcon={isLoggedIn ? undefined : <FiLogIn />}
                         rounded="full"
                         fontWeight="bold"
-                        textTransform="uppercase"
+                       
                         fontSize="xs"
                       >
                         {isLoggedIn ? "Book Now" : "Login to Book"}
@@ -664,20 +650,18 @@ const Landing = () => {
                     rightIcon={showAll ? <FiArrowUp /> : <FiArrowRight />}
                     rounded="full"
                     fontWeight="bold"
-                    textTransform="uppercase"
+                   
                     fontSize="sm"
                   >
-                    {showAll ? "Show Less" : `View All Rooms (${filteredRooms.length})`}
+                    {showAll ? "Show Less" : t('landing.view_all_rooms', { count: filteredRooms.length })}
                   </Button>
               </Flex>
             )}
           </>
         ) : (
           <Box py={20} textAlign="center" w="full">
-            <Text fontSize="lg" color="gray.500">No rooms currently available that match your search.</Text>
-            <Button mt={4} variant="link" colorScheme="blue" onClick={() => setSearch("")}>
-              Clear Search
-            </Button>
+            <Text fontSize="lg" color="gray.500">{t('landing.no_rooms_found')}</Text>
+            <Button mt={4} variant="link" colorScheme="blue" onClick={() => setSearch("")}>{t('landing.clear_search')}</Button>
           </Box>
         )}
       </Container>
@@ -686,11 +670,8 @@ const Landing = () => {
       <Box bg="white" py={16}>
         <Container maxW="container.xl">
           <VStack spacing={8} align="flex-start" mb={8}>
-            <Heading size="lg" borderBottom="4px solid" borderColor="blue.500" pb={2}>
-              Our Location
-            </Heading>
-            <Text color={textColor}>
-              Visit us or get in touch. We are conveniently located at <b>{settings.address}</b>.
+            <Heading size="lg" borderBottom="4px solid" borderColor="blue.500" pb={2}>{t('landing.location_title')}</Heading>
+            <Text color={textColor}>{t('landing.location_desc')} <b>{settings.address}</b>.
             </Text>
           </VStack>
           <Box 
@@ -726,19 +707,18 @@ const Landing = () => {
           <SimpleGrid columns={{ base: 1, md: 4 }} spacing={8}>
             <VStack align="flex-start" spacing={4}>
               <Heading size="md" color="white">{settings.app_name}</Heading>
-              <Text fontSize="sm">
-                The most reliable room rental management system. Powered by <b>{settings.company_name}</b>.
+              <Text fontSize="sm">{t('footer.desc')} <b>{settings.company_name}</b>.
               </Text>
             </VStack>
             <VStack align="flex-start" spacing={4}>
-              <Heading size="sm" color="white">Quick Links</Heading>
-              <Button variant="link" size="sm" onClick={() => navigate("/")}>Home</Button>
+              <Heading size="sm" color="white">{t('footer.quick_links')}</Heading>
+              <Button variant="link" size="sm" onClick={() => navigate("/")}>{t('nav.home')}</Button>
               <Button variant="link" size="sm" onClick={() => navigate("/announcements")}>Announcements</Button>
               <Button variant="link" size="sm" onClick={() => navigate("/login")}>Login</Button>
               <Button variant="link" size="sm" onClick={() => setShowAll(true)}>Available Rooms</Button>
             </VStack>
             <VStack align="flex-start" spacing={4}>
-              <Heading size="sm" color="white">Contact Details</Heading>
+              <Heading size="sm" color="white">{t('footer.contact_details')}</Heading>
               <HStack>
                 <Icon as={FiMapPin} />
                 <Text fontSize="sm">{settings.address}</Text>
@@ -753,13 +733,13 @@ const Landing = () => {
               </HStack>
             </VStack>
             <VStack align="flex-start" spacing={4}>
-              <Heading size="sm" color="white">About</Heading>
-              <Text fontSize="sm">Find your perfect home with our easy-to-use rental platform. We prioritize comfort and affordability.</Text>
+              <Heading size="sm" color="white">{t('footer.about_title')}</Heading>
+              <Text fontSize="sm">{t('footer.about_desc')}</Text>
             </VStack>
           </SimpleGrid>
           <Divider my={8} borderColor="gray.700" />
           <Text textAlign="center" fontSize="xs">
-            © {new Date().getFullYear()} {settings.company_name}. All rights reserved.
+            © {new Date().getFullYear()} {settings.company_name}. {t('footer.rights')}
           </Text>
         </Container>
       </Box>
@@ -796,7 +776,7 @@ const Landing = () => {
                 <Box w="30px" h="3px" borderRadius="full" bg={bookingStep === "payment" ? "white" : "whiteAlpha.300"} transition="all 0.3s" />
               </HStack>
             )}
-            <Text color="whiteAlpha.800" fontSize="xs" fontWeight="bold" textTransform="uppercase" letterSpacing="wider">
+            <Text color="whiteAlpha.800" fontSize="xs" fontWeight="bold" letterSpacing="wider">
               {bookingStep === "payment" ? "Step 3 of 3" : bookingStep === "details" ? "Step 2 of 3" : isBookingMode ? "Step 1 of 3" : "Room Details"}
             </Text>
             <Heading size="md" color="white" mt={1} pr={8}>
@@ -831,7 +811,7 @@ const Landing = () => {
                     <Text fontSize={{ base: "xl", md: "2xl" }} fontWeight="bold" color="blue.600">
                       {fmt(selectedRoom.base_rent_price)} <Text as="span" fontSize="sm" color="gray.400" fontWeight="medium">/ month</Text>
                     </Text>
-                    <Badge colorScheme="green" px={3} py={1} borderRadius="full" fontSize="xs">Available</Badge>
+                    <Badge colorScheme="green" px={3} py={1} borderRadius="full" fontSize="xs">{t('landing.available_badge')}</Badge>
                   </Flex>
 
                   <SimpleGrid columns={2} spacing={3} mb={4}>
@@ -928,7 +908,7 @@ const Landing = () => {
                     <Text fontWeight="bold" fontSize="sm" color="gray.800">{selectedRoom.name}</Text>
                     <Text fontSize="lg" fontWeight="bold" color="blue.600">{fmt(selectedRoom.base_rent_price)}<Text as="span" fontSize="xs" color="gray.400" fontWeight="normal"> /mo</Text></Text>
                   </VStack>
-                  <Badge colorScheme="green" borderRadius="full" px={2} fontSize="2xs">Available</Badge>
+                  <Badge colorScheme="green" borderRadius="full" px={2} fontSize="2xs">{t('landing.available_badge')}</Badge>
                 </HStack>
 
                 {/* Down Payment Banner */}
@@ -954,9 +934,7 @@ const Landing = () => {
                           <Text>Desired Move-in Date</Text>
                         </HStack>
                       </FormLabel>
-                      <Input
-                        type="date"
-                        value={desiredDate}
+                      <ChakraDatePicker selectedDate={desiredDate}
                         onChange={handleDateChange}
                         min={today}
                         max={maxDate}
@@ -1055,7 +1033,7 @@ const Landing = () => {
               <VStack spacing={5}>
                 <Box w="full" bg="white" p={5} borderRadius="xl" shadow="sm" border="1px solid" borderColor="green.200">
                   <VStack spacing={1}>
-                    <Text fontSize="xs" color="gray.400" fontWeight="bold" textTransform="uppercase" letterSpacing="wider">Amount Due</Text>
+                    <Text fontSize="xs" color="gray.400" fontWeight="bold" letterSpacing="wider">Amount Due</Text>
                     <Heading size="xl" color="green.600">
                       {fmt(selectedRoom?.base_rent_price * (downPaymentPercent / 100))}
                     </Heading>

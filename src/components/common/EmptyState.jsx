@@ -26,7 +26,7 @@ const EmptyState = ({
       <VStack spacing={6} textAlign="center" maxW="md">
         <Icon as={icon} boxSize={16} color={iconColor} />
         <VStack spacing={2}>
-          <Heading size="md" color={textColor} fontWeight="black" textTransform="uppercase" letterSpacing="tight">
+          <Heading size="md" color={textColor} fontWeight="black" letterSpacing="tight">
             {title}
           </Heading>
           <Text color={mutedText} fontSize="sm">
@@ -39,7 +39,6 @@ const EmptyState = ({
             onClick={onAction}
             px={8}
             fontWeight="black"
-            textTransform="uppercase"
             fontSize="xs"
             letterSpacing="widest"
             borderRadius="xl"

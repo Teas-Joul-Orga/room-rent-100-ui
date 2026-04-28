@@ -81,7 +81,6 @@ const DataTable = ({
                   py={4}
                   color={mutedText}
                   fontWeight="black"
-                  textTransform="uppercase"
                   letterSpacing="wider"
                   fontSize="10px"
                 >

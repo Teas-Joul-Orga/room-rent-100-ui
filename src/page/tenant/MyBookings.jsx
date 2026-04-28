@@ -40,7 +40,7 @@ const BookingStep = ({ label, isCompleted, isActive, isLast }) => (
       >
         <Icon as={isCompleted ? FiCheckCircle : isActive ? FiClock : FiCircle} />
       </Flex>
-      <Text fontSize="10px" fontWeight="bold" color={isActive || isCompleted ? "gray.700" : "gray.400"} textTransform="uppercase" textAlign="center" position="absolute" top="100%" mt={1} whiteSpace="nowrap">
+      <Text fontSize="10px" fontWeight="bold" color={isActive || isCompleted ? "gray.700" : "gray.400"} textAlign="center" position="absolute" top="100%" mt={1} whiteSpace="nowrap">
         {label}
       </Text>
     </VStack>
@@ -154,7 +154,7 @@ export default function MyBookings() {
       no_show: t('my_bookings.no_show'),
     };
     return (
-      <Badge colorScheme={colorMap[status] || "gray"} px={3} py={1} borderRadius="full" textTransform="uppercase" fontSize="xs">
+      <Badge colorScheme={colorMap[status] || "gray"} px={3} py={1} borderRadius="full" fontSize="xs">
         {labelMap[status] || status}
       </Badge>
     );

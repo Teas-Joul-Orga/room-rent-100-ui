@@ -99,7 +99,7 @@ export default function AdminAnnouncements() {
         {/* Header matching public style logic with admin actions */}
         <Flex justify="space-between" align="center" mb={10}>
           <Box>
-            <Heading as="h1" size="xl" color="gray.800" textTransform="uppercase" letterSpacing="tight">
+            <Heading as="h1" size="xl" color="gray.800" letterSpacing="tight">
               Broadcast Center
             </Heading>
             <Text fontSize="lg" color="gray.500" mt={2}>

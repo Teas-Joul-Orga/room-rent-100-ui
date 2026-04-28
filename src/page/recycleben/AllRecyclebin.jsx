@@ -142,14 +142,14 @@ export default function AllRecyclebin() {
          </Box>
          <InputGroup maxW="300px">
             <InputLeftElement pointerEvents="none"><FiSearch color="gray.300" /></InputLeftElement>
-            <Input 
-              type="text" 
-              placeholder="Search deleted records... [Enter]" 
-              value={search} 
-              onChange={e => setSearch(e.target.value)} 
+            <Input
+              type="text"
+              placeholder="Search deleted records... [Enter]"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
               onKeyDown={handleSearch}
-              bg={bg} 
-              borderRadius="xl" 
+              bg={bg}
+              borderRadius="xl"
             />
          </InputGroup>
        </Flex>
@@ -192,7 +192,7 @@ export default function AllRecyclebin() {
                       rowRender={(r) => (
                         <>
                           <Td fontSize="sm" fontWeight="bold" color={textColor}>{r.name}</Td>
-                          <Td fontSize="sm" color={mutedText} textTransform="uppercase">{r.type}</Td>
+                          <Td fontSize="sm" color={mutedText}>{r.type}</Td>
                           <Td fontSize="sm" color={mutedText}>${r.base_rent_price || r.price}</Td>
                         </>
                       )}

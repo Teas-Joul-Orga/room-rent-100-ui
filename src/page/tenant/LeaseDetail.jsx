@@ -135,7 +135,6 @@ export default function LeaseDetail() {
             px={3}
             py={1}
             borderRadius="full"
-            textTransform="uppercase"
           >
             {lease.status}
           </Badge>
@@ -144,7 +143,7 @@ export default function LeaseDetail() {
 
       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8} mb={8}>
         <Box bg={bg} p={8} borderRadius="2xl" border="1px solid" borderColor={borderColor}>
-          <Heading size="sm" mb={6} textTransform="uppercase" letterSpacing="wider" color={textColor}>
+          <Heading size="sm" mb={6} letterSpacing="wider" color={textColor}>
             Contract Overview
           </Heading>
           <VStack align="stretch" spacing={4}>
@@ -169,7 +168,7 @@ export default function LeaseDetail() {
         </Box>
 
         <Box bg={bg} p={8} borderRadius="2xl" border="1px solid" borderColor={borderColor}>
-          <Heading size="sm" mb={6} textTransform="uppercase" letterSpacing="wider" color={textColor}>
+          <Heading size="sm" mb={6} letterSpacing="wider" color={textColor}>
             Timeline Details
           </Heading>
           <VStack align="stretch" spacing={4}>
@@ -194,7 +193,7 @@ export default function LeaseDetail() {
       {/* Payment History */}
       <Box bg={bg} borderRadius="2xl" border="1px solid" borderColor={borderColor} overflow="hidden" mb={8}>
         <Box p={6} borderBottom="1px solid" borderColor={borderColor} bg={tableHBg}>
-          <Heading size="sm" textTransform="uppercase" letterSpacing="wider" color={textColor}>
+          <Heading size="sm" letterSpacing="wider" color={textColor}>
             Payment History
           </Heading>
         </Box>
@@ -222,7 +221,7 @@ export default function LeaseDetail() {
                     <Td>
                       <Badge colorScheme={p.type === 'rent' ? 'green' : 'blue'}>{p.type}</Badge>
                     </Td>
-                    <Td fontSize="sm" textTransform="uppercase" color={mutedText}>{p.payment_method}</Td>
+                    <Td fontSize="sm" color={mutedText}>{p.payment_method}</Td>
                     <Td isNumeric fontSize="sm" fontWeight="black" color="green.500">{fmt(p.amount_paid)}</Td>
                   </Tr>
                 ))
@@ -244,7 +243,7 @@ export default function LeaseDetail() {
                 </Flex>
                 <Flex justify="space-between" align="center">
                   <Badge colorScheme={p.type === 'rent' ? 'green' : 'blue'} px={2} py={0.5} borderRadius="full">{p.type}</Badge>
-                  <Text fontSize="xs" fontWeight="bold" textTransform="uppercase" color={mutedText}>Method: {p.payment_method}</Text>
+                  <Text fontSize="xs" fontWeight="bold" color={mutedText}>Method: {p.payment_method}</Text>
                 </Flex>
               </Box>
             ))
@@ -255,7 +254,7 @@ export default function LeaseDetail() {
       {/* Utility Bills */}
       <Box bg={bg} borderRadius="2xl" border="1px solid" borderColor={borderColor} overflow="hidden">
         <Box p={6} borderBottom="1px solid" borderColor={borderColor} bg={tableHBg}>
-          <Heading size="sm" textTransform="uppercase" letterSpacing="wider" color={textColor}>
+          <Heading size="sm" letterSpacing="wider" color={textColor}>
             Billing History
           </Heading>
         </Box>
@@ -283,7 +282,7 @@ export default function LeaseDetail() {
                     <Td fontSize="sm" fontWeight="bold" color={textColor}>
                       {dayjs(b.billing_date).format('MMM YYYY')}
                     </Td>
-                    <Td fontSize="sm" textTransform="uppercase">{b.type}</Td>
+                    <Td fontSize="sm">{b.type}</Td>
                     <Td fontSize="xs" color={mutedText}>
                       {b.previous_reading} - {b.current_reading} ({b.current_reading - b.previous_reading} units)
                     </Td>
@@ -308,7 +307,7 @@ export default function LeaseDetail() {
                 <Flex justify="space-between" align="center" mb={3}>
                   <Box>
                     <Text fontSize="sm" fontWeight="bold" color={textColor}>{dayjs(b.billing_date).format('MMM YYYY')}</Text>
-                    <Text fontSize="xs" fontWeight="bold" textTransform="uppercase" color={mutedText} mt={1}>{b.type}</Text>
+                    <Text fontSize="xs" fontWeight="bold" color={mutedText} mt={1}>{b.type}</Text>
                   </Box>
                   <Box textAlign="right">
                     <Text fontSize="lg" fontWeight="bold" color={textColor}>{fmt(b.amount)}</Text>

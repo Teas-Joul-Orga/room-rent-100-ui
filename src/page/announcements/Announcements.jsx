@@ -209,7 +209,7 @@ export default function Announcements() {
                   <HStack spacing={4} color={mutedText} fontSize="xs" fontWeight="bold">
                      <HStack>
                         <Icon as={FiAlertCircle} />
-                        <Text textTransform="uppercase" letterSpacing="widest">Official Update</Text>
+                        <Text letterSpacing="widest">Official Update</Text>
                      </HStack>
                   </HStack>
                   {isScheduled && (

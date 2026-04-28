@@ -68,6 +68,7 @@ import Bills from "./page/utility/Bills";
 
 import Landing from "./page/Landing";
 import PublicAnnouncements from "./page/PublicAnnouncements";
+import About from "./page/About";
 import Login from "./Login";
 import Signup from "./Signup";
 import ProtectedRoute from "./ProtectedRoute";
@@ -107,6 +108,7 @@ function App() {
           {/* Public Landing Pages */}
           <Route path="/" element={<Landing />} />
           <Route path="/announcements" element={<PublicAnnouncements />} />
+          <Route path="/about" element={<About />} />
 
           {/* Dashboard Area */}
           <Route

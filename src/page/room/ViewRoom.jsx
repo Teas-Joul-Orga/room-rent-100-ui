@@ -31,6 +31,8 @@ import {
 import { FiEdit2, FiUser, FiPhone, FiCalendar, FiUsers, FiHome, FiDollarSign, FiClock, FiArrowLeft, FiZap, FiDroplet, FiImage, FiPlus, FiCreditCard } from "react-icons/fi";
 import toast, { Toaster } from "react-hot-toast";
 import RecordPaymentModal from "../../components/RecordPaymentModal";
+import ChakraDatePicker from "../../components/ChakraDatePicker";
+
 
 const API = "http://localhost:8000/api/v1/admin";
 
@@ -372,23 +374,23 @@ export default function ViewRoom() {
                   {/* General Info */}
                   <Box bg={cardBg} p={8} borderRadius="2xl" shadow="sm" border="1px" borderColor={borderColor}>
                     <Flex justify="space-between" align="center" mb={6}>
-                       <Text fontSize="md" fontWeight="black" color={textColor} textTransform="uppercase" letterSpacing="tight">General Information</Text>
+                       <Text fontSize="md" fontWeight="black" color={textColor} letterSpacing="tight">General Information</Text>
                     </Flex>
                     <Grid templateColumns="repeat(2, 1fr)" gap={6}>
                       <Box>
-                         <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase" letterSpacing="wider" mb={1}>Room Number</Text>
+                         <Text fontSize="xs" fontWeight="bold" color={mutedText} letterSpacing="wider" mb={1}>Room Number</Text>
                          <Text fontSize="md" fontWeight="bold" color={textColor}>{room.name}</Text>
                       </Box>
                       <Box>
-                         <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase" letterSpacing="wider" mb={1}>Floor / Area</Text>
+                         <Text fontSize="xs" fontWeight="bold" color={mutedText} letterSpacing="wider" mb={1}>Floor / Area</Text>
                          <Text fontSize="md" fontWeight="bold" color={textColor}>{room.size || "Unknown"}</Text>
                       </Box>
                       <Box>
-                         <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase" letterSpacing="wider" mb={1}>Type</Text>
+                         <Text fontSize="xs" fontWeight="bold" color={mutedText} letterSpacing="wider" mb={1}>Type</Text>
                          <Text fontSize="md" fontWeight="bold" color={textColor}>Standard</Text>
                       </Box>
                       <Box>
-                         <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase" letterSpacing="wider" mb={1}>Status</Text>
+                         <Text fontSize="xs" fontWeight="bold" color={mutedText} letterSpacing="wider" mb={1}>Status</Text>
                          <Badge colorScheme={room.status === "available" ? "green" : room.status === "occupied" ? "blue" : "orange"} borderRadius="full" px={3} py={1} textTransform="capitalize">
                            {room.status}
                          </Badge>
@@ -398,7 +400,7 @@ export default function ViewRoom() {
 
                   {/* Room Photos */}
                   <Box bg={cardBg} p={8} borderRadius="2xl" shadow="sm" border="1px" borderColor={borderColor}>
-                    <Text fontSize="md" fontWeight="black" color={textColor} textTransform="uppercase" letterSpacing="tight" mb={6}>Room Photos</Text>
+                    <Text fontSize="md" fontWeight="black" color={textColor} letterSpacing="tight" mb={6}>Room Photos</Text>
                     <Box>
                       {roomImages.length > 0 ? (
                         <Flex direction="column" gap={4}>
@@ -420,7 +422,7 @@ export default function ViewRoom() {
                       ) : (
                         <Flex w="full" h="200px" bg="gray.50" borderRadius="xl" border="2px dashed" borderColor="gray.200" align="center" justify="center" direction="column" color="gray.400">
                           <Icon as={FiImage} boxSize={8} mb={2} color="gray.300" />
-                          <Text fontSize="xs" fontWeight="bold" textTransform="uppercase">No images uploaded</Text>
+                          <Text fontSize="xs" fontWeight="bold">No images uploaded</Text>
                         </Flex>
                       )}
                     </Box>
@@ -428,7 +430,7 @@ export default function ViewRoom() {
 
                   {/* Description */}
                   <Box bg={cardBg} p={8} borderRadius="2xl" shadow="sm" border="1px" borderColor={borderColor}>
-                    <Text fontSize="md" fontWeight="black" color={textColor} textTransform="uppercase" letterSpacing="tight" mb={4}>Description</Text>
+                    <Text fontSize="md" fontWeight="black" color={textColor} letterSpacing="tight" mb={4}>Description</Text>
                     <Text color={mutedText} fontStyle="italic" lineHeight="tall">
                       {room.description || "None listed"}
                     </Text>
@@ -478,7 +480,7 @@ export default function ViewRoom() {
 
                   {/* Meter Readings Card */}
                   <Box bg={cardBg} p={8} borderRadius="2xl" shadow="sm" border="1px" borderColor={borderColor}>
-                    <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="widest" mb={6} textAlign="left">
+                    <Text fontSize="xs" fontWeight="black" color="gray.400" letterSpacing="widest" mb={6} textAlign="left">
                       Current Meter Snapshots
                     </Text>
                     <VStack align="stretch" spacing={4}>
@@ -528,7 +530,7 @@ export default function ViewRoom() {
                         room.leases.map((lease) => (
                           <Tr key={lease.id} _hover={{ bg: hoverBg }}>
                             <Td py={4}>
-                              <Text fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="tight" color={textColor}>
+                              <Text fontSize="sm" fontWeight="black" letterSpacing="tight" color={textColor}>
                                 {lease.tenant?.name || "Unknown"}
                               </Text>
                               <Text fontSize="xs" fontWeight="bold" color={mutedText}>
@@ -573,7 +575,7 @@ export default function ViewRoom() {
                 <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={6} mb={8}>
                   <Box bg={useColorModeValue("yellow.50", "yellow.900")} p={6} borderRadius="xl" border="1px" borderColor={useColorModeValue("yellow.100", "yellow.800")}>
                     <Flex align="center" justify="space-between" mb={2}>
-                      <Text fontSize="xs" fontWeight="black" color={useColorModeValue("yellow.800", "yellow.200")} textTransform="uppercase" letterSpacing="widest">
+                      <Text fontSize="xs" fontWeight="black" color={useColorModeValue("yellow.800", "yellow.200")} letterSpacing="widest">
                         Electricity
                       </Text>
                       <Icon as={FiZap} boxSize={5} color="yellow.500" />
@@ -591,7 +593,7 @@ export default function ViewRoom() {
 
                   <Box bg={useColorModeValue("blue.50", "blue.900")} p={6} borderRadius="xl" border="1px" borderColor={useColorModeValue("blue.100", "blue.800")}>
                     <Flex align="center" justify="space-between" mb={2}>
-                      <Text fontSize="xs" fontWeight="black" color={useColorModeValue("blue.800", "blue.200")} textTransform="uppercase" letterSpacing="widest">
+                      <Text fontSize="xs" fontWeight="black" color={useColorModeValue("blue.800", "blue.200")} letterSpacing="widest">
                         Water
                       </Text>
                       <Icon as={FiDroplet} boxSize={5} color="blue.500" />
@@ -734,7 +736,7 @@ export default function ViewRoom() {
         <ModalOverlay bg="blackAlpha.600" />
         <ModalContent bg={cardBg} borderRadius="xl">
           <form onSubmit={handleSaveBill}>
-            <ModalHeader color={textColor} fontSize="lg" fontWeight="black" textTransform="uppercase" letterSpacing="tight">
+            <ModalHeader color={textColor} fontSize="lg" fontWeight="black" letterSpacing="tight">
               Add New Utility Bill for {room.name}
             </ModalHeader>
             <ModalCloseButton />
@@ -769,7 +771,7 @@ export default function ViewRoom() {
                           <Input size="sm" bg="white" type="number" step="0.01" value={addForm.cost_per_unit} onChange={e => setAddForm({ ...addForm, cost_per_unit: e.target.value })} />
                         </FormControl>
                         <Box display="flex" flexDirection="column" justifyContent="center">
-                          <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase">Usage</Text>
+                          <Text fontSize="xs" fontWeight="black" color="gray.400">Usage</Text>
                           <Text fontWeight="black" fontSize="sm" color="blue.600">{usage.toFixed(2)} units</Text>
                         </Box>
                       </SimpleGrid>
@@ -792,7 +794,7 @@ export default function ViewRoom() {
                     </FormControl>
                     <FormControl isRequired>
                       <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Due Date</FormLabel>
-                      <Input size="sm" type="date" value={addForm.due_date} onChange={e => setAddForm({ ...addForm, due_date: e.target.value })} isDisabled={addForm.isReadingOnly} />
+                      <ChakraDatePicker size="sm"  selectedDate={addForm.due_date} onChange={(val) => setAddForm({ ...addForm, due_date: val })} isDisabled={addForm.isReadingOnly} />
                     </FormControl>
                   </SimpleGrid>
 

@@ -286,6 +286,8 @@ function MaintenanceRoom() {
               <option value="urgent">Urgent</option>
               <option value="emergency">Emergency</option>
             </Select>
+          </HStack>
+          <HStack spacing={2}>
             <Select size="sm" w={{ base: "auto", md: "150px" }} bg={bg} borderRadius="md" value={sortOption} onChange={e => setSortOption(e.target.value)}>
               <option value="">Sort: Default</option>
               <option value="created_at|desc">Newest First</option>

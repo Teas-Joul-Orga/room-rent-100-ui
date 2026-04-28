@@ -433,7 +433,7 @@ export default function Chat() {
               </Avatar>
               <Box>
                 <Text fontWeight="black" color={textColor} lineHeight="1.2">{selectedContact.name}</Text>
-                <Text fontSize="xs" color="green.500" fontWeight="bold" textTransform="uppercase" letterSpacing="wide">Online</Text>
+                <Text fontSize="xs" color="green.500" fontWeight="bold" letterSpacing="wide">Online</Text>
               </Box>
               <Flex flex={1} justify="flex-end">
                 <IconButton icon={<FiMoreVertical />} variant="ghost" size="sm" aria-label="Options" color="gray.500" />
@@ -468,7 +468,7 @@ export default function Chat() {
                      <React.Fragment key={msg.id}>
                        {showDate && (
                          <Flex justify="center" my={4}>
-                           <Badge bg={dateBadgeBg} color={dateBadgeText} px={3} py={1} borderRadius="full" fontSize="xs" fontWeight="bold" textTransform="uppercase" letterSpacing="wider">
+                           <Badge bg={dateBadgeBg} color={dateBadgeText} px={3} py={1} borderRadius="full" fontSize="xs" fontWeight="bold" letterSpacing="wider">
                              {formatDateGroup(msg.created_at)}
                            </Badge>
                          </Flex>

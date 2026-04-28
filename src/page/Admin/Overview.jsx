@@ -170,10 +170,10 @@ export default function Overview() {
         {/* RECENT MAINTENANCE FEED */}
         <Box bg={cardBg} borderRadius="2xl" boxShadow="sm" borderWidth="1px" borderColor={cardBorder} overflow="hidden">
           <Flex p={6} borderBottom="1px" borderColor={itemBorderColor} bg={headerBg} justify="space-between" align="center">
-            <Text fontWeight="black" color={textColor} textTransform="uppercase" letterSpacing="tight">
+            <Text fontWeight="black" color={textColor} letterSpacing="tight">
               Recent Repair Requests
             </Text>
-            <Text as="button" onClick={() => navigate("/dashboard/maintenance")} fontSize="10px" fontWeight="black" color="blue.600" textTransform="uppercase" _hover={{ textDecoration: "underline" }}>
+            <Text as="button" onClick={() => navigate("/dashboard/maintenance")} fontSize="10px" fontWeight="black" color="blue.600" _hover={{ textDecoration: "underline" }}>
               View All
             </Text>
           </Flex>
@@ -182,20 +182,20 @@ export default function Overview() {
               recentRequests.map((req) => (
                 <Flex key={req.id} p={4} align="center" justify="space-between" _hover={{ bg: (colorMode === 'light' ? "gray.50" : "gray.700") }} transition="all 0.2s">
                   <HStack spacing={4}>
-                    <Circle size="10" bg={(colorMode === 'light' ? "gray.100" : "gray.600")} color={mutedTextColor} fontWeight="black" textTransform="uppercase">
+                    <Circle size="10" bg={(colorMode === 'light' ? "gray.100" : "gray.600")} color={mutedTextColor} fontWeight="black">
                       {req.tenant?.name ? req.tenant.name.substring(0, 1) : "?"}
                     </Circle>
                     <Box>
-                      <Text fontSize="sm" fontWeight="black" color={textColor} textTransform="uppercase" letterSpacing="tight">
+                      <Text fontSize="sm" fontWeight="black" color={textColor} letterSpacing="tight">
                         {req.title}
                       </Text>
-                      <Text fontSize="10px" color={mutedTextColor} fontWeight="bold" textTransform="uppercase">
+                      <Text fontSize="10px" color={mutedTextColor} fontWeight="bold">
                         {req.room?.name || "N/A"} • {dayjs(req.created_at).fromNow()}
                       </Text>
                     </Box>
                   </HStack>
                   <Text 
-                    px={2} py={1} borderRadius="md" fontSize="9px" fontWeight="black" textTransform="uppercase"
+                    px={2} py={1} borderRadius="md" fontSize="9px" fontWeight="black"
                     bg={req.priority === 'emergency' ? (colorMode === 'light' ? 'red.100' : 'red.900') : (colorMode === 'light' ? 'blue.100' : 'blue.900')}
                     color={req.priority === 'emergency' ? (colorMode === 'light' ? 'red.700' : 'red.200') : (colorMode === 'light' ? 'blue.700' : 'blue.200')}
                   >
@@ -216,7 +216,7 @@ export default function Overview() {
         {/* UPCOMING VACANCIES */}
         <Box bg={cardBg} borderRadius="2xl" boxShadow="sm" borderWidth="1px" borderColor={cardBorder} overflow="hidden">
           <Box p={6} borderBottom="1px" borderColor={itemBorderColor} bg={headerBg}>
-            <Text fontWeight="black" color={textColor} textTransform="uppercase" letterSpacing="tight">
+            <Text fontWeight="black" color={textColor} letterSpacing="tight">
               Leases Expiring Soon
             </Text>
           </Box>
@@ -225,10 +225,10 @@ export default function Overview() {
               upcomingLeaseEnds.map((lease) => (
                 <Flex key={lease.id} p={4} align="center" justify="space-between" _hover={{ bg: (colorMode === 'light' ? "gray.50" : "gray.700") }} transition="all 0.2s">
                   <Box>
-                    <Text fontSize="sm" fontWeight="black" color={textColor} textTransform="uppercase" letterSpacing="tight">
+                    <Text fontSize="sm" fontWeight="black" color={textColor} letterSpacing="tight">
                       {lease.tenant?.name || "Unknown"}
                     </Text>
-                    <Text fontSize="10px" color={mutedTextColor} fontWeight="bold" textTransform="uppercase">
+                    <Text fontSize="10px" color={mutedTextColor} fontWeight="bold">
                       {lease.room?.name || "Unknown"}
                     </Text>
                   </Box>
@@ -236,7 +236,7 @@ export default function Overview() {
                     <Text fontSize="xs" fontWeight="black" color={textColor}>
                       {dayjs(lease.end_date).format("MMM D, YYYY")}
                     </Text>
-                    <Text fontSize="9px" color={(colorMode === 'light' ? "orange.600" : "orange.400")} fontWeight="bold" textTransform="uppercase">
+                    <Text fontSize="9px" color={(colorMode === 'light' ? "orange.600" : "orange.400")} fontWeight="bold">
                       {dayjs(lease.end_date).diff(dayjs(), 'day')} Days Left
                     </Text>
                   </Box>
@@ -270,10 +270,10 @@ export default function Overview() {
       >
         <Box mb={{ base: 6, md: 0 }}>
           <HStack spacing={3} mb={1}>
-            <Text fontSize="2xl" fontWeight="black" textTransform="uppercase" letterSpacing="tight">
+            <Text fontSize="2xl" fontWeight="black" letterSpacing="tight">
               Monthly Billing Cycle
             </Text>
-            <Text bg="blue.600" color="blue.100" fontSize="10px" fontWeight="black" px={2} py={0.5} borderRadius="md" textTransform="uppercase" letterSpacing="widest" opacity={0.8}>
+            <Text bg="blue.600" color="blue.100" fontSize="10px" fontWeight="black" px={2} py={0.5} borderRadius="md" letterSpacing="widest" opacity={0.8}>
               Automation
             </Text>
           </HStack>
@@ -287,7 +287,6 @@ export default function Overview() {
             onClick={() => navigate("/dashboard/utility")} 
             fontSize="xs" 
             fontWeight="black" 
-            textTransform="uppercase" 
             color="gray.400" 
             _hover={{ color: "white" }} 
             transition="all 0.2s" 
@@ -301,7 +300,6 @@ export default function Overview() {
              _hover={{ bg: "blue.700", transform: "scale(0.98)" }}
              _active={{ transform: "scale(0.95)" }}
              fontWeight="black"
-             textTransform="uppercase"
              fontSize="xs"
              letterSpacing="widest"
              px={8}

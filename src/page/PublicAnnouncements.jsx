@@ -204,17 +204,17 @@ const PublicAnnouncements = () => {
         }}
       >
         {/* Floating Pill Navbar */}
-        <Flex position="absolute" top="40px" w="full" justify="center" zIndex={10}>
+        <Flex position="fixed" top="85px" w="full" justify="center" zIndex={1100}>
           <Flex bg="whiteAlpha.900" backdropFilter="blur(10px)" borderRadius="full" shadow="xl" p={1.5} align="center" border="1px solid" borderColor="whiteAlpha.500">
-            <Button leftIcon={<FiHome />} variant="ghost" color="gray.700" borderRadius="full" px={6} py={6} fontSize="15px" fontWeight="bold" _hover={{ bg: "blackAlpha.100" }} onClick={() => navigate('/')}>Home</Button>
-            <Button leftIcon={<FiSpeaker />} colorScheme="blue" bg="blue.500" color="white" borderRadius="full" px={6} py={6} fontSize="15px" fontWeight="bold" _hover={{ bg: "blue.600" }} onClick={() => navigate('/announcements')}>Announcement</Button>
-            <Button leftIcon={<FiUsers />} variant="ghost" color="gray.700" borderRadius="full" px={6} py={6} fontSize="15px" fontWeight="bold" _hover={{ bg: "blackAlpha.100" }}>About Us</Button>
+            <Button leftIcon={<FiHome />} variant="ghost" color="gray.700" borderRadius="full" px={6} py={6} fontSize="15px" fontWeight="bold" _hover={{ bg: "blackAlpha.100" }} onClick={() => navigate('/')}>{t('nav.home')}</Button>
+            <Button leftIcon={<FiSpeaker />} colorScheme="blue" bg="blue.500" color="white" borderRadius="full" px={6} py={6} fontSize="15px" fontWeight="bold" _hover={{ bg: "blue.600" }} onClick={() => navigate('/announcements')}>{t('nav.announcement')}</Button>
+            <Button leftIcon={<FiUsers />} variant="ghost" color="gray.700" borderRadius="full" px={6} py={6} fontSize="15px" fontWeight="bold" _hover={{ bg: "blackAlpha.100" }} onClick={() => navigate('/about')}>{t('nav.about_us')}</Button>
           </Flex>
         </Flex>
 
         <Container maxW="container.xl" position="relative" zIndex={2} mt={16}>
           <VStack align="center" spacing={4} textAlign="center">
-            <Heading as="h1" size="2xl" color="white" textTransform="uppercase" letterSpacing="tight">
+            <Heading as="h1" size="2xl" color="white" letterSpacing="tight">
               Latest Announcements
             </Heading>
             <Text fontSize="lg" color="whiteAlpha.900" maxW="2xl">
@@ -341,13 +341,13 @@ const PublicAnnouncements = () => {
               <Heading size="md" color="white">{settings.app_name}</Heading>
             </VStack>
             <VStack align="flex-start" spacing={4}>
-              <Heading size="sm" color="white">Quick Links</Heading>
-              <Button variant="link" size="sm" onClick={() => navigate("/")}>Home</Button>
+              <Heading size="sm" color="white">{t('footer.quick_links')}</Heading>
+              <Button variant="link" size="sm" onClick={() => navigate("/")}>{t('nav.home')}</Button>
               <Button variant="link" size="sm" onClick={() => navigate("/announcements")}>Announcements</Button>
               <Button variant="link" size="sm" onClick={() => navigate("/login")}>Login</Button>
             </VStack>
             <VStack align="flex-start" spacing={4}>
-              <Heading size="sm" color="white">Contact Details</Heading>
+              <Heading size="sm" color="white">{t('footer.contact_details')}</Heading>
               <HStack><Icon as={FiMapPin} /><Text fontSize="sm">{settings.address}</Text></HStack>
               <HStack><Icon as={FiPhone} /><Text fontSize="sm">{settings.phone}</Text></HStack>
               <HStack><Icon as={FiMail} /><Text fontSize="sm">{settings.email}</Text></HStack>

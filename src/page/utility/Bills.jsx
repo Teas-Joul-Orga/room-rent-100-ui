@@ -258,7 +258,7 @@ export default function Bills() {
     <Box p={{ base: 4, md: 8 }} maxW="full" mx="auto">
       <Flex justify="space-between" align="center" mb={8} flexWrap="wrap" gap={4}>
         <Box>
-          <Text fontSize="2xl" fontWeight="black" color={useColorModeValue("gray.800", "white")} textTransform="uppercase" letterSpacing="tight">
+          <Text fontSize="2xl" fontWeight="black" color={useColorModeValue("gray.800", "white")} letterSpacing="tight">
             Overdue Bills
           </Text>
           <Text fontSize="sm" color="gray.500" fontWeight="medium">
@@ -342,17 +342,17 @@ export default function Bills() {
                         <Table variant="simple" size="md">
                           <Thead bg={useColorModeValue("gray.50", "gray.800")}>
                             <Tr>
-                              <Th color="gray.500" fontSize="xs" fontWeight="black" textTransform="uppercase" cursor="pointer" onClick={() => handleSortRent('tenant_name')}>
+                              <Th color="gray.500" fontSize="xs" fontWeight="black" cursor="pointer" onClick={() => handleSortRent('tenant_name')}>
                                 <Flex align="center" gap={1}>Tenant {sortFieldRent==='tenant_name' && (sortOrderRent==='asc'?<FiArrowUp/>:<FiArrowDown/>)}</Flex>
                               </Th>
-                              <Th color="gray.500" fontSize="xs" fontWeight="black" textTransform="uppercase" cursor="pointer" onClick={() => handleSortRent('room_name')}>
+                              <Th color="gray.500" fontSize="xs" fontWeight="black" cursor="pointer" onClick={() => handleSortRent('room_name')}>
                                 <Flex align="center" gap={1}>Room {sortFieldRent==='room_name' && (sortOrderRent==='asc'?<FiArrowUp/>:<FiArrowDown/>)}</Flex>
                               </Th>
-                              <Th color="gray.500" fontSize="xs" fontWeight="black" textTransform="uppercase" cursor="pointer" onClick={() => handleSortRent('rentDue')}>
+                              <Th color="gray.500" fontSize="xs" fontWeight="black" cursor="pointer" onClick={() => handleSortRent('rentDue')}>
                                 <Flex align="center" gap={1}>Amount Due {sortFieldRent==='rentDue' && (sortOrderRent==='asc'?<FiArrowUp/>:<FiArrowDown/>)}</Flex>
                               </Th>
-                              <Th color="gray.500" fontSize="xs" fontWeight="black" textTransform="uppercase">Status</Th>
-                              <Th color="gray.500" fontSize="xs" fontWeight="black" textTransform="uppercase" textAlign="right"></Th>
+                              <Th color="gray.500" fontSize="xs" fontWeight="black">Status</Th>
+                              <Th color="gray.500" fontSize="xs" fontWeight="black" textAlign="right"></Th>
                             </Tr>
                           </Thead>
                           <Tbody>
@@ -362,7 +362,7 @@ export default function Bills() {
                                 <Td fontSize="sm" color="gray.500">{lease.room?.name || lease.room_name}</Td>
                                 <Td fontSize="sm" fontWeight="black" color="red.600">{formatCurrency(lease.rentDue)}</Td>
                                 <Td>
-                                  <Badge px={3} py={1} borderRadius="full" fontSize="xs" fontWeight="bold" textTransform="uppercase" letterSpacing="wider" colorScheme="red">Overdue</Badge>
+                                  <Badge px={3} py={1} borderRadius="full" fontSize="xs" fontWeight="bold" letterSpacing="wider" colorScheme="red">Overdue</Badge>
                                 </Td>
                                 <Td textAlign="right">
                                   <Button 
@@ -429,22 +429,22 @@ export default function Bills() {
                         <Table variant="simple" size="md">
                           <Thead bg={useColorModeValue("gray.50", "gray.800")}>
                             <Tr>
-                              <Th color="gray.500" fontSize="xs" fontWeight="black" textTransform="uppercase" cursor="pointer" onClick={() => handleSortUtil('tenant_name')}>
+                              <Th color="gray.500" fontSize="xs" fontWeight="black" cursor="pointer" onClick={() => handleSortUtil('tenant_name')}>
                                 <Flex align="center" gap={1}>Tenant {sortFieldUtil==='tenant_name' && (sortOrderUtil==='asc'?<FiArrowUp/>:<FiArrowDown/>)}</Flex>
                               </Th>
-                              <Th color="gray.500" fontSize="xs" fontWeight="black" textTransform="uppercase" cursor="pointer" onClick={() => handleSortUtil('room_name')}>
+                              <Th color="gray.500" fontSize="xs" fontWeight="black" cursor="pointer" onClick={() => handleSortUtil('room_name')}>
                                 <Flex align="center" gap={1}>Room {sortFieldUtil==='room_name' && (sortOrderUtil==='asc'?<FiArrowUp/>:<FiArrowDown/>)}</Flex>
                               </Th>
-                              <Th color="gray.500" fontSize="xs" fontWeight="black" textTransform="uppercase" cursor="pointer" onClick={() => handleSortUtil('type')}>
+                              <Th color="gray.500" fontSize="xs" fontWeight="black" cursor="pointer" onClick={() => handleSortUtil('type')}>
                                 <Flex align="center" gap={1}>Type {sortFieldUtil==='type' && (sortOrderUtil==='asc'?<FiArrowUp/>:<FiArrowDown/>)}</Flex>
                               </Th>
-                              <Th color="gray.500" fontSize="xs" fontWeight="black" textTransform="uppercase" cursor="pointer" onClick={() => handleSortUtil('due_date')}>
+                              <Th color="gray.500" fontSize="xs" fontWeight="black" cursor="pointer" onClick={() => handleSortUtil('due_date')}>
                                 <Flex align="center" gap={1}>Due Date {sortFieldUtil==='due_date' && (sortOrderUtil==='asc'?<FiArrowUp/>:<FiArrowDown/>)}</Flex>
                               </Th>
-                              <Th color="gray.500" fontSize="xs" fontWeight="black" textTransform="uppercase" cursor="pointer" onClick={() => handleSortUtil('amount')}>
+                              <Th color="gray.500" fontSize="xs" fontWeight="black" cursor="pointer" onClick={() => handleSortUtil('amount')}>
                                 <Flex align="center" gap={1}>Amount {sortFieldUtil==='amount' && (sortOrderUtil==='asc'?<FiArrowUp/>:<FiArrowDown/>)}</Flex>
                               </Th>
-                              <Th color="gray.500" fontSize="xs" fontWeight="black" textTransform="uppercase" textAlign="right"></Th>
+                              <Th color="gray.500" fontSize="xs" fontWeight="black" textAlign="right"></Th>
                             </Tr>
                           </Thead>
                           <Tbody>
@@ -453,7 +453,7 @@ export default function Bills() {
                                 <Td fontSize="sm" fontWeight="bold">{bill.lease?.tenant?.name || "Unknown Tenant"}</Td>
                                 <Td fontSize="sm" color="gray.500">{bill.room?.name || bill.lease?.room?.name}</Td>
                                 <Td>
-                                  <Badge px={3} py={1} borderRadius="full" fontSize="xs" fontWeight="bold" textTransform="uppercase" letterSpacing="wider" colorScheme={bill.type === "electricity" ? "yellow" : bill.type === "water" ? "blue" : "gray"}>
+                                  <Badge px={3} py={1} borderRadius="full" fontSize="xs" fontWeight="bold" letterSpacing="wider" colorScheme={bill.type === "electricity" ? "yellow" : bill.type === "water" ? "blue" : "gray"}>
                                     {bill.type}
                                   </Badge>
                                 </Td>

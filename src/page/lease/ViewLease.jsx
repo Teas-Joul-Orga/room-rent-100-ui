@@ -19,6 +19,8 @@ import {
   FiTool, FiTrendingDown, FiZap, FiDroplet, FiImage, FiHome, FiChevronDown, FiMinus
 } from "react-icons/fi";
 import echo from "../../lib/echo";
+import ChakraDatePicker from "../../components/ChakraDatePicker";
+
 
 const API = "http://localhost:8000/api/v1/admin";
 
@@ -629,7 +631,6 @@ export default function ViewLease() {
         borderRadius="full"
         fontSize="xs"
         fontWeight="black"
-        textTransform="uppercase"
         letterSpacing="wider"
         display="inline-flex"
         alignItems="center"
@@ -997,18 +998,18 @@ export default function ViewLease() {
             <Box flex={1}>
               <Flex direction={{ base: "column", md: "row" }} justify="space-between" align={{ md: "center" }} borderBottom="1px solid" borderColor={borderColor} pb={5} mb={5}>
                 <Box>
-                  <Heading size="lg" textTransform="uppercase" letterSpacing="tight" color={textColor}>
+                  <Heading size="lg" letterSpacing="tight" color={textColor}>
                     {lease.room?.name || "Unknown Room"}
                   </Heading>
-                  <Text fontSize="sm" fontWeight="black" color={mutedText} mt={1} textTransform="uppercase" letterSpacing="tight">
+                  <Text fontSize="sm" fontWeight="black" color={mutedText} mt={1} letterSpacing="tight">
                     {fmtDate(lease.start_date)} — {fmtDate(lease.end_date)}
                   </Text>
                 </Box>
                 <Box textAlign={{ md: "right" }} mt={{ base: 3, md: 0 }}>
-                  <Text fontSize="md" fontWeight="black" textTransform="uppercase" letterSpacing="tight" color={textColor}>
+                  <Text fontSize="md" fontWeight="black" letterSpacing="tight" color={textColor}>
                     {lease.tenant?.name || "Unknown"}
                   </Text>
-                  <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mt={1}>
+                  <Text fontSize="xs" fontWeight="black" color="gray.400" letterSpacing="wider" mt={1}>
                     {t("lease.resident_and_lease_profile")}
                   </Text>
                 </Box>
@@ -1016,19 +1017,19 @@ export default function ViewLease() {
 
               <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={6}>
                 <Box>
-                   <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>{t("lease.email")}</Text>
+                   <Text fontSize="xs" fontWeight="black" color="gray.400" letterSpacing="wider" mb={1}>{t("lease.email")}</Text>
                   <Text fontSize="md" fontWeight="bold" color={textColor} wordBreak="break-all">{lease.tenant?.email || "—"}</Text>
                 </Box>
                 <Box>
-                   <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>{t("lease.phone")}</Text>
+                   <Text fontSize="xs" fontWeight="black" color="gray.400" letterSpacing="wider" mb={1}>{t("lease.phone")}</Text>
                   <Text fontSize="md" fontWeight="bold" color={textColor}>{lease.tenant?.phone || "N/A"}</Text>
                 </Box>
                 <Box>
-                   <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>{t("lease.occupation")}</Text>
-                  <Text fontSize="md" fontWeight="bold" color={textColor} textTransform="uppercase">{lease.tenant?.job || "N/A"}</Text>
+                   <Text fontSize="xs" fontWeight="black" color="gray.400" letterSpacing="wider" mb={1}>{t("lease.occupation")}</Text>
+                  <Text fontSize="md" fontWeight="bold" color={textColor}>{lease.tenant?.job || "N/A"}</Text>
                 </Box>
                 <Box>
-                   <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={1}>{t("lease.deposit_status")}</Text>
+                   <Text fontSize="xs" fontWeight="black" color="gray.400" letterSpacing="wider" mb={1}>{t("lease.deposit_status")}</Text>
                   <Badge
                     fontSize="xs"
                     px={3} py={1}
@@ -1038,7 +1039,6 @@ export default function ViewLease() {
                     alignItems="center"
                     gap={1.5}
                     colorScheme={lease.deposit_status === "held" ? "green" : lease.deposit_status === "refunded" ? "purple" : "orange"}
-                    textTransform="uppercase"
                   >
                     <Icon as={lease.deposit_status === "held" ? FiCheckCircle : lease.deposit_status === "refunded" ? FiRefreshCw : FiClock} boxSize={3} />
                     {lease.deposit_status || "unpaid"}
@@ -1052,7 +1052,7 @@ export default function ViewLease() {
                 <Flex gap={3} align="flex-start">
                   <Box mt={0.5}><FiHome size={16} color="#A0AEC0" /></Box>
                   <Box>
-                    <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={0.5}>
+                    <Text fontSize="xs" fontWeight="black" color="gray.400" letterSpacing="wider" mb={0.5}>
                       {lease.room?.floor ? t("lease.floor_and_size") : t("lease.room_size")}
                     </Text>
                     <Text fontSize="md" fontWeight="bold" color={textColor}>
@@ -1064,7 +1064,7 @@ export default function ViewLease() {
                 <Flex gap={3} align="flex-start">
                   <Box mt={0.5}><FiZap size={16} color="#ECC94B" /></Box>
                   <Box>
-                    <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={0.5}>{t("lease.electricity_reading")}</Text>
+                    <Text fontSize="xs" fontWeight="black" color="gray.400" letterSpacing="wider" mb={0.5}>{t("lease.electricity_reading")}</Text>
                     <Text fontSize="md" fontWeight="bold" color={textColor}>{lease.room?.electricity_reading || "0"} kWh</Text>
                   </Box>
                 </Flex>
@@ -1072,7 +1072,7 @@ export default function ViewLease() {
                 <Flex gap={3} align="flex-start">
                   <Box mt={0.5}><FiDroplet size={16} color="#4299E1" /></Box>
                   <Box>
-                    <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={0.5}>{t("lease.water_reading")}</Text>
+                    <Text fontSize="xs" fontWeight="black" color="gray.400" letterSpacing="wider" mb={0.5}>{t("lease.water_reading")}</Text>
                     <Text fontSize="md" fontWeight="bold" color={textColor}>{lease.room?.water_reading || "0"} m³</Text>
                   </Box>
                 </Flex>
@@ -1080,7 +1080,7 @@ export default function ViewLease() {
                 <Flex gap={3} align="flex-start">
                   <Box mt={0.5}><FiDollarSign size={16} color="#48BB78" /></Box>
                   <Box>
-                    <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={0.5}>{t("lease.base_price")}</Text>
+                    <Text fontSize="xs" fontWeight="black" color="gray.400" letterSpacing="wider" mb={0.5}>{t("lease.base_price")}</Text>
                     <Text fontSize="md" fontWeight="bold" color={textColor}>{fmt(lease.room?.base_rent_price)}</Text>
                   </Box>
                 </Flex>
@@ -1096,7 +1096,7 @@ export default function ViewLease() {
           {/* Monthly Rent */}
           <Box bg={cardBg} p={8} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor}>
             <Flex justify="space-between" align="center" mb={2}>
-              <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider">{t("lease.monthly_rent")}</Text>
+              <Text fontSize="xs" fontWeight="black" color="gray.400" letterSpacing="wider">{t("lease.monthly_rent")}</Text>
               {lease.status === "active" && (
                 <Tooltip label="Generate Invoice for This Month" hasArrow>
                   <IconButton
@@ -1113,7 +1113,7 @@ export default function ViewLease() {
             </Flex>
             <Heading size="xl" fontWeight="black" color={textColor}>{fmt(lease.rent_amount)}</Heading>
             {totalRentPaid >= totalContractValue ? (
-              <Text mt={4} fontSize="xs" fontWeight="black" textTransform="uppercase" color="green.600">
+              <Text mt={4} fontSize="xs" fontWeight="black" color="green.600">
                 ✓ {t("lease.fully_paid")}
               </Text>
             ) : (
@@ -1125,10 +1125,10 @@ export default function ViewLease() {
 
           {/* Security Deposit */}
           <Box bg={cardBg} p={8} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor} position="relative">
-            <Badge position="absolute" top={8} right={8} fontSize="xs" fontWeight="black" textTransform="uppercase" colorScheme={lease.deposit_status === "held" ? "green" : "gray"} variant="subtle" px={3} py={1} borderRadius="full">
+            <Badge position="absolute" top={8} right={8} fontSize="xs" fontWeight="black" colorScheme={lease.deposit_status === "held" ? "green" : "gray"} variant="subtle" px={3} py={1} borderRadius="full">
               {lease.deposit_status || "unpaid"}
             </Badge>
-            <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={2}>{t("lease.security_deposit")}</Text>
+            <Text fontSize="xs" fontWeight="black" color="gray.400" letterSpacing="wider" mb={2}>{t("lease.security_deposit")}</Text>
             <Heading size="xl" fontWeight="black" color={textColor}>{fmt(lease.security_deposit)}</Heading>
             {(!lease.deposit_status || lease.deposit_status === "unpaid") && (
               <Button mt={4} size="sm" colorScheme="green" variant="link" onClick={() => { setPayForm({ ...payForm, type: "deposit", amount_paid: toCurrent(lease.security_deposit), currency: (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$" }); onPayOpen(); }}>
@@ -1144,7 +1144,7 @@ export default function ViewLease() {
 
           {/* Unpaid Utilities */}
           <Box bg="gray.900" p={8} borderRadius="xl" shadow="xl">
-            <Text fontSize="xs" fontWeight="black" color="blue.400" textTransform="uppercase" letterSpacing="wider" mb={2}>{t("lease.unpaid_utilities")}</Text>
+            <Text fontSize="xs" fontWeight="black" color="blue.400" letterSpacing="wider" mb={2}>{t("lease.unpaid_utilities")}</Text>
             <Heading size="xl" fontWeight="black" color="white">{fmt(unpaidBillsTotal)}</Heading>
             <Button mt={4} size="sm" color="blue.400" variant="link" _hover={{ color: "white" }}>
                {t("lease.manage_bills")} →
@@ -1153,14 +1153,14 @@ export default function ViewLease() {
 
           {/* Overdue Bills */}
           <Box bg={overdueBillsTotal > 0 ? dangerBg : cardBg} p={8} borderRadius="xl" shadow="sm" border="1px solid" borderColor={overdueBillsTotal > 0 ? "red.200" : borderColor}>
-            <Text fontSize="xs" fontWeight="black" color={overdueBillsTotal > 0 ? "red.600" : "gray.400"} textTransform="uppercase" letterSpacing="wider" mb={2}>{t("lease.overdue_bills")}</Text>
+            <Text fontSize="xs" fontWeight="black" color={overdueBillsTotal > 0 ? "red.600" : "gray.400"} letterSpacing="wider" mb={2}>{t("lease.overdue_bills")}</Text>
             <Heading size="xl" fontWeight="black" color={overdueBillsTotal > 0 ? "red.600" : textColor}>{fmt(overdueBillsTotal)}</Heading>
             {overdueBillsTotal > 0 ? (
               <Button mt={4} size="sm" colorScheme="red" variant="link" onClick={onPayAllOpen}>
                 {t("lease.pay_overdue_bills")}
               </Button>
             ) : (
-              <Text mt={4} fontSize="xs" fontWeight="black" textTransform="uppercase" color="green.600">
+              <Text mt={4} fontSize="xs" fontWeight="black" color="green.600">
                 {t("lease.all_up_to_date")}
               </Text>
             )}
@@ -1173,7 +1173,7 @@ export default function ViewLease() {
               <Flex align="center" gap={3}>
                 <FiAlertCircle color="#E53E3E" size={20} />
                 <Box>
-                  <Text fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="tight" color="red.700">
+                  <Text fontSize="sm" fontWeight="black" letterSpacing="tight" color="red.700">
                     {t("lease.action_required_overdue", { count: overdueBills.length, s: overdueBills.length === 1 ? "" : "s" })}
                   </Text>
                   <Text fontSize="10px" fontWeight="bold" color="red.500" mt="-1px">
@@ -1188,7 +1188,6 @@ export default function ViewLease() {
                 onClick={onOverdueModalOpen}
                 fontSize="xs"
                 fontWeight="black"
-                textTransform="uppercase"
               >
                 Resolve Now
               </Button>
@@ -1200,23 +1199,23 @@ export default function ViewLease() {
         <Tabs variant="line" colorScheme="blue" isLazy>
           <Flex direction={{ base: "column", md: "row" }} align={{ md: "center" }} justify="space-between" borderBottom="1px solid" borderColor={borderColor} mb={0}>
             <TabList border="none">
-              <Tab fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" pb={4}>
+              <Tab fontSize="xs" fontWeight="black" letterSpacing="wider" pb={4}>
                 {t("lease.utility_statement")}
               </Tab>
-              <Tab fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" pb={4}>
+              <Tab fontSize="xs" fontWeight="black" letterSpacing="wider" pb={4}>
                 {t("lease.payment_ledger")}
               </Tab>
-              <Tab fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" pb={4}>
+              <Tab fontSize="xs" fontWeight="black" letterSpacing="wider" pb={4}>
                 <Flex align="center" gap={1.5}><FiTool size={13} /> {t("lease.maintenance")}</Flex>
               </Tab>
-              <Tab fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" pb={4}>
+              <Tab fontSize="xs" fontWeight="black" letterSpacing="wider" pb={4}>
                 <Flex align="center" gap={1.5}><FiTrendingDown size={13} /> {t("lease.expenses")}</Flex>
               </Tab>
-              <Tab fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" pb={4}>
+              <Tab fontSize="xs" fontWeight="black" letterSpacing="wider" pb={4}>
                 <Flex align="center" gap={1.5}><FiClock size={13} /> {t("lease.timeline")}</Flex>
               </Tab>
             </TabList>
-            <Text fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" color="gray.400" pb={{ md: 2 }}>
+            <Text fontSize="xs" fontWeight="black" letterSpacing="wider" color="gray.400" pb={{ md: 2 }}>
               {t("lease.transaction_history")}
             </Text>
           </Flex>
@@ -1226,7 +1225,7 @@ export default function ViewLease() {
             <TabPanel px={0} pt={6}>
               <Box bg={cardBg} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
                 <Flex align="center" justify="space-between" px={6} py={4} bg={tableHBg} borderBottom="1px solid" borderColor={borderColor}>
-                  <Text fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="tight" color={textColor}>
+                  <Text fontSize="sm" fontWeight="black" letterSpacing="tight" color={textColor}>
                     {t("lease.utility_statement")}
                   </Text>
                   <Flex align="center" gap={4}>
@@ -1267,11 +1266,11 @@ export default function ViewLease() {
                           const bills = lease.utility_bills || [];
                           setSelectedBillIds(e.target.checked ? bills.map(b => b.id) : []);
                         }} /></Th>
-                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>{t("common.type")}</Th>
-                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>{t("common.amount")}</Th>
-                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>{t("lease.due_date") || "Due Date"}</Th>
-                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>{t("common.status")}</Th>
-                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>{t("common.description")}</Th>
+                        <Th fontSize="xs" fontWeight="black" letterSpacing="wider" py={4}>{t("common.type")}</Th>
+                        <Th fontSize="xs" fontWeight="black" letterSpacing="wider" py={4}>{t("common.amount")}</Th>
+                        <Th fontSize="xs" fontWeight="black" letterSpacing="wider" py={4}>{t("lease.due_date") || "Due Date"}</Th>
+                        <Th fontSize="xs" fontWeight="black" letterSpacing="wider" py={4}>{t("common.status")}</Th>
+                        <Th fontSize="xs" fontWeight="black" letterSpacing="wider" py={4}>{t("common.description")}</Th>
                         <Th textAlign="right" py={4}></Th>
                       </Tr>
                     </Thead>
@@ -1299,7 +1298,6 @@ export default function ViewLease() {
                                     <Badge
                                       fontSize="10px"
                                       fontWeight="black"
-                                      textTransform="uppercase"
                                       variant="subtle"
                                       colorScheme={cfg.colorScheme}
                                       px={3} py={1}
@@ -1336,7 +1334,6 @@ export default function ViewLease() {
                                       display="inline-flex"
                                       alignItems="center"
                                       gap={1.5}
-                                      textTransform="uppercase"
                                     >
                                       <Icon as={config.icon} boxSize={3} />
                                       {config.label}
@@ -1372,7 +1369,7 @@ export default function ViewLease() {
               <Box bg={cardBg} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor} overflow="hidden">
                 <Flex align="center" justify="space-between" px={6} py={4} bg={tableHBg} borderBottom="1px solid" borderColor={borderColor}>
                   <Flex align="center" gap={3}>
-                    <Text fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="tight" color={textColor}>
+                    <Text fontSize="sm" fontWeight="black" letterSpacing="tight" color={textColor}>
                       {t("lease.payment_ledger")}
                     </Text>
                     {selectedPayments.length > 0 && (
@@ -1405,11 +1402,11 @@ export default function ViewLease() {
                           const payments = lease.payments || [];
                           setSelectedPayments(e.target.checked ? payments.map(p => p.id) : []);
                         }} /></Th>
-                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>{t("common.date")}</Th>
-                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>{t("common.amount")}</Th>
-                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>{t("common.type")}</Th>
-                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>{t("common.method")}</Th>
-                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>{t("common.notes")}</Th>
+                        <Th fontSize="xs" fontWeight="black" letterSpacing="wider" py={4}>{t("common.date")}</Th>
+                        <Th fontSize="xs" fontWeight="black" letterSpacing="wider" py={4}>{t("common.amount")}</Th>
+                        <Th fontSize="xs" fontWeight="black" letterSpacing="wider" py={4}>{t("common.type")}</Th>
+                        <Th fontSize="xs" fontWeight="black" letterSpacing="wider" py={4}>{t("common.method")}</Th>
+                        <Th fontSize="xs" fontWeight="black" letterSpacing="wider" py={4}>{t("common.notes")}</Th>
                         <Th textAlign="right" py={4}></Th>
                       </Tr>
                     </Thead>
@@ -1433,7 +1430,6 @@ export default function ViewLease() {
                                     <Badge 
                                       fontSize="10px" 
                                       fontWeight="black" 
-                                      textTransform="uppercase" 
                                       colorScheme="purple" 
                                       variant="subtle" 
                                       px={3} py={1} 
@@ -1448,7 +1444,7 @@ export default function ViewLease() {
                                   );
                                 })()}
                               </Td>
-                              <Td fontSize="sm" fontWeight="bold" color={textColor} textTransform="uppercase">{payment.payment_method}</Td>
+                              <Td fontSize="sm" fontWeight="bold" color={textColor}>{payment.payment_method}</Td>
                               <Td fontSize="xs" color={mutedText} maxW="400px">{(payment.notes || "—").replace(/\(Hash: [^\)]+\)/gi, "").trim()}</Td>
                               <Td textAlign="right">
                                 <Flex gap={1} justify="flex-end">
@@ -1479,7 +1475,7 @@ export default function ViewLease() {
                 <Flex align="center" justify="space-between" px={6} py={4} bg={tableHBg} borderBottom="1px solid" borderColor={borderColor}>
                   <Flex align="center" gap={2}>
                     <FiTool color={mutedText} size={15}/>
-                    <Text fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="tight" color={textColor}>
+                    <Text fontSize="sm" fontWeight="black" letterSpacing="tight" color={textColor}>
                       Maintenance Requests
                     </Text>
                   </Flex>
@@ -1491,10 +1487,10 @@ export default function ViewLease() {
                   <Table variant="simple" size="sm">
                     <Thead>
                       <Tr>
-                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>Title</Th>
-                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>Priority</Th>
-                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>Status</Th>
-                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>Reported</Th>
+                        <Th fontSize="xs" fontWeight="black" letterSpacing="wider" py={4}>Title</Th>
+                        <Th fontSize="xs" fontWeight="black" letterSpacing="wider" py={4}>Priority</Th>
+                        <Th fontSize="xs" fontWeight="black" letterSpacing="wider" py={4}>Status</Th>
+                        <Th fontSize="xs" fontWeight="black" letterSpacing="wider" py={4}>Reported</Th>
                         <Th textAlign="right" py={4}></Th>
                       </Tr>
                     </Thead>
@@ -1534,7 +1530,6 @@ export default function ViewLease() {
                                       bg={mCfg.bg}
                                       color={mCfg.color}
                                       fontWeight="black"
-                                      textTransform="uppercase"
                                       fontSize="10px"
                                       borderRadius="full"
                                       px={3}
@@ -1576,7 +1571,7 @@ export default function ViewLease() {
                 <Flex align="center" justify="space-between" px={6} py={4} bg={tableHBg} borderBottom="1px solid" borderColor={borderColor}>
                   <Flex align="center" gap={2}>
                     <FiTrendingDown color={mutedText} size={15}/>
-                    <Text fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="tight" color={textColor}>
+                    <Text fontSize="sm" fontWeight="black" letterSpacing="tight" color={textColor}>
                       Room Expenses
                     </Text>
                   </Flex>
@@ -1588,10 +1583,10 @@ export default function ViewLease() {
                   <Table variant="simple" size="sm">
                     <Thead>
                       <Tr>
-                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>Title</Th>
-                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>Category</Th>
-                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>Amount</Th>
-                        <Th fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="wider" py={4}>Date</Th>
+                        <Th fontSize="xs" fontWeight="black" letterSpacing="wider" py={4}>Title</Th>
+                        <Th fontSize="xs" fontWeight="black" letterSpacing="wider" py={4}>Category</Th>
+                        <Th fontSize="xs" fontWeight="black" letterSpacing="wider" py={4}>Amount</Th>
+                        <Th fontSize="xs" fontWeight="black" letterSpacing="wider" py={4}>Date</Th>
                       </Tr>
                     </Thead>
                     <Tbody>
@@ -1620,7 +1615,7 @@ export default function ViewLease() {
               <Box bg={cardBg} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor} p={8}>
                 <Flex align="center" gap={2} mb={6}>
                   <FiClock size={18} />
-                  <Text fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider" color={textColor}>
+                  <Text fontSize="sm" fontWeight="black" letterSpacing="wider" color={textColor}>
                     Activity Timeline
                   </Text>
                 </Flex>
@@ -1704,35 +1699,35 @@ export default function ViewLease() {
               <Box bg={subCardBg} p={4} borderRadius="lg" border="1px solid" borderColor={borderColor} mb={5}>
                 <SimpleGrid columns={2} spacing={3}>
                   <Box>
-                    <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider">Room</Text>
+                    <Text fontSize="xs" fontWeight="black" color="gray.400" letterSpacing="wider">Room</Text>
                     <Text fontSize="sm" fontWeight="bold" color={textColor}>{lease.room?.name}</Text>
                   </Box>
                   <Box>
-                    <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider">Tenant</Text>
+                    <Text fontSize="xs" fontWeight="black" color="gray.400" letterSpacing="wider">Tenant</Text>
                     <Text fontSize="sm" fontWeight="bold" color={textColor}>{lease.tenant?.name}</Text>
                   </Box>
                   <Box>
-                    <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider">Current Term</Text>
+                    <Text fontSize="xs" fontWeight="black" color="gray.400" letterSpacing="wider">Current Term</Text>
                     <Text fontSize="sm" fontWeight="bold" color={textColor}>{fmtDate(lease.start_date)} — {fmtDate(lease.end_date)}</Text>
                   </Box>
                   <Box>
-                    <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider">Current Rent</Text>
+                    <Text fontSize="xs" fontWeight="black" color="gray.400" letterSpacing="wider">Current Rent</Text>
                     <Text fontSize="sm" fontWeight="bold" color={textColor}>{fmt(lease.rent_amount)}</Text>
                   </Box>
                 </SimpleGrid>
               </Box>
 
-              <Text fontSize="xs" fontWeight="black" color="teal.500" textTransform="uppercase" letterSpacing="wider" mb={4}>
+              <Text fontSize="xs" fontWeight="black" color="teal.500" letterSpacing="wider" mb={4}>
                 New Term Details
               </Text>
               <SimpleGrid columns={2} spacing={4}>
                 <FormControl isRequired>
                   <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>New Start Date</FormLabel>
-                  <Input size="sm" type="date" bg={inputBg} borderColor={borderColor} value={renewForm.start_date} onChange={e => setRenewForm({ ...renewForm, start_date: e.target.value })} />
+                  <ChakraDatePicker size="sm"  bg={inputBg} borderColor={borderColor} selectedDate={renewForm.start_date} onChange={(val) => setRenewForm({ ...renewForm, start_date: val })} />
                 </FormControl>
                 <FormControl isRequired>
                   <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>New End Date</FormLabel>
-                  <Input size="sm" type="date" bg={inputBg} borderColor={borderColor} value={renewForm.end_date} onChange={e => setRenewForm({ ...renewForm, end_date: e.target.value })} />
+                  <ChakraDatePicker size="sm"  bg={inputBg} borderColor={borderColor} selectedDate={renewForm.end_date} onChange={(val) => setRenewForm({ ...renewForm, end_date: val })} />
                 </FormControl>
                 <FormControl isRequired gridColumn="span 2">
                   <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Monthly Rent ({(localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$"})</FormLabel>
@@ -1765,20 +1760,20 @@ export default function ViewLease() {
               {t("lease.terminate_confirm_q", { tenant: lease.tenant?.name || "Unknown", room: lease.room?.name || "Unknown" })}
             </Text>
             <Box bg={dangerBg} p={4} borderRadius="lg" border="1px solid" borderColor="red.200" mb={4}>
-              <Text fontSize="xs" fontWeight="black" color="red.600" textTransform="uppercase" letterSpacing="wider" mb={2}>{t("lease.terminate_action_will")}</Text>
+              <Text fontSize="xs" fontWeight="black" color="red.600" letterSpacing="wider" mb={2}>{t("lease.terminate_action_will")}</Text>
               <Text fontSize="sm" color={textColor}>{t("lease.terminate_bull1_term")}</Text>
               <Text fontSize="sm" color={textColor}>{t("lease.terminate_bull2_avail")}</Text>
               <Text fontSize="sm" color={textColor}>{t("lease.terminate_bull3_unchanged")}</Text>
             </Box>
             {(lease.deposit_status === "held") && (
               <Box bg={warningBg} p={4} borderRadius="lg" border="1px solid" borderColor="orange.200" mb={4}>
-                <Text fontSize="xs" fontWeight="black" color="orange.600" textTransform="uppercase" letterSpacing="wider" mb={1}>{t("lease.deposit_notice")}</Text>
+                <Text fontSize="xs" fontWeight="black" color="orange.600" letterSpacing="wider" mb={1}>{t("lease.deposit_notice")}</Text>
                 <Text fontSize="sm" color={textColor}>{t("lease.deposit_still_held", { amount: fmt(lease.security_deposit) })}</Text>
               </Box>
             )}
             {unpaidBillsTotal > 0 && (
               <Box bg={cautionBg} p={4} borderRadius="lg" border="1px solid" borderColor="yellow.200" mb={4}>
-                <Text fontSize="xs" fontWeight="black" color="yellow.600" textTransform="uppercase" letterSpacing="wider" mb={1}>{t("lease.outstanding_bills")}</Text>
+                <Text fontSize="xs" fontWeight="black" color="yellow.600" letterSpacing="wider" mb={1}>{t("lease.outstanding_bills")}</Text>
                 <Text fontSize="sm" color={textColor}>{t("lease.unpaid_utility_bills", { amount: fmt(unpaidBillsTotal) })}</Text>
               </Box>
             )}
@@ -1841,7 +1836,7 @@ export default function ViewLease() {
                 </FormControl>
                 <FormControl isRequired>
                   <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Date</FormLabel>
-                  <Input size="sm" type="date" bg={inputBg} borderColor={borderColor} value={payForm.payment_date} onChange={e => setPayForm({ ...payForm, payment_date: e.target.value })} />
+                  <ChakraDatePicker size="sm"  bg={inputBg} borderColor={borderColor} selectedDate={payForm.payment_date} onChange={(val) => setPayForm({ ...payForm, payment_date: val })} />
                 </FormControl>
                 <FormControl gridColumn="span 2">
                   <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Notes (optional)</FormLabel>
@@ -1862,7 +1857,7 @@ export default function ViewLease() {
         <ModalOverlay bg="blackAlpha.600" />
         <ModalContent bg={cardBg} borderRadius="xl">
           <form onSubmit={handleSaveBill}>
-            <ModalHeader color={textColor} textTransform="uppercase" fontWeight="black">Add New Utility Bill</ModalHeader>
+            <ModalHeader color={textColor} fontWeight="black">Add New Utility Bill</ModalHeader>
             <ModalCloseButton />
             <ModalBody pb={6}>
               {/* Room (read-only) */}
@@ -1941,7 +1936,7 @@ export default function ViewLease() {
                 {/* Due Date */}
                 <FormControl isRequired>
                   <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Due Date</FormLabel>
-                  <Input size="sm" type="date" bg={inputBg} borderColor={borderColor} value={billForm.due_date} onChange={e => setBillForm({ ...billForm, due_date: e.target.value })} />
+                  <ChakraDatePicker size="sm"  bg={inputBg} borderColor={borderColor} selectedDate={billForm.due_date} onChange={(val) => setBillForm({ ...billForm, due_date: val })} />
                 </FormControl>
 
                 {/* Status */}
@@ -1981,7 +1976,7 @@ export default function ViewLease() {
                 {/* Left Column: Bill List */}
                 <Box>
                   <Flex justify="space-between" align="center" mb={3} px={1}>
-                    <Text fontSize="sm" fontWeight="bold" color={mutedText} textTransform="uppercase">Unpaid Bills</Text>
+                    <Text fontSize="sm" fontWeight="bold" color={mutedText}>Unpaid Bills</Text>
                     <Checkbox 
                       size="md" 
                       colorScheme="green"
@@ -2006,7 +2001,7 @@ export default function ViewLease() {
                             onChange={(e) => setSelectedBillIds(e.target.checked ? [...selectedBillIds, bill.id] : selectedBillIds.filter(i => i !== bill.id))}
                           />
                           <Box>
-                            <Text fontSize="sm" fontWeight="black" textTransform="uppercase">{bill.type}</Text>
+                            <Text fontSize="sm" fontWeight="black">{bill.type}</Text>
                             <Text fontSize="xs" fontWeight="bold" color={mutedText}>Due: {fmtDate(bill.due_date)}</Text>
                           </Box>
                         </Flex>
@@ -2019,11 +2014,11 @@ export default function ViewLease() {
                 {/* Right Column: Payment Form */}
                 <Flex direction="column" justify="space-between">
                   <Box>
-                    <Text fontSize="sm" fontWeight="bold" color={mutedText} textTransform="uppercase" mb={4} px={1}>Payment Details</Text>
+                    <Text fontSize="sm" fontWeight="bold" color={mutedText} mb={4} px={1}>Payment Details</Text>
                     <SimpleGrid columns={1} spacing={5}>
                       <FormControl isRequired>
                         <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Date</FormLabel>
-                        <Input size="md" type="date" value={payAllForm.payment_date} onChange={e => setPayAllForm({ ...payAllForm, payment_date: e.target.value })} />
+                        <ChakraDatePicker size="md"  selectedDate={payAllForm.payment_date} onChange={(val) => setPayAllForm({ ...payAllForm, payment_date: val })} />
                       </FormControl>
                       <FormControl isRequired>
                         <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Method</FormLabel>
@@ -2042,7 +2037,7 @@ export default function ViewLease() {
                   {/* Total & Action */}
                   <Box mt={6} borderTop="2px dashed" borderColor={borderColor} pt={5}>
                     <Flex justify="space-between" align="flex-end" mb={6}>
-                      <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={mutedText}>Total To Pay</Text>
+                      <Text fontSize="sm" fontWeight="black" color={mutedText}>Total To Pay</Text>
                       <Text fontSize="3xl" fontWeight="black" color="green.600">
                         {fmt((lease.utility_bills || []).filter(b => b.status === "unpaid" && selectedBillIds.includes(b.id)).reduce((s, b) => s + Number(b.amount), 0))}
                       </Text>
@@ -2091,7 +2086,7 @@ export default function ViewLease() {
         <ModalOverlay bg="blackAlpha.600" />
         <ModalContent bg={cardBg} borderRadius="xl" maxH="85vh" my="auto" display="flex" flexDirection="column">
           <form onSubmit={handleEditLease} style={{ display: "flex", flexDirection: "column", overflow: "hidden", flex: 1 }}>
-            <ModalHeader color={textColor} fontSize="lg" fontWeight="black" textTransform="uppercase" letterSpacing="tight">
+            <ModalHeader color={textColor} fontSize="lg" fontWeight="black" letterSpacing="tight">
               Edit Lease Agreement
             </ModalHeader>
             <ModalCloseButton />
@@ -2187,7 +2182,7 @@ export default function ViewLease() {
                           {isOccupied ? "Occupied" : isSelected ? "Available / Selected" : "Available"}
                         </Text>
                         <Text fontWeight="black" color={textColor} mt={2} fontSize="md">{fmt(room.price || 0)}</Text>
-                        <Text fontSize="9px" fontWeight="bold" color={mutedText} textTransform="uppercase">/ Month</Text>
+                        <Text fontSize="9px" fontWeight="bold" color={mutedText}>/ Month</Text>
                       </Box>
                     );
                   })}
@@ -2202,11 +2197,11 @@ export default function ViewLease() {
                 <Flex gap={4} mb={4} direction={{ base: "column", md: "row" }}>
                   <FormControl isRequired flex={1}>
                     <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Start Date</FormLabel>
-                    <Input size="sm" type="date" value={editForm.start_date} onChange={e => setEditForm({ ...editForm, start_date: e.target.value })} />
+                    <ChakraDatePicker size="sm"  selectedDate={editForm.start_date} onChange={(val) => setEditForm({ ...editForm, start_date: val })} />
                   </FormControl>
                   <FormControl isRequired flex={1}>
                     <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>End Date</FormLabel>
-                    <Input size="sm" type="date" value={editForm.end_date} onChange={e => setEditForm({ ...editForm, end_date: e.target.value })} />
+                    <ChakraDatePicker size="sm"  selectedDate={editForm.end_date} onChange={(val) => setEditForm({ ...editForm, end_date: val })} />
                   </FormControl>
                   <FormControl isRequired flex={1}>
                     <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Agreed Monthly Rent ({(localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$"})</FormLabel>
@@ -2226,8 +2221,7 @@ export default function ViewLease() {
                       <Button
                         key={s} type="button" size="sm" variant={editForm.status === s ? "solid" : "outline"}
                         colorScheme={editForm.status === s ? (s === "active" ? "green" : s === "expired" ? "orange" : "gray") : "gray"}
-                        onClick={() => setEditForm({ ...editForm, status: s })}
-                        textTransform="uppercase" fontWeight="black" fontSize="10px" letterSpacing="wider"
+                        onClick={() => setEditForm({ ...editForm, status: s })} fontWeight="black" fontSize="10px" letterSpacing="wider"
                       >
                         {s}
                       </Button>
@@ -2325,7 +2319,7 @@ export default function ViewLease() {
                   </FormControl>
                   <FormControl isRequired>
                     <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Date</FormLabel>
-                    <Input size="sm" bg={inputBg} borderColor={borderColor} type="date" value={expForm.expense_date} onChange={e => setExpForm({...expForm, expense_date: e.target.value})} />
+                    <ChakraDatePicker size="sm" bg={inputBg} borderColor={borderColor}  selectedDate={expForm.expense_date} onChange={(val) => setExpForm({...expForm, expense_date: val})} />
                   </FormControl>
                </VStack>
             </ModalBody>
@@ -2349,7 +2343,7 @@ export default function ViewLease() {
               </Flex>
               <Flex align="center" gap={4} mr={8}>
                 <Text fontSize="xs" color={mutedText}>Common Due Date:</Text>
-                <Input size="sm" type="date" bg={inputBg} borderColor={borderColor} value={commonDueDate} onChange={e => setCommonDueDate(e.target.value)} w="140px" />
+                <ChakraDatePicker size="sm"  bg={inputBg} borderColor={borderColor} selectedDate={commonDueDate} onChange={setCommonDueDate} w="140px" />
               </Flex>
             </Flex>
           </ModalHeader>
@@ -2360,19 +2354,19 @@ export default function ViewLease() {
             <Box bg={subCardBg} p={4} borderRadius="lg" border="1px solid" borderColor={borderColor} mb={5}>
               <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
                 <Box>
-                  <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider">Room</Text>
+                  <Text fontSize="xs" fontWeight="black" color="gray.400" letterSpacing="wider">Room</Text>
                   <Text fontSize="sm" fontWeight="bold" color={textColor}>{lease?.room?.name || "—"}</Text>
                 </Box>
                 <Box>
-                  <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider">Tenant</Text>
+                  <Text fontSize="xs" fontWeight="black" color="gray.400" letterSpacing="wider">Tenant</Text>
                   <Text fontSize="sm" fontWeight="bold" color={textColor}>{lease?.tenant?.name || "—"}</Text>
                 </Box>
                 <Box>
-                  <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider">Base Rent</Text>
+                  <Text fontSize="xs" fontWeight="black" color="gray.400" letterSpacing="wider">Base Rent</Text>
                   <Text fontSize="sm" fontWeight="bold" color={textColor}>{fmt(lease?.rent_amount)}</Text>
                 </Box>
                 <Box>
-                  <Text fontSize="xs" fontWeight="black" color="gray.400" textTransform="uppercase" letterSpacing="wider">Contract</Text>
+                  <Text fontSize="xs" fontWeight="black" color="gray.400" letterSpacing="wider">Contract</Text>
                   <Text fontSize="sm" fontWeight="bold" color={textColor}>{fmtDate(lease?.start_date)} — {fmtDate(lease?.end_date)}</Text>
                 </Box>
               </SimpleGrid>
@@ -2491,9 +2485,9 @@ export default function ViewLease() {
               <Table variant="simple" size="sm">
                 <Thead>
                   <Tr>
-                    <Th fontSize="xs" fontWeight="black" textTransform="uppercase" py={4}>{t("common.type")}</Th>
-                    <Th fontSize="xs" fontWeight="black" textTransform="uppercase" py={4}>{t("common.amount")}</Th>
-                    <Th fontSize="xs" fontWeight="black" textTransform="uppercase" py={4}>{t("lease.due_date")}</Th>
+                    <Th fontSize="xs" fontWeight="black" py={4}>{t("common.type")}</Th>
+                    <Th fontSize="xs" fontWeight="black" py={4}>{t("common.amount")}</Th>
+                    <Th fontSize="xs" fontWeight="black" py={4}>{t("lease.due_date")}</Th>
                     <Th textAlign="right" py={4}></Th>
                   </Tr>
                 </Thead>
@@ -2513,7 +2507,6 @@ export default function ViewLease() {
                           <Badge
                             fontSize="10px"
                             fontWeight="black"
-                            textTransform="uppercase"
                             variant="subtle"
                             colorScheme={cfg.colorScheme}
                             px={3} py={1}

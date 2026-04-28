@@ -233,7 +233,7 @@ export default function TenantDashboard() {
         <Alert status="error" variant="solid" borderRadius="2xl" mb={6} shadow="lg">
           <AlertIcon />
           <Box flex="1">
-            <AlertTitle fontSize="sm" fontWeight="black" textTransform="uppercase" letterSpacing="wider">
+            <AlertTitle fontSize="sm" fontWeight="black" letterSpacing="wider">
               Overdue Payments Detected
             </AlertTitle>
             <AlertDescription fontSize="xs" fontWeight="bold">
@@ -297,7 +297,7 @@ export default function TenantDashboard() {
           display="flex" flexDirection="column" justify="space-between"
         >
           <Box>
-            <Text fontSize="xs" fontWeight="900" color={mutedText} textTransform="uppercase" letterSpacing="widest" mb={1}>Current Balance</Text>
+            <Text fontSize="xs" fontWeight="900" color={mutedText} letterSpacing="widest" mb={1}>Current Balance</Text>
             <Heading size="2xl" fontWeight="900" color={totalDue > 0 ? "red.500" : "emerald.500"}>
               {fmt(totalDue)}
             </Heading>
@@ -346,7 +346,7 @@ export default function TenantDashboard() {
           <Box bg={cardBg} p={8} borderRadius="3xl" border="1px" borderColor={borderColor} shadow="md" mb={8}>
             <Flex justify="space-between" align="center" mb={10}>
               <Box>
-                <Text fontWeight="900" fontSize="xs" color={mutedText} textTransform="uppercase" letterSpacing="widest">Usage Insights</Text>
+                <Text fontWeight="900" fontSize="xs" color={mutedText} letterSpacing="widest">Usage Insights</Text>
                 <Heading size="md" fontWeight="900">Utility Consumption</Heading>
               </Box>
               <HStack spacing={4}>
@@ -384,7 +384,7 @@ export default function TenantDashboard() {
 
           {/* Billboard / Announcements */}
           <Box bg={cardBg} p={{ base: 4, sm: 6, md: 8 }} borderRadius="3xl" border="1px" borderColor={borderColor} shadow="md">
-            <Text fontWeight="900" fontSize="xs" color={mutedText} textTransform="uppercase" letterSpacing="widest" mb={{ base: 4, md: 6 }}>Community Hub</Text>
+            <Text fontWeight="900" fontSize="xs" color={mutedText} letterSpacing="widest" mb={{ base: 4, md: 6 }}>Community Hub</Text>
             <VStack spacing={{ base: 3, md: 6 }} align="stretch">
                {announcements?.slice(0, 3).map((anc, i) => (
                  <Flex key={i} gap={{ base: 3, md: 4 }} p={{ base: 4, md: 6 }} bg={annItemBg} borderRadius="2xl" border="1px" borderColor={borderColor}>
@@ -450,7 +450,7 @@ export default function TenantDashboard() {
 
           {/* My Documents Section */}
           <Box bg={cardBg} p={8} borderRadius="3xl" border="1px" borderColor={borderColor} shadow="md">
-            <Text fontWeight="900" fontSize="xs" color={mutedText} textTransform="uppercase" letterSpacing="widest" mb={6}>My Documents</Text>
+            <Text fontWeight="900" fontSize="xs" color={mutedText} letterSpacing="widest" mb={6}>My Documents</Text>
             <VStack spacing={4} align="stretch">
                {[
                  { name: "Lease Agreement", size: "2.4 MB", date: "Mar 12, 2026" },
@@ -492,7 +492,7 @@ export default function TenantDashboard() {
             {!qrString ? (
               <VStack align="stretch" spacing={6}>
                  <Box>
-                    <Text fontSize="xs" fontWeight="900" color={mutedText} textTransform="uppercase" letterSpacing="widest" mb={4}>Select Line Items</Text>
+                    <Text fontSize="xs" fontWeight="900" color={mutedText} letterSpacing="widest" mb={4}>Select Line Items</Text>
                     <VStack align="stretch" spacing={3}>
                        {/* Rent Item */}
                        <Flex align="center" justify="space-between" p={4} bg={annItemBg} borderRadius="2xl" border="1px" borderColor={borderColor}>
@@ -526,7 +526,7 @@ export default function TenantDashboard() {
 
                  <Flex justify="space-between" align="center">
                     <Box>
-                       <Text fontSize="xs" fontWeight="900" color={mutedText} textTransform="uppercase">Selected Total</Text>
+                       <Text fontSize="xs" fontWeight="900" color={mutedText}>Selected Total</Text>
                        <Heading size="lg" fontWeight="900" color="blue.500">{fmt(calculateSubtotal())}</Heading>
                     </Box>
                     <Button 
@@ -618,7 +618,7 @@ function ActionCard({ label, icon, color, link, delay }) {
       <Center w={{ base: 10, md: 12 }} h={{ base: 10, md: 12 }} bg={`${color}.50`} color={`${color}.500`} _dark={{ bg: `${color}.900`, color: `${color}.300` }} rounded={{ base: "xl", md: "2xl" }} mb={{ base: 3, md: 4 }}>
         <Icon as={icon} boxSize={{ base: 5, md: 6 }} />
       </Center>
-      <Text fontSize={{ base: "10px", md: "xs" }} fontWeight="900" textTransform="uppercase" letterSpacing="wide" lineHeight="1.2">{label}</Text>
+      <Text fontSize={{ base: "10px", md: "xs" }} fontWeight="900" letterSpacing="wide" lineHeight="1.2">{label}</Text>
     </MotionBox>
   );
 }

@@ -11,6 +11,8 @@ import { exportToExcel } from "../../utils/exportExcel";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
+import ChakraDatePicker from "../../components/ChakraDatePicker";
+
 
 const API = "http://localhost:8000/api/v1";
 const fmt = (n) => {
@@ -249,10 +251,10 @@ function Expense() {
                         </Flex>
                       </Td>
                       <Td maxW="250px">
-                        <Text fontSize="sm" fontWeight="black" textTransform="uppercase" color={textColor} isTruncated title={expense.title}>
+                        <Text fontSize="sm" fontWeight="black" color={textColor} isTruncated title={expense.title}>
                           {expense.title}
                         </Text>
-                        <Text fontSize="xs" fontWeight="bold" textTransform="uppercase" color="blue.500" isTruncated title={expense.room?.name}>
+                        <Text fontSize="xs" fontWeight="bold" color="blue.500" isTruncated title={expense.room?.name}>
                           {expense.room?.name || 'General Building'}
                         </Text>
                       </Td>
@@ -330,7 +332,7 @@ function Expense() {
                 
                 <FormControl isRequired>
                   <FormLabel fontSize="sm" color={mutedText}>{t("expense.date")}</FormLabel>
-                  <Input size="sm" type="date" bg={bg} value={form.expense_date} onChange={e => setForm({ ...form, expense_date: e.target.value })} />
+                  <ChakraDatePicker size="sm"  bg={bg} selectedDate={form.expense_date} onChange={(val) => setForm({ ...form, expense_date: val })} />
                 </FormControl>
               </SimpleGrid>
 

@@ -75,7 +75,6 @@ const ConfirmDialog = ({
               isLoading={isLoading}
               px={6}
               fontWeight="black"
-              textTransform="uppercase"
               fontSize="xs"
               letterSpacing="widest"
               borderRadius="xl"

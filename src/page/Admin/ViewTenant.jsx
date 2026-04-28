@@ -181,7 +181,7 @@ export default function ViewTenant() {
               
               <Badge 
                 colorScheme={tenant.user_id ? "green" : "orange"} 
-                px={3} py={1} borderRadius="full" textTransform="uppercase" letterSpacing="wider" fontSize="xs"
+                px={3} py={1} borderRadius="full" letterSpacing="wider" fontSize="xs"
               >
                 {tenant.user_id ? "Account Linked" : "Pending Registration"}
               </Badge>
@@ -226,7 +226,7 @@ export default function ViewTenant() {
               >
                 <Flex align="center" justify="space-between">
                   <Box>
-                    <Text fontSize="xs" color={colorMode === 'light' ? 'sky.600' : 'blue.300'} fontWeight="bold" textTransform="uppercase" letterSpacing="wider">
+                    <Text fontSize="xs" color={colorMode === 'light' ? 'sky.600' : 'blue.300'} fontWeight="bold" letterSpacing="wider">
                       Identity Verification
                     </Text>
                     <Text fontSize="md" fontWeight="bold" color={textColor} mt={1}>
@@ -293,7 +293,6 @@ export default function ViewTenant() {
                            px={3} py={1} borderRadius="full"
                            fontSize="9px"
                            fontWeight="black"
-                           textTransform="uppercase"
                          >
                            {lease.status}
                          </Badge>
@@ -322,7 +321,7 @@ export default function ViewTenant() {
           <ModalBody pb={6}>
             <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={6}>
               <Box>
-                <Text fontWeight="bold" color={mutedTextColor} mb={2} fontSize="sm" textTransform="uppercase">Front</Text>
+                <Text fontWeight="bold" color={mutedTextColor} mb={2} fontSize="sm">Front</Text>
                 <Image
                   src={tenant.id_photo_path ? `http://localhost:8000/storage/${tenant.id_photo_path}` : "https://via.placeholder.com/600x400?text=No+Front+ID"}
                   alt="ID Front"
@@ -336,7 +335,7 @@ export default function ViewTenant() {
                 />
               </Box>
               <Box>
-                <Text fontWeight="bold" color={mutedTextColor} mb={2} fontSize="sm" textTransform="uppercase">Back</Text>
+                <Text fontWeight="bold" color={mutedTextColor} mb={2} fontSize="sm">Back</Text>
                 <Image
                   src={tenant.id_card_back_path ? `http://localhost:8000/storage/${tenant.id_card_back_path}` : "https://via.placeholder.com/600x400?text=No+Back+ID"}
                   alt="ID Back"
@@ -442,7 +441,7 @@ export default function ViewTenant() {
 function InfoItem({ label, value, bg, border }) {
   return (
     <Box p={4} borderRadius="xl" bg={bg} borderWidth="1px" borderColor={border}>
-      <Text fontSize="xs" fontWeight="bold" color="gray.500" textTransform="uppercase" letterSpacing="wider" mb={1}>{label}</Text>
+      <Text fontSize="xs" fontWeight="bold" color="gray.500" letterSpacing="wider" mb={1}>{label}</Text>
       <Text fontSize="md" fontWeight="bold" color={useColorModeValue("gray.800", "white")}>{value}</Text>
     </Box>
   );

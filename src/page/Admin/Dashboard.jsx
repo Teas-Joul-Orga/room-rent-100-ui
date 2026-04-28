@@ -218,7 +218,7 @@ export default function Dashboard() {
           <Box bg={cardBg} p={8} borderRadius="3xl" border="1px" borderColor={borderColor} shadow="sm" mb={8}>
             <Flex justify="space-between" align="center" mb={8}>
               <Box>
-                <Text fontWeight="800" textTransform="uppercase" letterSpacing="widest" fontSize="xs" color={mutedText}>Market Performance</Text>
+                <Text fontWeight="800" letterSpacing="widest" fontSize="xs" color={mutedText}>Market Performance</Text>
                 <Text fontSize="lg" fontWeight="900">Revenue & Expense Matrix</Text>
               </Box>
               <HStack spacing={4}>
@@ -256,7 +256,7 @@ export default function Dashboard() {
           <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mb={8}>
             {/* Occupancy Chart */}
             <Box bg={cardBg} p={6} borderRadius="3xl" border="1px" borderColor={borderColor}>
-               <Text fontWeight="800" textTransform="uppercase" letterSpacing="widest" fontSize="10px" color={mutedText} mb={4}>Unit Utilization</Text>
+               <Text fontWeight="800" letterSpacing="widest" fontSize="10px" color={mutedText} mb={4}>Unit Utilization</Text>
                <Center h="180px" position="relative" minWidth={0}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -281,7 +281,7 @@ export default function Dashboard() {
 
             {/* Expense Breakdown */}
             <Box bg={cardBg} p={6} borderRadius="3xl" border="1px" borderColor={borderColor}>
-               <Text fontWeight="800" textTransform="uppercase" letterSpacing="widest" fontSize="10px" color={mutedText} mb={4}>Cost Distribution</Text>
+               <Text fontWeight="800" letterSpacing="widest" fontSize="10px" color={mutedText} mb={4}>Cost Distribution</Text>
                 <Center h="180px" minWidth={0}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -300,7 +300,7 @@ export default function Dashboard() {
 
             {/* Maintenance Radar */}
             <Box bg={cardBg} p={6} borderRadius="3xl" border="1px" borderColor={borderColor}>
-               <Text fontWeight="800" textTransform="uppercase" letterSpacing="widest" fontSize="10px" color={mutedText} mb={4}>Operational Health</Text>
+               <Text fontWeight="800" letterSpacing="widest" fontSize="10px" color={mutedText} mb={4}>Operational Health</Text>
                <Box h="180px" minWidth={0}>
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
@@ -317,7 +317,7 @@ export default function Dashboard() {
           <Box bg={cardBg} p={8} borderRadius="3xl" border="1px" borderColor={borderColor} shadow="sm" mb={8}>
             <Flex justify="space-between" align="center" mb={8}>
               <Box>
-                <Text fontWeight="800" textTransform="uppercase" letterSpacing="widest" fontSize="xs" color={mutedText}>Property Topology</Text>
+                <Text fontWeight="800" letterSpacing="widest" fontSize="xs" color={mutedText}>Property Topology</Text>
                 <Text fontSize="lg" fontWeight="900">Real Estate Heatmap</Text>
               </Box>
                 <HStack spacing={4}>
@@ -357,7 +357,7 @@ export default function Dashboard() {
         <Box>
           
           {/* 1. Urgent Command Center */}
-          <Text fontWeight="800" textTransform="uppercase" letterSpacing="widest" fontSize="11px" color={mutedText} mb={4}>Command Center</Text>
+          <Text fontWeight="800" letterSpacing="widest" fontSize="11px" color={mutedText} mb={4}>Command Center</Text>
           <VStack spacing={4} mb={10} align="stretch">
             {urgentCards.map((card, i) => (
               <MotionBox 
@@ -423,7 +423,7 @@ export default function Dashboard() {
       <Box mt={8} bg={cardBg} borderRadius="3xl" border="1px" borderColor={borderColor} shadow="sm" overflow="hidden">
          <Flex p={6} borderBottom="1px" borderColor={borderColor} justify="space-between" align="center" bg={tableHeaderBg}>
             <Box>
-               <Text fontWeight="800" textTransform="uppercase" letterSpacing="widest" fontSize="xs" color={mutedText}>Treasury</Text>
+               <Text fontWeight="800" letterSpacing="widest" fontSize="xs" color={mutedText}>Treasury</Text>
                <Text fontSize="lg" fontWeight="900">Recent Transactions</Text>
             </Box>
             <Button size="sm" variant="ghost" colorScheme="blue" rightIcon={<FiArrowRight />}>Full Ledger</Button>
@@ -474,7 +474,7 @@ export default function Dashboard() {
         >
           <ModalHeader py={6} borderBottom="1px solid" borderColor={borderColor}>
             <VStack align="flex-start" spacing={0}>
-              <Text fontSize="xs" fontWeight="black" color="blue.500" textTransform="uppercase" letterSpacing="widest">System Intelligence</Text>
+              <Text fontSize="xs" fontWeight="black" color="blue.500" letterSpacing="widest">System Intelligence</Text>
               <Heading size="md">Command Center Hub</Heading>
             </VStack>
           </ModalHeader>
@@ -505,7 +505,7 @@ export default function Dashboard() {
           </ModalBody>
 
           <ModalFooter bg={tableHeaderBg} py={4}>
-            <Button variant="ghost" onClick={onCommandClose} fontWeight="black" textTransform="uppercase" fontSize="xs" letterSpacing="widest">
+            <Button variant="ghost" onClick={onCommandClose} fontWeight="black" fontSize="xs" letterSpacing="widest">
               Close Hub
             </Button>
           </ModalFooter>
@@ -525,7 +525,7 @@ export default function Dashboard() {
         >
           <ModalHeader py={6} borderBottom="1px solid" borderColor={borderColor}>
             <VStack align="flex-start" spacing={0}>
-              <Text fontSize="xs" fontWeight="black" color="red.500" textTransform="uppercase" letterSpacing="widest">Outstanding Payments</Text>
+              <Text fontSize="xs" fontWeight="black" color="red.500" letterSpacing="widest">Outstanding Payments</Text>
               <Heading size="md">Overdue Bills Directory</Heading>
             </VStack>
           </ModalHeader>
@@ -549,11 +549,11 @@ export default function Dashboard() {
                       <Td py={5}>
                         <VStack align="start" spacing={0}>
                           <Text fontWeight="black" fontSize="sm" color={textColor}>{bill.lease?.tenant?.name || "N/A"}</Text>
-                          <Text fontSize="xs" color={mutedText} textTransform="uppercase" fontWeight="bold">{bill.room?.name || bill.lease?.room?.name || "N/A"}</Text>
+                          <Text fontSize="xs" color={mutedText} fontWeight="bold">{bill.room?.name || bill.lease?.room?.name || "N/A"}</Text>
                         </VStack>
                       </Td>
                       <Td py={5}>
-                        <Badge size="md" colorScheme="orange" variant="subtle" rounded="lg" px={3} py={1} textTransform="uppercase" fontSize="10px" fontWeight="black">
+                        <Badge size="md" colorScheme="orange" variant="subtle" rounded="lg" px={3} py={1} fontSize="10px" fontWeight="black">
                           {bill.type}
                         </Badge>
                       </Td>
@@ -562,7 +562,7 @@ export default function Dashboard() {
                       </Td>
                       <Td py={5} fontSize="sm">
                         <Text fontWeight="bold" color={textColor}>{dayjs(bill.due_date).format('MMM DD, YYYY')}</Text>
-                        <Text fontSize="11px" color="red.400" fontWeight="black" textTransform="uppercase">{dayjs().diff(dayjs(bill.due_date), 'day')} days late</Text>
+                        <Text fontSize="11px" color="red.400" fontWeight="black">{dayjs().diff(dayjs(bill.due_date), 'day')} days late</Text>
                       </Td>
                       <Td py={5}>
                         <Button 
@@ -571,7 +571,6 @@ export default function Dashboard() {
                           variant="solid" 
                           borderRadius="xl"
                           fontWeight="black"
-                          textTransform="uppercase"
                           fontSize="xs"
                           px={4}
                           onClick={() => { navigate("/dashboard/utility"); onOverdueClose(); }}
@@ -601,14 +600,14 @@ export default function Dashboard() {
               variant="outline" 
               mr={3} 
               onClick={onOverdueClose}
-              fontWeight="black" textTransform="uppercase" fontSize="xs" letterSpacing="widest"
+              fontWeight="black" fontSize="xs" letterSpacing="widest"
             >
               Dismiss
             </Button>
             <Button 
               colorScheme="blue" 
               onClick={() => { navigate("/dashboard/utility"); onOverdueClose(); }}
-              fontWeight="black" textTransform="uppercase" fontSize="xs" letterSpacing="widest"
+              fontWeight="black" fontSize="xs" letterSpacing="widest"
             >
               View All Billing
             </Button>
@@ -634,7 +633,7 @@ function QuickActionBtn({ icon, label, color, onClick }) {
       _hover={{ bg: hoverBg, transform: "translateY(-2px)", shadow: "md" }}
     >
       <Icon as={icon} boxSize={6} color={`${color}.500`} />
-      <Text fontSize="xs" fontWeight="black" textTransform="uppercase" letterSpacing="tight">{label}</Text>
+      <Text fontSize="xs" fontWeight="black" letterSpacing="tight">{label}</Text>
     </VStack>
   );
 }
@@ -651,7 +650,7 @@ function KPIStat({ label, value, sub, percent, icon, color, styles }) {
         <Center w="10" h="10" bg={`${color}.50`} color={`${color}.500`} _dark={{ bg: `${color}.900`, color: `${color}.300` }} rounded="xl">
           <Icon as={icon} boxSize={5} />
         </Center>
-        <Text fontWeight="800" textTransform="uppercase" letterSpacing="widest" fontSize="xs" color={mutedText}>{label}</Text>
+        <Text fontWeight="800" letterSpacing="widest" fontSize="xs" color={mutedText}>{label}</Text>
       </Flex>
       <Text fontSize="3xl" fontWeight="900" color={textColor} mb={1}>{value}</Text>
       <Text fontSize="xs" color={mutedText} fontWeight="700" mb={3}>{sub}</Text>
