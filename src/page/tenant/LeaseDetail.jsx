@@ -21,9 +21,21 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+  useDisclosure,
+  FormControl,
+  FormLabel,
+  Select,
+  Textarea,
 } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next";
-import { FiChevronRight, FiFileText, FiArrowLeft } from "react-icons/fi";
+import { FiChevronRight, FiFileText, FiArrowLeft, FiPlus } from "react-icons/fi";
 import dayjs from "dayjs";
 import toast, { Toaster } from "react-hot-toast";
 import { useParams, useNavigate, Link } from "react-router-dom";
@@ -49,6 +61,11 @@ export default function LeaseDetail() {
   const { t } = useTranslation();
   const [lease, setLease] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Extension Modal
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [extForm, setExtForm] = useState({ duration_months: "6", notes: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const bg = useColorModeValue("white", "#161b22");
   const borderColor = useColorModeValue("gray.200", "#30363d");
@@ -82,6 +99,34 @@ export default function LeaseDetail() {
     fetchLease();
   }, [id]);
 
+  const handleRequestExtension = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`${API}/leases/${id}/request-extension`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${(localStorage.getItem("token") || sessionStorage.getItem("token"))}`,
+          Accept: "application/json",
+        },
+        body: JSON.stringify(extForm),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || "Request sent!");
+        onClose();
+        fetchLease();
+      } else {
+        toast.error(data.error || "Failed to send request");
+      }
+    } catch (err) {
+      toast.error("Network error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <Flex justify="center" align="center" h="64">
@@ -109,7 +154,7 @@ export default function LeaseDetail() {
         </BreadcrumbItem>
       </Breadcrumb>
 
-      <Flex align={{ base: "flex-start", md: "center" }} direction={{ base: "column", md: "row" }} gap={4} mb={8}>
+      <Flex align={{ base: "flex-start", md: "center" }} direction={{ base: "column", md: "row" }} gap={4} mb={8} justify="space-between">
         <Flex align="center" gap={4} w={{ base: "100%", md: "auto" }}>
           <Button 
             leftIcon={<FiArrowLeft />} 
@@ -139,6 +184,17 @@ export default function LeaseDetail() {
             {lease.status}
           </Badge>
         </Flex>
+
+        {(lease.status === "active" || lease.status === "expired") && (
+          <Button 
+            leftIcon={<FiPlus />} 
+            colorScheme="blue" 
+            size="sm" 
+            onClick={onOpen}
+          >
+            Request Extension
+          </Button>
+        )}
       </Flex>
 
       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8} mb={8}>
@@ -324,6 +380,51 @@ export default function LeaseDetail() {
           )}
         </VStack>
       </Box>
+
+      {/* Extension Modal */}
+      <Modal isOpen={isOpen} onClose={onClose} isCentered>
+        <ModalOverlay />
+        <ModalContent bg={bg}>
+          <form onSubmit={handleRequestExtension}>
+            <ModalHeader color={textColor}>Request Lease Extension</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+              <VStack spacing={4}>
+                <FormControl isRequired>
+                  <FormLabel fontSize="sm" color={mutedText}>Duration (Months)</FormLabel>
+                  <Select 
+                    value={extForm.duration_months} 
+                    onChange={e => setExtForm({...extForm, duration_months: e.target.value})}
+                    color={textColor}
+                  >
+                    <option value="1">1 Month</option>
+                    <option value="3">3 Months</option>
+                    <option value="6">6 Months</option>
+                    <option value="12">12 Months (1 Year)</option>
+                    <option value="24">24 Months (2 Years)</option>
+                  </Select>
+                </FormControl>
+                <FormControl>
+                  <FormLabel fontSize="sm" color={mutedText}>Notes</FormLabel>
+                  <Textarea 
+                    placeholder="Any special requests?" 
+                    value={extForm.notes}
+                    onChange={e => setExtForm({...extForm, notes: e.target.value})}
+                    color={textColor}
+                  />
+                </FormControl>
+                <Text fontSize="xs" color="blue.500" fontWeight="bold">
+                  Note: This will extend your current lease end date. All billing history will be preserved.
+                </Text>
+              </VStack>
+            </ModalBody>
+            <ModalFooter>
+              <Button variant="ghost" mr={3} onClick={onClose}>Cancel</Button>
+              <Button colorScheme="blue" type="submit" isLoading={isSubmitting}>Send Request</Button>
+            </ModalFooter>
+          </form>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 }

@@ -9,13 +9,17 @@ const echo = () => {
     if (echoInstance) return echoInstance;
     
     const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
+    const host = import.meta.env.VITE_REVERB_HOST || 'localhost';
+    const port = import.meta.env.VITE_REVERB_PORT || 8080;
+    const protocol = import.meta.env.VITE_REVERB_SCHEME || 'http';
+
     echoInstance = new Echo({
         broadcaster: 'reverb',
-        key: 'ia6m3xrvsph7zmudqiif',
-        wsHost: 'localhost',
-        wsPort: 8080,
-        wssPort: 8080,
-        forceTLS: false,
+        key: import.meta.env.VITE_REVERB_APP_KEY || 'ia6m3xrvsph7zmudqiif',
+        wsHost: host,
+        wsPort: port,
+        wssPort: port,
+        forceTLS: protocol === 'https',
         enabledTransports: ['ws', 'wss'],
         authEndpoint: 'http://localhost:8000/api/broadcasting/auth',
         auth: {

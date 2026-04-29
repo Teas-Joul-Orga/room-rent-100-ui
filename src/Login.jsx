@@ -30,6 +30,8 @@ import { useNavigate } from "react-router-dom";
 import { useApi } from "./hooks/useApi";
 import { auth, provider, signInWithPopup } from "./firebase";
 
+import { resetEcho } from "./lib/echo";
+
 import logoSvg from "./assets/Artboard 1.svg";
 import topologyBg from "./assets/topology_bg.png";
 
@@ -144,6 +146,7 @@ export default function LoginForm() {
 
     if (data && data.token) {
       storeSession(data);
+      resetEcho();
       toast.success(`Welcome back, ${data.user.name}!`);
       navigate("/dashboard");
     }
@@ -180,6 +183,7 @@ export default function LoginForm() {
 
       if (data && data.token) {
         storeSession(data);
+        resetEcho();
         toast.success(`Welcome, ${data.user.name}!`);
         navigate("/dashboard");
       }

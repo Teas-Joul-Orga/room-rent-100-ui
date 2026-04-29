@@ -168,7 +168,7 @@ export default function Payment() {
         "Type": t(`payment.${p.type}`).toUpperCase(),
         "Amount": Number(p.amount_paid),
         "Method": p.payment_method.toUpperCase(),
-        "Notes": p.notes || "—"
+        "Notes": (p.notes || "—").replace(/\(Hash: [^\)]+\)/gi, "").trim()
       }));
 
       exportToExcel(dataToExport, "Payment_History_" + new Date().toISOString().split('T')[0]);
@@ -420,7 +420,9 @@ export default function Payment() {
                       </Td>
                       <Td fontSize="sm" fontWeight="black" color={textColor}>{fmt(p.amount_paid)}</Td>
                       <Td fontSize="sm" color={mutedText}>{t(`payment.${p.payment_method}`)}</Td>
-                      <Td fontSize="sm" color={mutedText} maxW="200px" isTruncated title={p.notes}>{p.notes || "—"}</Td>
+                      <Td fontSize="sm" color={mutedText} maxW="200px" isTruncated title={p.notes?.replace(/\(Hash: [^\)]+\)/gi, "").trim()}>
+                        {(p.notes || "—").replace(/\(Hash: [^\)]+\)/gi, "").trim()}
+                      </Td>
                       <Td textAlign="right">
                         <Flex gap={1} justify="flex-end">
                           <Menu>

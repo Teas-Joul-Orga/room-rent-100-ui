@@ -783,8 +783,13 @@ export default function Leases() {
                    const isChecked = selectedIds.includes(l.uid);
                    const badge = getStatusBadge(l.status);
                    return (
-                     <Tr key={l.uid} bg={newlyExpired ? newlyExpiredBgRow : (upcoming ? upcomingBgRow : (expiring ? expiringBgRow : "transparent"))} _hover={{ bg: trHoverBg }}>
-                       <Td px={6}>
+                     <Tr 
+                       key={l.uid} 
+                       bg={newlyExpired ? newlyExpiredBgRow : (upcoming ? upcomingBgRow : (expiring ? expiringBgRow : "transparent"))} 
+                       _hover={{ bg: trHoverBg, cursor: "pointer" }}
+                       onClick={() => navigate(`/dashboard/lease/view/${l.uid}`)}
+                     >
+                       <Td px={6} onClick={(e) => e.stopPropagation()}>
                           <Checkbox 
                             size="md" 
                             isChecked={isChecked} 
@@ -811,7 +816,7 @@ export default function Leases() {
                        <Td py={5} px={4}>
                           <Badge bg={badge.bg} color={badge.color} fontSize="xs" px={4} py={1} borderRadius="full" fontWeight="black">{badge.label}</Badge>
                        </Td>
-                       <Td textAlign="right" py={5} px={6}>
+                       <Td textAlign="right" py={5} px={6} onClick={(e) => e.stopPropagation()}>
                          <HStack justify="flex-end" spacing={2}>
                            <IconButton icon={<FiEye />} size="sm" variant="ghost" colorScheme="blue" onClick={() => navigate(`/dashboard/lease/view/${l.uid}`)} aria-label="View" />
                            <IconButton icon={<FiEdit2 />} size="sm" variant="ghost" colorScheme="purple" onClick={() => navigate(`/dashboard/lease/edit/${l.uid}`)} aria-label="Edit" />

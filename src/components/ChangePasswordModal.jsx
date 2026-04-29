@@ -34,6 +34,16 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
       return;
     }
 
+    // Strength validation
+    if (newPassword.length < 8) {
+      toast.error("Password must be at least 8 characters long.");
+      return;
+    }
+    if (!/[A-Za-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      toast.error("Password must contain both letters and numbers.");
+      return;
+    }
+
     setIsLoading(true);
     const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
 

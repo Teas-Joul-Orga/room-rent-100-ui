@@ -251,17 +251,20 @@ export default function AvailableRoomDetail() {
   const downPaymentAmount = room.base_rent_price * (downPaymentPercent / 100);
 
   const today = new Date().toISOString().split("T")[0];
-  const maxDate = (() => { const d = new Date(); d.setMonth(d.getMonth() + 2); return d.toISOString().split("T")[0]; })();
+  const maxDate = (() => { const d = new Date(); d.setDate(d.getDate() + 14); return d.toISOString().split("T")[0]; })();
 
-  const handleDateChange = (e) => {
-    const val = e.target.value;
+  const handleDateChange = (val) => {
+    if (!val) {
+      setDesiredDate("");
+      return;
+    }
     if (val < today) {
       toast.error("Move-in date cannot be in the past.");
       setDesiredDate("");
       return;
     }
     if (val > maxDate) {
-      toast.error("Move-in date must be within 2 months from today.");
+      toast.error("Move-in date must be within 14 days from today.");
       setDesiredDate("");
       return;
     }
@@ -482,9 +485,9 @@ export default function AvailableRoomDetail() {
                         Desired Move-in Date
                       </FormLabel>
                       <ChakraDatePicker selectedDate={desiredDate}
-                        onChange={(val) => setDesiredDate(val)}
-                        min={new Date().toISOString().split("T")[0]}
-                        max={(() => { const d = new Date(); d.setMonth(d.getMonth() + 2); return d.toISOString().split("T")[0]; })()}
+                        onChange={handleDateChange}
+                        min={today}
+                        max={maxDate}
                         bg={bg}
                         h="50px"
                         borderRadius="xl"
@@ -556,9 +559,9 @@ export default function AvailableRoomDetail() {
                 <FormControl isRequired>
                   <FormLabel color={textColor}>Desired Move-in Date</FormLabel>
                   <ChakraDatePicker selectedDate={desiredDate}
-                    onChange={(val) => setDesiredDate(val)}
-                    min={new Date().toISOString().split("T")[0]}
-                    max={(() => { const d = new Date(); d.setMonth(d.getMonth() + 2); return d.toISOString().split("T")[0]; })()}
+                    onChange={handleDateChange}
+                    min={today}
+                    max={maxDate}
                     bg={bg}
                     borderColor={borderColor}
                   />

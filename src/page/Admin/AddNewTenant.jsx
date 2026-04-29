@@ -172,6 +172,18 @@ const AddNewTenant = () => {
         setIsLoading(false);
         return;
       }
+
+      // Strength validation
+      if (formData.password.length < 8) {
+        hotToast.error("Password must be at least 8 characters long.");
+        setIsLoading(false);
+        return;
+      }
+      if (!/[A-Za-z]/.test(formData.password) || !/[0-9]/.test(formData.password)) {
+        hotToast.error("Password must contain both letters and numbers.");
+        setIsLoading(false);
+        return;
+      }
     }
 
     try {

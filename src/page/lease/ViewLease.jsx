@@ -128,6 +128,11 @@ export default function ViewLease() {
   const [renewForm, setRenewForm] = useState({ start_date: "", end_date: "", rent_amount: "" });
   const [isRenewing, setIsRenewing] = useState(false);
 
+  // Extend Lease modal
+  const { isOpen: isExtendOpen, onOpen: onExtendOpen, onClose: onExtendClose } = useDisclosure();
+  const [extendMonths, setExtendMonths] = useState("1");
+  const [isExtending, setIsExtending] = useState(false);
+
   // Terminate Lease modal
   const { isOpen: isTerminateOpen, onOpen: onTerminateOpen, onClose: onTerminateClose } = useDisclosure();
   const [isTerminating, setIsTerminating] = useState(false);
@@ -649,6 +654,37 @@ export default function ViewLease() {
     setTimeout(() => setIsPrintingContract(false), 1000);
   };
 
+  // Extend Lease
+  const handleExtendLease = async (e) => {
+    e.preventDefault();
+    setIsExtending(true);
+    try {
+      const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
+      const res = await fetch(`${API}/leases/${lease.uid}/extend`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ months: extendMonths }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || "Lease extended successfully!");
+        onExtendClose();
+        fetchLease();
+      } else {
+        toast.error(data.error || data.message || "Failed to extend lease");
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Network error");
+    } finally {
+      setIsExtending(false);
+    }
+  };
+
   // Renew Lease
   const handleRenewLease = async (e) => {
     e.preventDefault();
@@ -908,6 +944,16 @@ export default function ViewLease() {
                 {t("lease.renew_lease")}
               </Button>
             )}
+
+            <Button
+              leftIcon={<FiPlus />}
+              size="sm"
+              colorScheme="blue"
+              variant="solid"
+              onClick={onExtendOpen}
+            >
+              Extend
+            </Button>
 
             <Button
               leftIcon={<FiEdit2 />}
@@ -2543,6 +2589,53 @@ export default function ViewLease() {
                 onPayAllOpen();
              }}>Pay All Overdue</Button>
           </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* ===== EXTEND LEASE MODAL ===== */}
+      <Modal isOpen={isExtendOpen} onClose={onExtendClose} isCentered size="sm">
+        <ModalOverlay bg="blackAlpha.600" />
+        <ModalContent bg={cardBg} borderRadius="xl">
+          <form onSubmit={handleExtendLease}>
+            <ModalHeader color={textColor}>
+              <Flex align="center" gap={2}>
+                <FiPlus />
+                <Text>Extend Lease Duration</Text>
+              </Flex>
+            </ModalHeader>
+            <ModalCloseButton />
+            <ModalBody pb={6}>
+              <VStack spacing={4} align="stretch">
+                <Box bg={subCardBg} p={4} borderRadius="lg" border="1px solid" borderColor={borderColor}>
+                  <Text fontSize="xs" fontWeight="black" color="gray.400" mb={1}>CURRENT END DATE</Text>
+                  <Text fontSize="md" fontWeight="bold" color={textColor}>{fmtDate(lease.end_date)}</Text>
+                </Box>
+                
+                <FormControl isRequired>
+                  <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Extend By (Months)</FormLabel>
+                  <Select 
+                    bg={inputBg} 
+                    borderColor="blue.400" 
+                    value={extendMonths} 
+                    onChange={e => setExtendMonths(e.target.value)}
+                  >
+                    {[1, 2, 3, 4, 5, 6, 12, 24].map(m => (
+                      <option key={m} value={m}>{m} {m === 1 ? 'Month' : 'Months'}</option>
+                    ))}
+                  </Select>
+                  <Text fontSize="xs" color={mutedText} mt={2}>
+                    This will push the End Date out while keeping the original Start Date and all billing history.
+                  </Text>
+                </FormControl>
+              </VStack>
+            </ModalBody>
+            <ModalFooter>
+              <Button onClick={onExtendClose} variant="ghost" mr={3} size="sm">Cancel</Button>
+              <Button colorScheme="blue" type="submit" size="sm" isLoading={isExtending} leftIcon={<FiPlus />}>
+                Apply Extension
+              </Button>
+            </ModalFooter>
+          </form>
         </ModalContent>
       </Modal>
 
