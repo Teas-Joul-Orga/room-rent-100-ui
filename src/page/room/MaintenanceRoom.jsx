@@ -56,7 +56,8 @@ function MaintenanceRoom() {
   
   // Tenant Report Modal
   const [isReportOpen, setIsReportOpen] = useState(false);
-  const [reportForm, setReportForm] = useState({ title: "", description: "", priority: "normal", photo: null });
+  const [reportForm, setReportForm] = useState({ room_id: "", title: "", description: "", priority: "normal", photo: null });
+  const [activeLeases, setActiveLeases] = useState([]);
 
   // Admin Manual Create Modal
   const [isAdminCreateOpen, setIsAdminCreateOpen] = useState(false);
@@ -122,6 +123,13 @@ function MaintenanceRoom() {
         const data = await res.json();
         // Pagination wrapper for admin, requests key for tenant, or flat array fallback
         setRequests(data.data || data.requests || (Array.isArray(data) ? data : []));
+        
+        if (role === 'tenant' && data.activeLeases) {
+          setActiveLeases(data.activeLeases);
+          if (data.activeLeases.length === 1) {
+             setReportForm(prev => ({ ...prev, room_id: data.activeLeases[0].room_id.toString() }));
+          }
+        }
       }
     } catch (e) {
       console.error(e);
@@ -196,6 +204,7 @@ function MaintenanceRoom() {
     e.preventDefault();
     try {
       const formData = new FormData();
+      formData.append("room_id", reportForm.room_id);
       formData.append("title", reportForm.title);
       formData.append("description", reportForm.description);
       formData.append("priority", reportForm.priority);
@@ -210,7 +219,7 @@ function MaintenanceRoom() {
       if (res.ok) {
         toast.success("Maintenance issue reported");
         setIsReportOpen(false);
-        setReportForm({ title: "", description: "", priority: "normal", photo: null });
+        setReportForm({ room_id: activeLeases.length === 1 ? activeLeases[0].room_id.toString() : "", title: "", description: "", priority: "normal", photo: null });
         fetchRequests();
       } else {
         const d = await res.json();
@@ -573,6 +582,16 @@ function MaintenanceRoom() {
             <ModalHeader>{t("maintenance.report_title")}</ModalHeader>
             <ModalCloseButton />
             <ModalBody>
+              {activeLeases.length > 0 && (
+                <FormControl isRequired mb={4}>
+                  <FormLabel fontSize="sm" color={mutedText}>Select Room</FormLabel>
+                  <Select size="sm" bg={bg} value={reportForm.room_id} onChange={e => setReportForm({ ...reportForm, room_id: e.target.value })} placeholder="Choose your room">
+                    {activeLeases.map((lease) => (
+                      <option key={lease.id} value={lease.room_id}>{lease.room?.name || `Room ${lease.room_id}`}</option>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
               <FormControl isRequired mb={4}>
                 <FormLabel fontSize="sm" color={mutedText}>{t("maintenance.issue_title")}</FormLabel>
                 <Input size="sm" bg={bg} placeholder={t("maintenance.issue_placeholder")} value={reportForm.title} onChange={e => setReportForm({ ...reportForm, title: e.target.value })} />

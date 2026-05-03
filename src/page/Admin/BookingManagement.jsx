@@ -88,6 +88,7 @@ export default function AdminBookingManagement() {
   const [leaseDuration, setLeaseDuration] = useState("6");
   const [startDate, setStartDate] = useState("");
   const [isApproving, setIsApproving] = useState(false);
+  const [securityDepositPercent, setSecurityDepositPercent] = useState(100);
 
   const calculatedEndDate = React.useMemo(() => {
     if (!startDate || !leaseDuration) return "N/A";
@@ -107,6 +108,7 @@ export default function AdminBookingManagement() {
   useEffect(() => {
     fetchBookings();
     fetchNoShows();
+    fetchSettings();
 
     const channel = echo.channel('admin.bookings')
       .listen('BookingCreated', (e) => {
@@ -144,10 +146,22 @@ export default function AdminBookingManagement() {
     }
   };
 
+  const fetchSettings = async () => {
+    try {
+      const res = await api.get("/admin/settings");
+      if (res.data && res.data.finance_security_deposit_percent) {
+        setSecurityDepositPercent(Number(res.data.finance_security_deposit_percent.value));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleCreateLeaseClick = (booking) => {
     setSelectedBooking(booking);
-    setRentAmount(booking.room?.base_rent_price || "");
-    setSecurityDeposit(booking.room?.base_rent_price || "");
+    const basePrice = Number(booking.room?.base_rent_price || 0);
+    setRentAmount(basePrice || "");
+    setSecurityDeposit(basePrice ? Number((basePrice * (securityDepositPercent / 100)).toFixed(2)) : "");
     setLeaseDuration("6");
     setStartDate(booking.desired_move_in_date || new Date().toISOString().split('T')[0]);
     onOpen();
@@ -707,7 +721,15 @@ export default function AdminBookingManagement() {
                     <Input
                       type="number"
                       value={rentAmount}
-                      onChange={(e) => setRentAmount(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setRentAmount(val);
+                        if (val !== "") {
+                          setSecurityDeposit(Number((Number(val) * (securityDepositPercent / 100)).toFixed(2)));
+                        } else {
+                          setSecurityDeposit("");
+                        }
+                      }}
                       borderRadius="md"
                       bg={bg}
                     />

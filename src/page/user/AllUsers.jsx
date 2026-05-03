@@ -162,10 +162,6 @@ export default function AllUsers() {
       toast({ title: t("users.error"), description: "Password must be at least 8 characters long.", status: "error", duration: 3000 });
       return false;
     }
-    if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
-      toast({ title: t("users.error"), description: "Password must contain both letters and numbers.", status: "error", duration: 3000 });
-      return false;
-    }
     return true;
   };
 

@@ -527,6 +527,7 @@
     "subtitle": "Global configuration for your property management system",
     "save": "Save Changes",
     "saving": "Saving...",
+    "save_success": "Settings saved successfully",
     "nav": {
       "general": "General Info",
       "contact": "Contact Details",
@@ -581,7 +582,13 @@
       "down_payment_helper": "This percentage of the room's base rent will be required as a down payment when a tenant books a room.",
       "info_title": "How it works",
       "info_desc": "When a tenant submits a booking request, they will be required to pay a down payment equal to this percentage of the room's monthly rent. The admin can verify the payment status before approving the booking."
-    }
+    },
+    "backup_success": "Backup downloaded successfully",
+    "backup_failed": "Backup failed",
+    "restore_success": "Database restored successfully",
+    "restore_success_desc": "The system has been updated with the backup data.",
+    "restore_failed": "Restore failed",
+    "network_error_restore": "Network error during restore"
   },
   "profile_page": {
     "title": "My Profile",

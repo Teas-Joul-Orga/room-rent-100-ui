@@ -12,6 +12,10 @@ const echo = () => {
     const host = import.meta.env.VITE_REVERB_HOST || 'localhost';
     const port = import.meta.env.VITE_REVERB_PORT || 8080;
     const protocol = import.meta.env.VITE_REVERB_SCHEME || 'http';
+    
+    // Dynamically derive auth endpoint from API URL
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+    const authEndpoint = apiUrl.replace('/api/v1', '/api/broadcasting/auth');
 
     echoInstance = new Echo({
         broadcaster: 'reverb',
@@ -21,7 +25,7 @@ const echo = () => {
         wssPort: port,
         forceTLS: protocol === 'https',
         enabledTransports: ['ws', 'wss'],
-        authEndpoint: 'http://localhost:8000/api/broadcasting/auth',
+        authEndpoint: authEndpoint,
         auth: {
             headers: {
                 Authorization: `Bearer ${token}`,

@@ -3,7 +3,7 @@ import {
   Box, Flex, Text, Button,
   FormControl, FormLabel, Input, Select, SimpleGrid, useColorModeValue,
   Spinner, useToast, Heading, FormHelperText, InputGroup, InputLeftAddon,
-  Icon, Divider, Stack, VStack, HStack, Container, useDisclosure
+  Icon, Divider, Stack, VStack, HStack, Container, useDisclosure,InputRightAddon
 } from '@chakra-ui/react';
 import { 
   FiSave, FiGlobe, FiPhone, FiMail, FiMapPin, FiCreditCard, 
@@ -137,13 +137,13 @@ export default function Settings() {
       }, 500);
       
       toast({ 
-        title: 'Backup downloaded successfully', 
+        title: t('settings_page.backup_success', 'Backup downloaded successfully'), 
         status: 'success', 
         position: 'top-right' 
       });
     } catch (e) {
       toast({ 
-        title: `Backup failed`, 
+        title: t('settings_page.backup_failed', 'Backup failed'), 
         description: e.message, 
         status: 'error', 
         position: 'top-right',
@@ -179,18 +179,18 @@ export default function Settings() {
       const result = await res.json();
       if (res.ok) {
         toast({ 
-          title: 'Database restored successfully', 
-          description: 'The system has been updated with the backup data.',
+          title: t('settings_page.restore_success', 'Database restored successfully'), 
+          description: t('settings_page.restore_success_desc', 'The system has been updated with the backup data.'),
           status: 'success', 
           duration: 5000,
           position: 'top-right' 
         });
         fetchSettings();
       } else {
-        toast({ title: 'Restore failed', description: result.error, status: 'error', position: 'top-right' });
+        toast({ title: t('settings_page.restore_failed', 'Restore failed'), description: result.error, status: 'error', position: 'top-right' });
       }
     } catch (e) {
-      toast({ title: 'Network error during restore', status: 'error', position: 'top-right' });
+      toast({ title: t('settings_page.network_error_restore', 'Network error during restore'), status: 'error', position: 'top-right' });
     } finally {
       setRestoring(false);
       restoreDisc.onClose();
@@ -287,7 +287,13 @@ export default function Settings() {
                     <FormLabel fontWeight="black" fontSize="sm" color={mutedText}>{t('settings_page.contact.label_phone')}</FormLabel>
                     <InputGroup size="lg">
                       <InputLeftAddon borderLeftRadius="xl"><FiPhone /></InputLeftAddon>
-                      <Input name="contact_phone" value={settings.contact_phone || ''} onChange={handleChange} placeholder="+855 12 345 678" borderRadius="xl" focusBorderColor="blue.500" />
+                      <Input name="contact_phone" value={settings.contact_phone || ''} onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9+\s-]/g, '');
+                        const digitsOnly = val.replace(/[^0-9]/g, '');
+                        if (digitsOnly.length <= 10) {
+                          setSettings(prev => ({...prev, contact_phone: val}));
+                        }
+                      }} placeholder="+855 12 345 678" borderRadius="xl" focusBorderColor="blue.500" />
                     </InputGroup>
                   </FormControl>
                   <FormControl>
@@ -326,6 +332,14 @@ export default function Settings() {
                       <Input type="number" step="1" name="finance_exchange_rate" value={settings.finance_exchange_rate || ''} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500" />
                       <InputLeftAddon borderRightRadius="xl">KHR (៛)</InputLeftAddon>
                     </InputGroup>
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel fontWeight="black" fontSize="sm" color={mutedText}>Security Deposit (%)</FormLabel>
+                    <InputGroup size="lg">
+                      <Input type="number" step="1" min="0" name="finance_security_deposit_percent" value={settings.finance_security_deposit_percent !== undefined ? settings.finance_security_deposit_percent : '100'} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500" />
+                      <InputRightAddon borderRightRadius="xl" bg={useColorModeValue("gray.100", "gray.700")}><FiPercent /></InputRightAddon>
+                    </InputGroup>
+                    <FormHelperText fontSize="xs" color={mutedText}>Percentage of 1 month's rent (e.g., 100 = 1 month, 200 = 2 months).</FormHelperText>
                   </FormControl>
                 </SimpleGrid>
                 <Box bg={mainBg} p={8} borderRadius="2xl" border="1px dashed" borderColor={borderColor}>

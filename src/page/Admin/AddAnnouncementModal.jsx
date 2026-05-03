@@ -41,7 +41,9 @@ export default function AddAnnouncementModal({ isOpen, onClose, onSuccess }) {
           setLoading(false);
           return;
         }
-        formData.append('scheduled_at', dayjs(data.scheduled_at).format('YYYY-MM-DD HH:mm:ss'));
+        // Convert local time to UTC before sending to the backend
+        const utcDate = new Date(dayjs(data.scheduled_at).valueOf()).toISOString().replace('T', ' ').substring(0, 19);
+        formData.append('scheduled_at', utcDate);
       }
 
       if (photo) formData.append('photo', photo);

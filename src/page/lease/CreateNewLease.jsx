@@ -66,6 +66,9 @@ export default function CreateNewLease() {
   const today = new Date().toISOString().split("T")[0];
   const isRiel = (localStorage.getItem("currency") || sessionStorage.getItem("currency")) === "៛" || (localStorage.getItem("currency") || sessionStorage.getItem("currency")) === "KHR" || (localStorage.getItem("currency") || sessionStorage.getItem("currency")) === "Riel";
 
+  const [leaseData, setLeaseData] = useState(null);
+  const isLocked = isEdit && !isRenew && leaseData && (leaseData.payments_count > 0 || leaseData.utility_bills_count > 0);
+
   const steps = [
     { title: t("lease_create.step_tenant_room") || "Tenant & Room", description: t("lease_create.desc_tenant_room") || "Select Tenant & Room", icon: FiUser },
     { title: t("lease_create.step_details"), description: t("lease_create.desc_details"), icon: FiCalendar },
@@ -94,7 +97,7 @@ export default function CreateNewLease() {
     start_date: today,
     end_date: "",
     rent_amount: "",
-    security_deposit: 0,
+    security_deposit: 25,
     status: "active",
   });
 
@@ -135,6 +138,7 @@ export default function CreateNewLease() {
           const found = await leaseRes.json();
           const l = found.data || found;
           if (l) {
+            setLeaseData(l);
             let initialRoomId = l.room?.id || "";
 
             if (isRenew && initialRoomId) {
@@ -180,7 +184,7 @@ export default function CreateNewLease() {
         setFormData((prev) => ({ 
           ...prev, 
           rent_amount: room.base_rent_price || 0, 
-          security_deposit: room.base_rent_price || 0 
+          security_deposit: 25 
         }));
       }
     }
@@ -363,6 +367,17 @@ export default function CreateNewLease() {
                 '&::-webkit-scrollbar': { width: '0px' },
               }}
             >
+              {isLocked && (
+                <Box mb={6} p={4} bg="red.50" border="1px solid" borderColor="red.200" borderRadius="xl">
+                  <Flex align="center" gap={3}>
+                    <Icon as={FiShield} color="red.500" boxSize={5} />
+                    <Box>
+                      <Text fontWeight="black" fontSize="sm" color="red.700">Lease is Locked</Text>
+                      <Text fontSize="xs" color="red.600">This lease already has associated utility bills or payments. To modify lease terms (rent, dates, etc.), you must first delete all associated data.</Text>
+                    </Box>
+                  </Flex>
+                </Box>
+              )}
 
               {/* ===== STEP 1: TENANT & ROOM ===== */}
               {activeStep === 0 && (
@@ -735,6 +750,7 @@ export default function CreateNewLease() {
                     px={10}
                     type="submit"
                     isLoading={isSaving}
+                    isDisabled={isLocked}
                   >
                     {isEdit ? t("lease_create.btn_update") : t("lease_create.btn_confirm")}
                   </Button>

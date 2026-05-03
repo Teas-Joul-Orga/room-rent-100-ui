@@ -611,7 +611,13 @@ export default function AvailableRooms() {
                         <Input
                           placeholder="Your phone number"
                           value={contactPhone}
-                          onChange={(e) => setContactPhone(e.target.value)}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9+\s-]/g, '');
+                            const digitsOnly = val.replace(/[^0-9]/g, '');
+                            if (digitsOnly.length <= 10) {
+                              setContactPhone(val);
+                            }
+                          }}
                           bg={bg}
                           borderColor={borderColor}
                           borderRadius="md"

@@ -28,6 +28,8 @@ export default function TenantAnnouncements() {
   const mutedText = useColorModeValue("gray.500", "#b0b3b8");
   const btnHover = useColorModeValue("gray.100", "whiteAlpha.100");
   const primaryBlue = "#1877f2"; 
+  const urgentBg = useColorModeValue("red.50", "#3B1111");
+  const urgentBorder = useColorModeValue("red.300", "red.800");
 
   const [likedPosts, setLikedPosts] = useState({});
 
@@ -127,11 +129,11 @@ export default function TenantAnnouncements() {
             return (
               <Box 
                 key={a.id} 
-                bg={bg} 
+                bg={a.priority === 'urgent' ? urgentBg : bg} 
                 borderRadius="xl" 
                 shadow="sm" 
                 border="1px solid" 
-                borderColor={borderColor} 
+                borderColor={a.priority === 'urgent' ? urgentBorder : borderColor} 
                 overflow="hidden"
                 transition="all 0.2s"
               >

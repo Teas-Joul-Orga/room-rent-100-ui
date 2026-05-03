@@ -117,10 +117,6 @@ export default function TenantLease() {
   const { isOpen: isPastOpen, onToggle: onPastToggle } = useDisclosure();
   const { isOpen: isPayOpen, onOpen: onPayOpen, onClose: onPayClose } = useDisclosure();
   const { isOpen: isTxOpen, onOpen: onTxOpen, onClose: onTxClose } = useDisclosure();
-  const { isOpen: isExtOpen, onOpen: onExtOpen, onClose: onExtClose } = useDisclosure();
-
-  const [extForm, setExtForm] = useState({ duration_months: "6", notes: "" });
-  const [isSubmittingExt, setIsSubmittingExt] = useState(false);
 
   const bg = useColorModeValue("white", "#161b22");
   const borderColor = useColorModeValue("gray.200", "#30363d");
@@ -297,30 +293,6 @@ export default function TenantLease() {
     setTimeout(() => setIsPrintingContract(false), 1000);
   };
 
-  const handleRequestExtension = async (e) => {
-    e.preventDefault();
-    setIsSubmittingExt(true);
-    try {
-      const res = await fetch(`${API}/leases/${lease.id}/request-extension`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify(extForm),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        toast.success(data.message || "Extension request sent!");
-        onExtClose();
-        fetchLease();
-      } else {
-        toast.error(data.error || "Failed to send request");
-      }
-    } catch (err) {
-      toast.error("Network error");
-    } finally {
-      setIsSubmittingExt(false);
-    }
-  };
-
   const billIcon = useCallback((type) => {
     if (type === "electricity") return FiZap;
     if (type === "water") return FiDroplet;
@@ -411,21 +383,6 @@ export default function TenantLease() {
                 <Text fontSize="md" color="whiteAlpha.800" letterSpacing="wider" fontWeight="bold" mb={1}>Monthly Rent</Text>
                 <Heading size="2xl" fontWeight="bold">{fmt(lease.rent_amount)}</Heading>
                 <Flex direction={{ base: "column", md: "row" }} justify={{ md: "flex-end" }} gap={3} mt={4}>
-                  {(lease.status === "active" || lease.status === "expired") && (
-                    <Button 
-                      size="md" 
-                      colorScheme="whiteAlpha" 
-                      variant="outline" 
-                      rounded="full" 
-                      fontWeight="bold" 
-                      px={8} 
-                      w={{ base: "full", md: "auto" }} 
-                      onClick={onExtOpen} 
-                      leftIcon={<Icon as={FiPlus} />}
-                    >
-                      Request Extension
-                    </Button>
-                  )}
                   {(totalRentPaid < totalContractValue || unpaidBills.length > 0) && (
                   <Button size="md" colorScheme="blue" rounded="full" fontWeight="bold" px={8} w={{ base: "full", md: "auto" }} onClick={handleOpenPayment} shadow="lg" _hover={{ transform: 'translateY(-2px)', shadow: 'xl' }} transition="all 0.2s">
                     Pay with Bakong
@@ -966,58 +923,6 @@ export default function TenantLease() {
               </Flex>
             </ModalFooter>
           )}
-        </ModalContent>
-      </Modal>
-
-      {/* ══════════════════════════════════════════ */}
-      {/* ═══  REQUEST LEASE EXTENSION MODAL  ═══ */}
-      {/* ══════════════════════════════════════════ */}
-      <Modal isOpen={isExtOpen} onClose={onExtClose} isCentered>
-        <ModalOverlay backdropFilter="blur(5px)" bg="blackAlpha.600" />
-        <ModalContent bg={bg} borderRadius="2xl">
-          <form onSubmit={handleRequestExtension}>
-            <ModalHeader color={textColor}>Request Lease Extension</ModalHeader>
-            <ModalCloseButton />
-            <ModalBody>
-              <VStack spacing={4}>
-                <FormControl isRequired>
-                  <FormLabel fontSize="sm" color={mutedText}>Duration (Months)</FormLabel>
-                  <Select 
-                    value={extForm.duration_months} 
-                    onChange={e => setExtForm({...extForm, duration_months: e.target.value})}
-                    color={textColor}
-                    borderRadius="lg"
-                  >
-                    <option value="1">1 Month</option>
-                    <option value="3">3 Months</option>
-                    <option value="6">6 Months</option>
-                    <option value="12">12 Months (1 Year)</option>
-                    <option value="24">24 Months (2 Years)</option>
-                  </Select>
-                </FormControl>
-                <FormControl>
-                  <FormLabel fontSize="sm" color={mutedText}>Notes</FormLabel>
-                  <Textarea 
-                    placeholder="Any special requests?" 
-                    value={extForm.notes}
-                    onChange={e => setExtForm({...extForm, notes: e.target.value})}
-                    color={textColor}
-                    borderRadius="lg"
-                  />
-                </FormControl>
-                <Alert status="info" borderRadius="lg" fontSize="xs">
-                  <AlertIcon />
-                  This will extend your current lease period. All billing history will be preserved.
-                </Alert>
-              </VStack>
-            </ModalBody>
-            <ModalFooter>
-              <Button variant="ghost" mr={3} onClick={onExtClose}>Cancel</Button>
-              <Button colorScheme="blue" type="submit" isLoading={isSubmittingExt} borderRadius="lg">
-                Send Request
-              </Button>
-            </ModalFooter>
-          </form>
         </ModalContent>
       </Modal>
     </Box>

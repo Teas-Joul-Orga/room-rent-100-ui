@@ -91,14 +91,24 @@ export default function Leases() {
   const [rowsPerPage, setRowsPerPage] = useState(15);
   
   // Bulk Renew Modal
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen, onOpen, onClose: onBulkClose } = useDisclosure();
   const [bulkDates, setBulkDates] = useState({});
   const [isBulkRenewing, setIsBulkRenewing] = useState(false);
 
+  const onClose = () => {
+    setBulkDates({});
+    onBulkClose();
+  };
+
   // Delete Modal
-  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
+  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteCloseInternal } = useDisclosure();
   const [leaseToDelete, setLeaseToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const onDeleteClose = () => {
+    setLeaseToDelete(null);
+    onDeleteCloseInternal();
+  };
 
   useEffect(() => {
     const calculatePerPage = () => {
@@ -819,7 +829,17 @@ export default function Leases() {
                        <Td textAlign="right" py={5} px={6} onClick={(e) => e.stopPropagation()}>
                          <HStack justify="flex-end" spacing={2}>
                            <IconButton icon={<FiEye />} size="sm" variant="ghost" colorScheme="blue" onClick={() => navigate(`/dashboard/lease/view/${l.uid}`)} aria-label="View" />
-                           <IconButton icon={<FiEdit2 />} size="sm" variant="ghost" colorScheme="purple" onClick={() => navigate(`/dashboard/lease/edit/${l.uid}`)} aria-label="Edit" />
+                           <Tooltip label={(l.payments_count > 0 || l.utility_bills_count > 0) ? "Cannot edit lease with existing payments or bills" : "Edit Lease"}>
+                             <IconButton 
+                               icon={<FiEdit2 />} 
+                               size="sm" 
+                               variant="ghost" 
+                               colorScheme="purple" 
+                               onClick={() => navigate(`/dashboard/lease/edit/${l.uid}`)} 
+                               aria-label="Edit" 
+                               isDisabled={l.payments_count > 0 || l.utility_bills_count > 0}
+                             />
+                           </Tooltip>
                            <IconButton icon={<FiTrash2 />} size="sm" variant="ghost" colorScheme="red" onClick={() => handleDelete(l)} aria-label="Delete" />
                          </HStack>
                        </Td>

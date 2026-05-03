@@ -179,11 +179,6 @@ const AddNewTenant = () => {
         setIsLoading(false);
         return;
       }
-      if (!/[A-Za-z]/.test(formData.password) || !/[0-9]/.test(formData.password)) {
-        hotToast.error("Password must contain both letters and numbers.");
-        setIsLoading(false);
-        return;
-      }
     }
 
     try {
@@ -345,7 +340,13 @@ const AddNewTenant = () => {
                           <Input
                             name="phone"
                             value={formData.phone}
-                            onChange={handleChange}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/[^0-9+\s-]/g, '');
+                              const digitsOnly = val.replace(/[^0-9]/g, '');
+                              if (digitsOnly.length <= 10) {
+                                setFormData(prev => ({...prev, phone: val}));
+                              }
+                            }}
                             placeholder={t("tenant.phone_placeholder")}
                             bg={inputBg}
                             borderColor={borderColor}

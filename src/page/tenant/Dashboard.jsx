@@ -45,12 +45,7 @@ export default function TenantDashboard() {
   const { t } = useTranslation();
   const { colorMode } = useColorMode();
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const { isOpen: isExtOpen, onOpen: onExtOpen, onClose: onExtClose } = useDisclosure();
   
-  // Extension States
-  const [extForm, setExtForm] = useState({ duration_months: "6", notes: "" });
-  const [isSubmittingExt, setIsSubmittingExt] = useState(false);
-
   // Payment States
   const [selectedItems, setSelectedItems] = useState({ rent: true, utilities: [] });
   const [qrString, setQrString] = useState(null);
@@ -199,23 +194,6 @@ export default function TenantDashboard() {
     onClose();
   };
 
-  const handleRequestExtension = async (e) => {
-    e.preventDefault();
-    setIsSubmittingExt(true);
-    try {
-      const res = await api.post(`/tenant/leases/${selectedLease.id}/request-extension`, extForm);
-      if (res.data) {
-        toast.success(res.data.message || "Extension request sent!");
-        onExtClose();
-        fetchDashboardData();
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.error || "Failed to send request");
-    } finally {
-      setIsSubmittingExt(false);
-    }
-  };
-
   if (loading) {
     return (
       <Center h="70vh">
@@ -306,11 +284,6 @@ export default function TenantDashboard() {
                 <Button size="sm" variant="outline" colorScheme="whiteAlpha" rounded="full" leftIcon={<FiUser />} onClick={() => navigate("/dashboard/profile")}>
                   View Profile
                 </Button>
-                {selectedLease && (selectedLease.status === "active" || selectedLease.status === "expired") && (
-                  <Button size="sm" colorScheme="whiteAlpha" rounded="full" leftIcon={<Icon as={FiCalendar} />} onClick={onExtOpen}>
-                    Request Extension
-                  </Button>
-                )}
               </HStack>
             </Box>
           </Flex>

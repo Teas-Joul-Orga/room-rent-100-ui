@@ -94,6 +94,16 @@ export default function ViewLease() {
   // eslint-disable-next-line no-unused-vars
   const [lastReading, setLastReading] = useState(0);
 
+  // Delete Bill modal
+  const { isOpen: isDeleteBillOpen, onOpen: onDeleteBillOpen, onClose: onDeleteBillClose } = useDisclosure();
+  const [billToDelete, setBillToDelete] = useState(null);
+  const [isDeletingBill, setIsDeletingBill] = useState(false);
+
+  // Notify Bill modal
+  const { isOpen: isNotifyBillOpen, onOpen: onNotifyBillOpen, onClose: onNotifyBillClose } = useDisclosure();
+  const [billToNotify, setBillToNotify] = useState(null);
+  const [isSendingBillNotification, setIsSendingBillNotification] = useState(false);
+
   const isMetered = ["electricity", "water"].includes(billForm.type);
   const usage = isMetered ? Math.max(0, Number(billForm.current_reading || 0) - Number(billForm.previous_reading || 0)) : 0;
 
@@ -255,13 +265,20 @@ export default function ViewLease() {
     };
   }, [lease?.id, fetchLease]);
 
-  const handleDeleteBill = async (billId) => {
-    if (!window.confirm("Delete this utility bill?")) return;
+  const handleDeleteBillClick = (billId) => {
+    setBillToDelete(billId);
+    onDeleteBillOpen();
+  };
+
+  const confirmDeleteBill = async () => {
+    if (!billToDelete) return;
+    setIsDeletingBill(true);
     try {
-      const res = await fetch(`${API}/utility-bills/${billId}`, { method: "DELETE", headers: headers() });
-      if (res.ok) { toast.success("Bill deleted"); fetchLease(); }
+      const res = await fetch(`${API}/utility-bills/${billToDelete}`, { method: "DELETE", headers: headers() });
+      if (res.ok) { toast.success("Bill deleted"); fetchLease(); onDeleteBillClose(); }
       else toast.error("Failed to delete bill");
     } catch (e) { console.error(e);  toast.error("Network error"); }
+    finally { setIsDeletingBill(false); setBillToDelete(null); }
   };
 
   const handleSavePayment = async (e) => {
@@ -504,18 +521,7 @@ export default function ViewLease() {
 
         // Auto-print receipt
         if (data.payment_id) {
-          try {
-            const receiptRes = await fetch(`${API}/payments/print-receipt`, {
-              method: "POST",
-              headers: headers(),
-              body: JSON.stringify({ payment_ids: [data.payment_id] }),
-            });
-            if (receiptRes.ok) {
-              const blob = await receiptRes.blob();
-              const url = window.URL.createObjectURL(blob);
-              window.open(url, "_blank");
-            }
-          } catch (err) { console.error("Failed to auto-print receipt:", err); }
+          handlePrintReceipt(data.payment_id);
         }
       } else {
         toast.error(data.error || data.message || "Failed to pay bills");
@@ -576,17 +582,24 @@ export default function ViewLease() {
   };
 
   // Send Bill Notification
-  const handleSendNotification = async (billId) => {
-    if (!window.confirm("Send a reminder notification for this bill?")) return;
+  const handleSendNotificationClick = (billId) => {
+    setBillToNotify(billId);
+    onNotifyBillOpen();
+  };
+
+  const confirmSendNotification = async () => {
+    if (!billToNotify) return;
+    setIsSendingBillNotification(true);
     try {
-      const res = await fetch(`${API}/utility-bills/${billId}/notify`, {
+      const res = await fetch(`${API}/utility-bills/${billToNotify}/notify`, {
         method: "POST",
         headers: headers(),
       });
       const data = await res.json();
-      if (res.ok) toast.success(data.message || "Notification sent");
+      if (res.ok) { toast.success(data.message || "Notification sent"); onNotifyBillClose(); }
       else toast.error(data.error || "Failed to send notification");
     } catch (e) { console.error(e);  toast.error("Network error"); }
+    finally { setIsSendingBillNotification(false); setBillToNotify(null); }
   };
 
   // Print Invoice for selected bills
@@ -851,6 +864,9 @@ export default function ViewLease() {
     Math.max(1, Math.round((new Date(lease.end_date) - new Date(lease.start_date)) / (1000 * 60 * 60 * 24 * 30)))
   ) : 0;
   const totalRentPaid = lease ? (lease.payments || []).filter(p => p.type === "rent").reduce((s, p) => s + Number(p.amount_paid), 0) : 0;
+  const rentCycleBalance = lease ? (totalRentPaid % Number(lease.rent_amount) === 0 ? Number(lease.rent_amount) : Number(lease.rent_amount) - (totalRentPaid % Number(lease.rent_amount))) : 0;
+  
+  const totalDepositPaid = lease ? (lease.payments || []).filter(p => p.type === "deposit").reduce((s, p) => s + Number(p.amount_paid), 0) : 0;
   const unpaidBillsTotal = lease ? (lease.utility_bills || []).filter(b => b.status === "unpaid").reduce((s, b) => s + Number(b.amount), 0) : 0;
   
   const overdueBills = lease ? (lease.utility_bills || []).filter(b => b.status === "unpaid" && new Date(b.due_date) < new Date(new Date().setHours(0,0,0,0))) : [];
@@ -955,37 +971,40 @@ export default function ViewLease() {
               Extend
             </Button>
 
-            <Button
-              leftIcon={<FiEdit2 />}
-              size="sm"
-              colorScheme="gray"
-              onClick={() => {
-                setEditForm({
-                  tenant_id: lease.tenant?.id || "",
-                  room_id: lease.room?.id || "",
-                  start_date: lease.start_date ? lease.start_date.split("T")[0] : "",
-                  end_date: lease.end_date ? lease.end_date.split("T")[0] : "",
-                  rent_amount: toCurrent(lease.rent_amount),
-                  security_deposit: toCurrent(lease.security_deposit),
-                  status: lease.status || "active",
-                  deposit_status: lease.deposit_status || "unpaid",
-                });
-                setTenantSearch("");
-                setShowTenantDropdown(false);
-                onEditOpen();
-                const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
-                const h = { Authorization: `Bearer ${token}`, Accept: "application/json" };
-                Promise.all([
-                  fetch(`${API}/tenants?per_page=all`, { headers: h }),
-                  fetch(`${API}/rooms?per_page=all`, { headers: h }),
-                ]).then(async ([tRes, rRes]) => {
-                  if (tRes.ok) { const d = await tRes.json(); setAllTenants(d.data || d); }
-                  if (rRes.ok) { const d = await rRes.json(); setAllRooms(d.data || d); }
-                }).catch(err => console.error(err));
-              }}
-            >
-              {t("lease.edit_lease")}
-            </Button>
+            <Tooltip label={(lease.payments?.length > 0 || lease.utility_bills?.length > 0) ? "Cannot edit lease with existing payments or bills" : t("lease.edit_lease")}>
+              <Button
+                leftIcon={<FiEdit2 />}
+                size="sm"
+                colorScheme="gray"
+                isDisabled={lease.payments?.length > 0 || lease.utility_bills?.length > 0}
+                onClick={() => {
+                  setEditForm({
+                    tenant_id: lease.tenant?.id || "",
+                    room_id: lease.room?.id || "",
+                    start_date: lease.start_date ? lease.start_date.split("T")[0] : "",
+                    end_date: lease.end_date ? lease.end_date.split("T")[0] : "",
+                    rent_amount: toCurrent(lease.rent_amount),
+                    security_deposit: toCurrent(lease.security_deposit),
+                    status: lease.status || "active",
+                    deposit_status: lease.deposit_status || "unpaid",
+                  });
+                  setTenantSearch("");
+                  setShowTenantDropdown(false);
+                  onEditOpen();
+                  const token = (localStorage.getItem("token") || sessionStorage.getItem("token"));
+                  const h = { Authorization: `Bearer ${token}`, Accept: "application/json" };
+                  Promise.all([
+                    fetch(`${API}/tenants?per_page=all`, { headers: h }),
+                    fetch(`${API}/rooms?per_page=all`, { headers: h }),
+                  ]).then(async ([tRes, rRes]) => {
+                    if (tRes.ok) { const d = await tRes.json(); setAllTenants(d.data || d); }
+                    if (rRes.ok) { const d = await rRes.json(); setAllRooms(d.data || d); }
+                  }).catch(err => console.error(err));
+                }}
+              >
+                {t("lease.edit_lease")}
+              </Button>
+            </Tooltip>
 
             {/* Terminate — only for active leases that haven't expired */}
             {lease.status === "active" && new Date(lease.end_date) >= new Date(new Date().setHours(0,0,0,0)) && (
@@ -1084,10 +1103,10 @@ export default function ViewLease() {
                     display="inline-flex"
                     alignItems="center"
                     gap={1.5}
-                    colorScheme={lease.deposit_status === "held" ? "green" : lease.deposit_status === "refunded" ? "purple" : "orange"}
+                    colorScheme={lease.deposit_status === "held" ? "green" : (lease.deposit_status === "refunded" || lease.deposit_status === "partially_refunded") ? "purple" : "orange"}
                   >
-                    <Icon as={lease.deposit_status === "held" ? FiCheckCircle : lease.deposit_status === "refunded" ? FiRefreshCw : FiClock} boxSize={3} />
-                    {lease.deposit_status || "unpaid"}
+                    <Icon as={(lease.deposit_status === "held" || lease.deposit_status === "refunded") ? FiCheckCircle : lease.deposit_status === "partially_refunded" ? FiMinus : FiClock} boxSize={3} />
+                    {(lease.deposit_status || "unpaid").replace('_', ' ')}
                   </Badge>
                 </Box>
               </SimpleGrid>
@@ -1138,7 +1157,7 @@ export default function ViewLease() {
 
 
         {/* KPI Cards */}
-        <SimpleGrid columns={{ base: 1, md: 2, xl: 4 }} spacing={6} mb={6}>
+        <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} spacing={6} mb={6}>
           {/* Monthly Rent */}
           <Box bg={cardBg} p={8} borderRadius="xl" shadow="sm" border="1px solid" borderColor={borderColor}>
             <Flex justify="space-between" align="center" mb={2}>
@@ -1157,15 +1176,13 @@ export default function ViewLease() {
                 </Tooltip>
               )}
             </Flex>
-            <Heading size="xl" fontWeight="black" color={textColor}>{fmt(lease.rent_amount)}</Heading>
+            <Heading size="xl" fontWeight="black" color={textColor}>{fmt(rentCycleBalance)}</Heading>
             {totalRentPaid >= totalContractValue ? (
               <Text mt={4} fontSize="xs" fontWeight="black" color="green.600">
                 ✓ {t("lease.fully_paid")}
               </Text>
             ) : (
-              <Button mt={4} size="sm" colorScheme="blue" variant="link" leftIcon={<FiDollarSign />} onClick={() => { setPayForm({ ...payForm, type: "rent", amount_paid: toCurrent(lease.rent_amount), currency: (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$" }); onPayOpen(); }}>
-                {t("lease.record_payment")} →
-              </Button>
+              <Box h={4} />
             )}
           </Box>
 
@@ -1176,26 +1193,13 @@ export default function ViewLease() {
             </Badge>
             <Text fontSize="xs" fontWeight="black" color="gray.400" letterSpacing="wider" mb={2}>{t("lease.security_deposit")}</Text>
             <Heading size="xl" fontWeight="black" color={textColor}>{fmt(lease.security_deposit)}</Heading>
-            {(!lease.deposit_status || lease.deposit_status === "unpaid") && (
-              <Button mt={4} size="sm" colorScheme="green" variant="link" onClick={() => { setPayForm({ ...payForm, type: "deposit", amount_paid: toCurrent(lease.security_deposit), currency: (localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$" }); onPayOpen(); }}>
-                {t("lease.collect_deposit")} →
-              </Button>
-            )}
-            {lease.deposit_status === "held" && (
-              <Button mt={4} size="sm" colorScheme="orange" variant="link" onClick={() => { setRefundForm({ amount: toCurrent(lease.security_deposit), notes: "" }); onRefundOpen(); }}>
+            {totalDepositPaid > 0 && lease.deposit_status !== "refunded" && (
+              <Button mt={4} size="sm" colorScheme="orange" variant="link" onClick={() => { setRefundForm({ amount: toCurrent(totalDepositPaid), notes: "" }); onRefundOpen(); }}>
                 {t("lease.initiate_refund")} →
               </Button>
             )}
           </Box>
 
-          {/* Unpaid Utilities */}
-          <Box bg="gray.900" p={8} borderRadius="xl" shadow="xl">
-            <Text fontSize="xs" fontWeight="black" color="blue.400" letterSpacing="wider" mb={2}>{t("lease.unpaid_utilities")}</Text>
-            <Heading size="xl" fontWeight="black" color="white">{fmt(unpaidBillsTotal)}</Heading>
-            <Button mt={4} size="sm" color="blue.400" variant="link" _hover={{ color: "white" }}>
-               {t("lease.manage_bills")} →
-            </Button>
-          </Box>
 
           {/* Overdue Bills */}
           <Box bg={overdueBillsTotal > 0 ? dangerBg : cardBg} p={8} borderRadius="xl" shadow="sm" border="1px solid" borderColor={overdueBillsTotal > 0 ? "red.200" : borderColor}>
@@ -1391,13 +1395,15 @@ export default function ViewLease() {
                               <Td textAlign="right">
                                 <Flex justify="flex-end" gap={1}>
                                   {bill.status === "unpaid" && (
-                                    <Tooltip label="Send Reminder" hasArrow>
-                                      <IconButton icon={<FiBell />} size="xs" colorScheme="orange" variant="ghost" onClick={() => handleSendNotification(bill.id)} aria-label="Send notification" />
-                                    </Tooltip>
+                                    <>
+                                      <Tooltip label="Send Reminder" hasArrow>
+                                        <IconButton icon={<FiBell />} size="xs" colorScheme="orange" variant="ghost" onClick={() => handleSendNotificationClick(bill.uid)} aria-label="Send notification" />
+                                      </Tooltip>
+                                      <Tooltip label="Delete" hasArrow>
+                                        <IconButton icon={<FiTrash2 />} size="xs" colorScheme="red" variant="ghost" onClick={() => handleDeleteBillClick(bill.uid)} aria-label="Delete bill" />
+                                      </Tooltip>
+                                    </>
                                   )}
-                                  <Tooltip label="Delete" hasArrow>
-                                    <IconButton icon={<FiTrash2 />} size="xs" colorScheme="red" variant="ghost" onClick={() => handleDeleteBill(bill.id)} aria-label="Delete bill" />
-                                  </Tooltip>
                                 </Flex>
                               </Td>
                             </Tr>
@@ -1434,9 +1440,6 @@ export default function ViewLease() {
                         </MenuList>
                       </Menu>
                     )}
-                    <Button size="xs" colorScheme="blue" variant="link" leftIcon={<FiPlus />} onClick={onPayOpen}>
-                      {t("lease.new_entry")}
-                    </Button>
                   </Flex>
                 </Flex>
 
@@ -2111,7 +2114,8 @@ export default function ViewLease() {
               <SimpleGrid columns={1} spacing={4}>
                 <FormControl isRequired>
                   <FormLabel fontSize="sm" fontWeight="bold" color={mutedText}>Amount to Refund ({(localStorage.getItem("currency") || sessionStorage.getItem("currency")) || "$"})</FormLabel>
-                  <Input size="md" type="number" step="0.01" max={toCurrent(lease.security_deposit)} value={refundForm.amount} onChange={e => setRefundForm({ ...refundForm, amount: e.target.value })} />
+                  <Input size="md" type="number" step="0.01" max={toCurrent(totalDepositPaid)} value={refundForm.amount} onChange={e => setRefundForm({ ...refundForm, amount: e.target.value })} />
+                  <Text fontSize="xs" color="orange.600" mt={1}>Maximum refundable: {fmt(totalDepositPaid)}</Text>
                 </FormControl>
                 <FormControl>
                   <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Settlement Notes</FormLabel>
@@ -2442,7 +2446,7 @@ export default function ViewLease() {
                     <>
                       <FormControl>
                         <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Previous</FormLabel>
-                        <Input size="sm" isDisabled value={bill.previous_reading} bg={inputBg} />
+                        <Input size="sm" type="number" step="0.01" value={bill.previous_reading} bg={inputBg} borderColor={borderColor} onChange={e => handleRowChange(bill.uid, "previous_reading", e.target.value)} />
                       </FormControl>
                       <FormControl isRequired>
                         <FormLabel fontSize="xs" fontWeight="bold" color={mutedText}>Current</FormLabel>
@@ -2468,19 +2472,17 @@ export default function ViewLease() {
                   <FormControl>
                     <FormLabel fontSize="xs" visibility="hidden">Actions</FormLabel>
                     <Flex gap={2}>
-                      {index === 0 && (
+                      <Tooltip label="Remove this Utility" hasArrow>
+                        <Button size="sm" colorScheme="red" variant="ghost" onClick={() => handleRemovePendingBill(bill.uid)} isDisabled={pendingBills.length <= 1}>
+                          <FiMinus />
+                        </Button>
+                      </Tooltip>
+                      {index === pendingBills.length - 1 && (
                          <Tooltip label="Add Another Utility Row" hasArrow>
                            <Button size="sm" colorScheme="blue" onClick={handleAddBlankRow}>
                              <FiPlus />
                            </Button>
                          </Tooltip>
-                      )}
-                      {index > 0 && (
-                        <Tooltip label="Remove this Utility" hasArrow>
-                          <Button size="sm" colorScheme="red" variant="ghost" onClick={() => handleRemovePendingBill(bill.uid)}>
-                            <FiMinus />
-                          </Button>
-                        </Tooltip>
                       )}
                     </Flex>
                   </FormControl>
@@ -2636,6 +2638,52 @@ export default function ViewLease() {
               </Button>
             </ModalFooter>
           </form>
+        </ModalContent>
+      </Modal>
+
+      {/* ===== DELETE BILL MODAL ===== */}
+      <Modal isOpen={isDeleteBillOpen} onClose={onDeleteBillClose} isCentered size="sm">
+        <ModalOverlay bg="blackAlpha.600" />
+        <ModalContent bg={cardBg} borderRadius="xl">
+          <ModalHeader color="red.500">
+            <Flex align="center" gap={2}>
+              <FiTrash2 />
+              <Text>{t("common.delete", "Delete")} Utility Bill</Text>
+            </Flex>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <Text color={textColor}>Are you sure you want to delete this utility bill? This action cannot be undone.</Text>
+          </ModalBody>
+          <ModalFooter>
+            <Button onClick={onDeleteBillClose} variant="ghost" mr={3} size="sm">{t("common.cancel", "Cancel")}</Button>
+            <Button colorScheme="red" size="sm" onClick={confirmDeleteBill} isLoading={isDeletingBill} leftIcon={<FiTrash2 />}>
+              {t("common.delete", "Delete")} Bill
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* ===== NOTIFY BILL MODAL ===== */}
+      <Modal isOpen={isNotifyBillOpen} onClose={onNotifyBillClose} isCentered size="sm">
+        <ModalOverlay bg="blackAlpha.600" />
+        <ModalContent bg={cardBg} borderRadius="xl">
+          <ModalHeader color="orange.500">
+            <Flex align="center" gap={2}>
+              <FiBell />
+              <Text>Send Reminder</Text>
+            </Flex>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <Text color={textColor}>Are you sure you want to send a reminder notification for this bill?</Text>
+          </ModalBody>
+          <ModalFooter>
+            <Button onClick={onNotifyBillClose} variant="ghost" mr={3} size="sm">{t("common.cancel", "Cancel")}</Button>
+            <Button colorScheme="orange" size="sm" onClick={confirmSendNotification} isLoading={isSendingBillNotification} leftIcon={<FiBell />}>
+              Send Notification
+            </Button>
+          </ModalFooter>
         </ModalContent>
       </Modal>
 

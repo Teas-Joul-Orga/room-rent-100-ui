@@ -94,10 +94,6 @@ export default function ViewTenant() {
       toast({ title: "Error", description: "Password must be at least 8 characters long.", status: "error", duration: 3000 });
       return;
     }
-    if (!/[A-Za-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
-      toast({ title: "Error", description: "Password must contain both letters and numbers.", status: "error", duration: 3000 });
-      return;
-    }
 
     setLoadingPwd(true);
 

@@ -450,7 +450,7 @@ const Landing = () => {
         }}
       >
         {/* Floating Pill Navbar */}
-        <Flex position="fixed" top="85px" w="full" justify="center" zIndex={1100}>
+        <Flex position="absolute" top="20px" w="full" justify="center" zIndex={10}>
           <Flex bg="whiteAlpha.900" backdropFilter="blur(10px)" borderRadius="full" shadow="xl" p={1.5} align="center" border="1px solid" borderColor="whiteAlpha.500">
             <Button leftIcon={<FiHome />} colorScheme="blue" bg="blue.500" color="white" borderRadius="full" px={6} py={6} fontSize="15px" fontWeight="bold" _hover={{ bg: "blue.600" }} onClick={() => navigate('/')}>{t('nav.home')}</Button>
             <Button leftIcon={<FiSpeaker />} variant="ghost" color="gray.700" borderRadius="full" px={6} py={6} fontSize="15px" fontWeight="bold" _hover={{ bg: "blackAlpha.100" }} onClick={() => navigate('/announcements')}>{t('nav.announcement')}</Button>
@@ -973,7 +973,13 @@ const Landing = () => {
                         <Input
                           placeholder="Your phone number"
                           value={contactPhone}
-                          onChange={(e) => setContactPhone(e.target.value)}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9+\s-]/g, '');
+                            const digitsOnly = val.replace(/[^0-9]/g, '');
+                            if (digitsOnly.length <= 10) {
+                              setContactPhone(val);
+                            }
+                          }}
                           bg="gray.50"
                           borderColor="gray.200"
                           borderRadius="md"

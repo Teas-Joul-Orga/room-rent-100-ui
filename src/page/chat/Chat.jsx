@@ -81,13 +81,18 @@ export default function Chat() {
           if (tRes.ok) {
             const data = await tRes.json();
             // Filter out tenants without an active user account
-            const validContacts = data.filter(t => t.user).map(t => ({
-              id: t.user.id, // Must use user_id because Messages table links to users
-              name: t.name,
-              email: t.email,
-              photo: t.photo_path ? `http://localhost:8000/storage/${t.photo_path}` : null,
-              role: 'tenant'
-            }));
+            const validContacts = data.filter(t => t.user).map(t => {
+              const activeLease = t.leases?.find(l => l.status === 'active');
+              const roomName = activeLease?.room?.name || '';
+              return {
+                id: t.user.id, // Must use user_id because Messages table links to users
+                name: t.name,
+                email: t.email,
+                roomName: roomName,
+                photo: t.photo_path ? `http://localhost:8000/storage/${t.photo_path}` : null,
+                role: 'tenant'
+              };
+            });
             setContacts(validContacts);
           }
         } else {
@@ -308,8 +313,9 @@ export default function Chat() {
   };
 
   const filteredContacts = contacts.filter(c => 
-    c.name.toLowerCase().includes(contactSearch.toLowerCase()) || 
-    c.email.toLowerCase().includes(contactSearch.toLowerCase())
+    (c.name || '').toLowerCase().includes((contactSearch || '').toLowerCase()) || 
+    (c.email || '').toLowerCase().includes((contactSearch || '').toLowerCase()) ||
+    (c.roomName || '').toLowerCase().includes((contactSearch || '').toLowerCase())
   );
 
   // Sort contacts by most recent message and unread status

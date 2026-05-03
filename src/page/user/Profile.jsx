@@ -3,16 +3,18 @@ import {
   Box, Flex, Text, Heading, Avatar, VStack, HStack, Icon, 
   SimpleGrid, Divider, useColorModeValue, Container, Badge,
   Button, FormControl, FormLabel, Input, InputGroup, InputLeftAddon,
-  useToast, Spinner, Stack
+  useToast, Spinner, Stack, useDisclosure
 } from '@chakra-ui/react';
 import { 
   FiUser, FiMail, FiPhone, FiCalendar, FiShield, 
   FiMapPin, FiBriefcase, FiEdit2, FiSave, FiLock
 } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
+import ChangePasswordModal from '../../components/ChangePasswordModal';
 
 export default function Profile() {
   const { t } = useTranslation();
+  const { isOpen: isPasswordOpen, onOpen: onPasswordOpen, onClose: onPasswordClose } = useDisclosure();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -272,6 +274,7 @@ export default function Profile() {
                   color="blue.500" 
                   leftIcon={<FiLock />} 
                   justifyContent="flex-start"
+                  onClick={onPasswordOpen}
                 >
                   {t('profile_page.change_password')}
                 </Button>
@@ -312,7 +315,13 @@ export default function Profile() {
                   <FormLabel fontWeight="black" fontSize="xs" color={mutedText}>{t('profile_page.label_phone')}</FormLabel>
                   <InputGroup size="lg">
                     <InputLeftAddon borderLeftRadius="xl"><FiPhone /></InputLeftAddon>
-                    <Input name="phone" value={formData.phone} onChange={handleChange} borderRadius="xl" focusBorderColor="blue.500" />
+                    <Input name="phone" value={formData.phone} onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9+\s-]/g, '');
+                      const digitsOnly = val.replace(/[^0-9]/g, '');
+                      if (digitsOnly.length <= 10) {
+                        setFormData(prev => ({...prev, phone: val}));
+                      }
+                    }} borderRadius="xl" focusBorderColor="blue.500" />
                   </InputGroup>
                 </FormControl>
 
@@ -354,6 +363,9 @@ export default function Profile() {
 
         </SimpleGrid>
       </Container>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal isOpen={isPasswordOpen} onClose={onPasswordClose} />
     </Box>
   );
 }

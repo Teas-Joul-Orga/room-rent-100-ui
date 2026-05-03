@@ -325,7 +325,13 @@ export default function SignupForm() {
                       <Input
                         type="text"
                         value={form.phone}
-                        onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9+\s-]/g, '');
+                          const digitsOnly = val.replace(/[^0-9]/g, '');
+                          if (digitsOnly.length <= 10) {
+                            setForm({ ...form, phone: val });
+                          }
+                        }}
                         placeholder="012345678"
                         bg="gray.50"
                         color="gray.800"

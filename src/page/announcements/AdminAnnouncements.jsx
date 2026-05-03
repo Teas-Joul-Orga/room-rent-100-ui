@@ -133,12 +133,12 @@ export default function AdminAnnouncements() {
               return (
                 <Box 
                   key={a.uid || a.id} 
-                  bg="white" 
+                  bg={a.priority === 'urgent' ? "red.50" : "white"} 
                   p={8} 
                   borderRadius="2xl" 
                   shadow="sm" 
                   border="1px solid" 
-                  borderColor="gray.200"
+                  borderColor={a.priority === 'urgent' ? "red.300" : "gray.200"}
                 >
                   <Flex justify="space-between" align="flex-start" mb={5}>
                     <HStack spacing={3}>
@@ -146,6 +146,11 @@ export default function AdminAnnouncements() {
                       <VStack align="start" spacing={0}>
                         <HStack>
                           <Text fontWeight="bold" color="gray.800">Admin</Text>
+                          {a.priority === 'urgent' && (
+                            <Badge colorScheme="red" variant="solid" borderRadius="md" px={2} fontSize="10px">
+                              URGENT
+                            </Badge>
+                          )}
                           {a.is_hidden && (
                             <Badge colorScheme="gray" variant="solid" borderRadius="md" px={2} fontSize="10px">
                               Hidden

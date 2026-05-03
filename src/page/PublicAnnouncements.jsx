@@ -204,7 +204,7 @@ const PublicAnnouncements = () => {
         }}
       >
         {/* Floating Pill Navbar */}
-        <Flex position="fixed" top="85px" w="full" justify="center" zIndex={1100}>
+        <Flex position="absolute" top="20px" w="full" justify="center" zIndex={1100}>
           <Flex bg="whiteAlpha.900" backdropFilter="blur(10px)" borderRadius="full" shadow="xl" p={1.5} align="center" border="1px solid" borderColor="whiteAlpha.500">
             <Button leftIcon={<FiHome />} variant="ghost" color="gray.700" borderRadius="full" px={6} py={6} fontSize="15px" fontWeight="bold" _hover={{ bg: "blackAlpha.100" }} onClick={() => navigate('/')}>{t('nav.home')}</Button>
             <Button leftIcon={<FiSpeaker />} colorScheme="blue" bg="blue.500" color="white" borderRadius="full" px={6} py={6} fontSize="15px" fontWeight="bold" _hover={{ bg: "blue.600" }} onClick={() => navigate('/announcements')}>{t('nav.announcement')}</Button>
@@ -250,12 +250,12 @@ const PublicAnnouncements = () => {
               {announcements.map((announcement, index) => (
                 <MotionBox 
                   key={announcement.uid} 
-                  bg="white" 
+                  bg={announcement.priority === 'urgent' ? "red.50" : "white"} 
                   p={8} 
                   borderRadius="2xl" 
                   shadow="sm" 
                   border="1px solid" 
-                  borderColor="gray.200"
+                  borderColor={announcement.priority === 'urgent' ? "red.300" : "gray.200"}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
@@ -264,7 +264,14 @@ const PublicAnnouncements = () => {
                   <HStack spacing={3} mb={5}>
                     <Avatar size="md" name="Admin" bg="blue.500" color="white" />
                     <VStack align="start" spacing={0}>
-                      <Text fontWeight="bold" color="gray.800">Admin</Text>
+                      <HStack>
+                        <Text fontWeight="bold" color="gray.800">Admin</Text>
+                        {announcement.priority === 'urgent' && (
+                          <Badge colorScheme="red" variant="solid" borderRadius="md" px={2} fontSize="10px">
+                            URGENT
+                          </Badge>
+                        )}
+                      </HStack>
                       <Text fontSize="sm" color="gray.500">
                         {new Date(announcement.published_at).toLocaleDateString("en-US", { 
                           month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "numeric" 
